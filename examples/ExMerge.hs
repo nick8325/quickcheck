@@ -1,3 +1,4 @@
+{-# OPTIONS -fglasgow-exts #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -67,12 +68,6 @@ prop_Merge xs (ys :: [Int]) =
 
 --------------------------------------------------------------------------
 -- quantificiation
-
-newtype OrderedList a = Ordered [a]
-  deriving ( Show )
-
-instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
-  arbitrary = Ordered `fmap` orderedList
 
 --prop_Merge (Ordered xs) (Ordered (ys :: [Int])) =
 --  ordered (xs `merge` ys)

@@ -1,4 +1,4 @@
-{-# OPTIONS -fgenerics #-}
+{-# OPTIONS -fglasgow-exts #-}
 module Main where
 
 --------------------------------------------------------------------------

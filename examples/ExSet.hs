@@ -1,4 +1,4 @@
-{-# OPTIONS -fgenerics #-}
+{-# OPTIONS -fglasgow-exts #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -120,7 +120,7 @@ toSortedList s = toList' s []
 --------------------------------------------------------------------------
 -- generators
 
-instance (Ord a, Arbitrary a, ShrinkSub a) => Arbitrary (Set a) where
+instance (Ord a, Arbitrary a) => Arbitrary (Set a) where
   arbitrary = sized (arbSet Nothing Nothing)
    where
     arbSet mx my n =
@@ -140,9 +140,9 @@ instance (Ord a, Arbitrary a, ShrinkSub a) => Arbitrary (Set a) where
 
   shrink Empty            = []
   shrink t@(Node x s1 s2) = [ s1, s2 ]
-                         ++ [ t' | t' <- shrinkSub t, invariant t' ]
+                         ++ [ t' | x' <- shrink x, let t' = Node x' s1 s2, invariant t' ]
 
-instance (Ord a, ShrinkSub a) => ShrinkSub (Set a)
+-- instance (Ord a, ShrinkSub a) => ShrinkSub (Set a)
 
 --------------------------------------------------------------------------
 -- properties
@@ -221,6 +221,8 @@ main =
 --------------------------------------------------------------------------
 -- the end.
 
+{-
 -- (demanded by bug in GHC)
 instance ShrinkSub Int where
   shrinkSub' = undefined
+-}
