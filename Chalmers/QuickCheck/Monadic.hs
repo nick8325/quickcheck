@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fglasgow-exts #-}
 module Chalmers.QuickCheck.Monadic where
 
 --------------------------------------------------------------------------
@@ -130,12 +131,16 @@ monadicS run mp = MkGen $ \r n ->
   mp' = MkPropertyM (\k -> fmap MkIdM (unPropertyM mp (\a -> fmap unIdM (k a))))
 -}
 
+{-
+
+-- does not compile with GHC 6.6
 imperative :: (forall s. PropertyM (ST s) a) -> Property
 imperative m = MkGen $ \r n ->
   let MkPropertyM f = m
       MkGen g = f (const (return (return (property True))))
       MkGen q = runST (g r n)
    in q undefined undefined
+-}
 
 --------------------------------------------------------------------------
 -- the end.
