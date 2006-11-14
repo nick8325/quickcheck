@@ -1,9 +1,11 @@
+{-# OPTIONS -fglasgow-exts #-}
 module Main where
 
 --------------------------------------------------------------------------
 -- imports
 
-import QuickCheck
+
+import Chalmers.QuickCheck
 
 import Data.List
   ( sort
@@ -88,6 +90,7 @@ toSortedList s = toList' s []
 -- generators
 
 newtype ConcreteSet a = Concrete (Set a)
+  deriving Show
 
 instance (Ord a, Arbitrary a) => Arbitrary (ConcreteSet a) where
   arbitrary = Concrete `fmap` sized (arbSet Nothing Nothing)

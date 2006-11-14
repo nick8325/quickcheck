@@ -14,7 +14,8 @@ import Data.Char
   ( toUpper
   )
 
-import Set hiding ( elements )
+import Data.Set (Set)
+import qualified Data.Set as Set
 
 --------------------------------------------------------------------------
 -- types for lambda expressions
@@ -97,10 +98,10 @@ instance Arbitrary Exp where
 -- functions for lambda expressions
 
 free :: Exp -> Set Var
-free (Lam x a) = delete x (free a)
-free (App a b) = free a `union` free b
-free (Var x)   = unit x
-free (Con _)   = empty
+free (Lam x a) = Set.delete x (free a)
+free (App a b) = free a `Set.union` free b
+free (Var x)   = Set.singleton x
+free (Con _)   = Set.empty
 
 subst :: Var -> Exp -> Exp -> Exp
 subst x c (Var y)   | x == y = c
@@ -109,7 +110,7 @@ subst x c (App a b)          = App (subst x c a) (subst x c b)
 subst x c a                  = a
 
 fresh :: Var -> Set Var -> Var
-fresh x ys = head (filter (`notMember` ys) (x:varList))
+fresh x ys = head (filter (`Set.notMember` ys) (x:varList))
 
 rename :: Var -> Var -> Exp -> Exp
 rename x y a | x == y    = a
@@ -132,19 +133,19 @@ showResult x f =
 
 prop_SubstFreeNoVarCapture a x b =
   showResult (subst x b a) $ \subst_x_b_a ->
-    x `member` free_a ==>
-      free subst_x_b_a == (delete x free_a `union` free b)
+    x `Set.member` free_a ==>
+      free subst_x_b_a == (Set.delete x free_a `Set.union` free b)
  where
   free_a = free a
 
 prop_SubstNotFreeSame a x b =
   showResult (subst x b a) $ \subst_x_b_a ->
-    x `notMember` free a ==>
+    x `Set.notMember` free a ==>
       subst_x_b_a == a
 
 prop_SubstNotFreeSameVars a x b =
   showResult (subst x b a) $ \subst_x_b_a ->
-    x `notMember` free a ==>
+    x `Set.notMember` free a ==>
       free subst_x_b_a == free a
 
 main1 =
@@ -200,7 +201,7 @@ instance Arbitrary ClosedExp where
       n2 = n `div` 2
 
   shrink (Closed a) =
-    [ Closed a' | a' <- shrink a, isEmpty (free a') ]
+    [ Closed a' | a' <- shrink a, Set.null (free a') ]
 
 --------------------------------------------------------------------------
 -- properties for closed lambda expressions
@@ -212,7 +213,7 @@ isValue (App a b)         = isValue a && isValue b
 isValue _                 = True
 
 prop_ClosedExpIsClosed (Closed a) =
-  isEmpty (free a)
+  Set.null (free a)
 
 prop_EvalProducesValue (Closed a) =
   within 1000 $
