@@ -1,0 +1,63 @@
+#!/bin/sh
+
+# ---------------------------------------------------------------------
+# This script automatically updates QuickCheck with the latest version.
+# You need Koen's password at Chalmers to successfully run it :-)
+
+CTH_ROOT="koen@remote1.cs.chalmers.se:/users/cs/koen/CvsRoot"
+CTH_REP="QuickCheck"
+
+JDA_ROOT=`cat CVS/Root`
+JDA_REP=`cat CVS/Repository`
+
+COMMIT=no
+
+if [ "$1" = "--commit" ]
+then
+  COMMIT=yes
+fi
+
+# ---------------------------------------------------------------------
+# First, we pretend that this is a CVS checkout from the Chalmers
+# repository
+
+echo "==> Pretending we are at Chalmers ..."
+echo "$CTH_ROOT"           > CVS/Root
+echo "$CTH_ROOT"           > QuickCheck/CVS/Root
+
+echo "$CTH_REP"            > CVS/Repository
+echo "$CTH_REP/QuickCheck" > QuickCheck/CVS/Repository
+
+cp CVS/Entries     CVS/Entries-JDA
+cp CVS/Entries-CTH CVS/Entries
+cp QuickCheck/CVS/Entries     QuickCheck/CVS/Entries-JDA
+cp QuickCheck/CVS/Entries-CTH QuickCheck/CVS/Entries
+
+# ---------------------------------------------------------------------
+# Now, we do a CVS update, where Koen's password is needed
+
+if [ "$COMMIT" = yes ]
+then
+  echo "==> Committing ..."
+  cvs commit -m apa
+else
+  echo "==> Updating ..."
+  cvs update
+fi
+
+# ---------------------------------------------------------------------
+# Now, we set everything back
+
+echo "==> Phew, we are back at Jasper again!"
+echo "$JDA_ROOT"           > CVS/Root
+echo "$JDA_ROOT"           > QuickCheck/CVS/Root
+
+echo "$JDA_REP"            > CVS/Repository
+echo "$JDA_REP/QuickCheck" > QuickCheck/CVS/Repository
+
+cp CVS/Entries     CVS/Entries-CTH
+cp CVS/Entries-JDA CVS/Entries
+cp QuickCheck/CVS/Entries     QuickCheck/CVS/Entries-CTH
+cp QuickCheck/CVS/Entries-JDA QuickCheck/CVS/Entries
+
+
