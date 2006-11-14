@@ -1,4 +1,4 @@
-{-# OPTIONS -fglasgow-exts -fgenerics #-}
+{-# OPTIONS -fglasgow-exts #-}
 module Chalmers.QuickCheck.Arbitrary
   ( Arbitrary(..)
   , CoArbitrary(..)
@@ -275,11 +275,13 @@ class CoArbitrary a where
   -- coarbitrary
   coarbitrary :: a -> Gen c -> Gen c
 
+{-
   -- GHC definition:
   coarbitrary{| Unit |}    Unit      = id
   coarbitrary{| a :*: b |} (x :*: y) = coarbitrary x >< coarbitrary y
   coarbitrary{| a :+: b |} (Inl x)   = variant 0    . coarbitrary x
   coarbitrary{| a :+: b |} (Inr y)   = variant (-1) . coarbitrary y
+-}
 
 (><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a) 
 (><) f g gen =
