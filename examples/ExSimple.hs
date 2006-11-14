@@ -4,7 +4,7 @@ module Main where
 -- imports
 
 --import Debug.QuickCheck
-import QuickCheck
+import Chalmers.QuickCheck
 
 --------------------------------------------------------------------------
 -- example 1

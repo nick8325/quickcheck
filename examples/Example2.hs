@@ -4,11 +4,11 @@ module Main where
 -- imports
 
 -- QuickCheck
-import QuickCheck.Gen
-import QuickCheck.Arbitrary
-import QuickCheck.Property
-import QuickCheck.Test
-import QuickCheck.Monadic
+import Chalmers.QuickCheck.Gen
+import Chalmers.QuickCheck.Arbitrary
+import Chalmers.QuickCheck.Property
+import Chalmers.QuickCheck.Test
+import Chalmers.QuickCheck.Monadic
 
 -- other
 import Control.Monad.ST
