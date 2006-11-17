@@ -1,12 +1,12 @@
-module Chalmers.QuickCheck.Property where
+module Test.QuickCheck.Property where
 
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck.Gen
-import Chalmers.QuickCheck.Arbitrary
-import Chalmers.QuickCheck.Text( showErr )
-import Chalmers.QuickCheck.Exception
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Text( showErr )
+import Test.QuickCheck.Exception
 
 import Control.Concurrent
   ( forkIO

@@ -1,8 +1,8 @@
 module ExFol where
 
-import Chalmers.QuickCheck
-import Chalmers.QuickCheck.Gen
-import Chalmers.QuickCheck.Monadic
+import Test.QuickCheck
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Monadic
 
 import List
 import System

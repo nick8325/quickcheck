@@ -4,8 +4,8 @@ module Main where
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck
-import Chalmers.QuickCheck.Text
+import Test.QuickCheck
+import Test.QuickCheck.Text
 
 import Data.List
   ( sort

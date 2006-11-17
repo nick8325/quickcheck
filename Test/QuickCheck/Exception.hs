@@ -1,4 +1,4 @@
-module Chalmers.QuickCheck.Exception where
+module Test.QuickCheck.Exception where
 
 import Control.Exception
   ( evaluate

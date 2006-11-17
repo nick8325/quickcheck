@@ -5,7 +5,7 @@ module Main where
 -- imports
 
 
-import Chalmers.QuickCheck
+import Test.QuickCheck
 
 import Data.List
   ( sort

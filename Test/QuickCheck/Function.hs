@@ -1,4 +1,4 @@
-module Chalmers.QuickCheck.Function
+module Test.QuickCheck.Function
   -- "magic" functions
   ( Function(..) -- :: * -> * -> *; Show, Arbitrary
   , function     -- :: (a -> b) -> Function a b
@@ -14,9 +14,9 @@ module Chalmers.QuickCheck.Function
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck.Gen
-import Chalmers.QuickCheck.Arbitrary
-import Chalmers.QuickCheck.Property
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Property
 
 import Data.IORef
 import List

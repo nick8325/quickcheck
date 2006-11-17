@@ -1,12 +1,12 @@
-module Chalmers.QuickCheck.Test where
+module Test.QuickCheck.Test where
 
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck.Gen
-import Chalmers.QuickCheck.Property
-import Chalmers.QuickCheck.Text
-import Chalmers.QuickCheck.Exception
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Property
+import Test.QuickCheck.Text
+import Test.QuickCheck.Exception
 
 import System.Random
   ( RandomGen(..)

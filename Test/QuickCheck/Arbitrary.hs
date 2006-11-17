@@ -1,5 +1,5 @@
 {-# OPTIONS -fglasgow-exts #-}
-module Chalmers.QuickCheck.Arbitrary
+module Test.QuickCheck.Arbitrary
   ( Arbitrary(..)
   , CoArbitrary(..)
   
@@ -34,7 +34,7 @@ module Chalmers.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck.Gen
+import Test.QuickCheck.Gen
 
 import Data.Generics
   ( (:*:)(..)

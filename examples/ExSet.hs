@@ -4,7 +4,7 @@ module Main where
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck
+import Test.QuickCheck
 
 import Text.Show.Functions
 import Data.List

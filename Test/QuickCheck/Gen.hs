@@ -1,4 +1,4 @@
-module Chalmers.QuickCheck.Gen where
+module Test.QuickCheck.Gen where
 
 --------------------------------------------------------------------------
 -- imports

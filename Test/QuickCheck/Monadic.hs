@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
-module Chalmers.QuickCheck.Monadic where
+module Test.QuickCheck.Monadic where
 
 --------------------------------------------------------------------------
 -- imports
 
-import Chalmers.QuickCheck.Gen
-import Chalmers.QuickCheck.Property
-import Chalmers.QuickCheck.Arbitrary
+import Test.QuickCheck.Gen
+import Test.QuickCheck.Property
+import Test.QuickCheck.Arbitrary
 
 import Control.Monad
   ( liftM

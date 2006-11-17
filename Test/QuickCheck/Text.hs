@@ -1,4 +1,4 @@
-module Chalmers.QuickCheck.Text
+module Test.QuickCheck.Text
   ( Str(..)
   , ranges
   

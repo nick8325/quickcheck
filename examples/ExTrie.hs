@@ -4,8 +4,8 @@ module Main where
 -- imports
 
 --import Debug.QuickCheck
-import Chalmers.QuickCheck
-import Chalmers.QuickCheck.Text
+import Test.QuickCheck
+import Test.QuickCheck.Text
 
 import Data.Generics
 
