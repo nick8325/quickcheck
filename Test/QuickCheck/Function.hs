@@ -1,13 +1,13 @@
+-- | Uses magic to show and shrink functions.
 module Test.QuickCheck.Function
-  -- "magic" functions
-  ( Function(..) -- :: * -> * -> *; Show, Arbitrary
-  , function     -- :: (a -> b) -> Function a b
-  , getTable     -- :: Function a b -> IO [(a,b)]
-  , showTable    -- :: [(a,b)] -> String
+  ( 
+    -- * \"Magic\" functions
+    Function
+  , function, getFunction
+  , getTable, showTable
   
-  -- monotonic functions
-  , MonotonicFunction(..)         -- :: *; Show, Arbitrary
-  , StrictlyMonotonicFunction(..) -- :: *; Show, Arbitrary
+  -- * Generating monotonic functions
+  , MonotonicFunction(..), StrictlyMonotonicFunction(..)
   )
  where
 
@@ -26,9 +26,9 @@ import System.IO.Unsafe
   )
 
 --------------------------------------------------------------------------
--- Function _ f: keeps track of arguments that f is applied to,
---               so that f can be shown and shrunk
-
+-- | Functions from @a@ to @b@ which keep track of arguments
+-- that they are applied to. This allows showing function tables
+-- and shrinking functions.
 data Function a b = Function (FunctionTable a b) (a -> b)
 
 newtype FunctionTable a b = MkTable (IORef [(a,b)])
@@ -43,6 +43,9 @@ function f =
              do tab <- readIORef ref
                 writeIORef ref ((x,y):tab)
                 return y
+
+getFunction :: Function a b -> (a -> b)
+getFunction (Function _ f) = f
 
 getTable :: Function a b -> IO [(a,b)]
 getTable (Function (MkTable ref) _) =
@@ -85,16 +88,14 @@ instance (Eq a, CoArbitrary a, Arbitrary b) => Arbitrary (Function a b) where
 --------------------------------------------------------------------------
 -- monotonicity
 
--- Monotonic fun: guarantees that fun is monotonic
-
+-- | Monotonic fun: guarantees that fun is monotonic.
 newtype MonotonicFunction = Monotonic (Function Int Int)
  deriving ( Show )
 
 instance Arbitrary MonotonicFunction where
   arbitrary = Monotonic `fmap` arbMonotonicFunction (\(NonNegative x) -> x)
 
--- StrictlyMonotonic fun: guarantees that fun is strictly monotonic
-
+-- | StrictlyMonotonic fun: guarantees that fun is strictly monotonic.
 newtype StrictlyMonotonicFunction = StrictlyMonotonic (Function Int Int)
  deriving ( Show )
 

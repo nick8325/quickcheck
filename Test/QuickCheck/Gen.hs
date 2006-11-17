@@ -20,8 +20,10 @@ import Control.Monad.Reader()
   -- 2005-09-16:
   -- GHC gives a warning for this. I reported this as a bug. /Koen
 
+-- * Test case generation
+
 --------------------------------------------------------------------------
--- type Gen
+-- ** Generator type
 
 newtype Gen a = MkGen{ unGen :: StdGen -> Int -> a }
 
@@ -41,8 +43,9 @@ instance Monad Gen where
     )
 
 --------------------------------------------------------------------------
--- primitive generator combinators
+-- ** Primitive generator combinators
 
+-- | Modifies a generator using an integer seed.
 variant :: Integral n => n -> Gen a -> Gen a
 variant k (MkGen m) = MkGen (\r n -> m (var k r) n)
  where
@@ -52,18 +55,24 @@ variant k (MkGen m) = MkGen (\r n -> m (var k r) n)
    where
     k' = k `div` 2
 
+-- | Used to construct generators that depend on the size parameter.
 sized :: (Int -> Gen a) -> Gen a
 sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 
+-- | Overrides the size parameter. Returns a generator which uses
+-- the given size instead of the runtime-size parameter.
 resize :: Int -> Gen a -> Gen a
 resize n (MkGen m) = MkGen (\r _ -> m r n)
 
+-- | Generates a random element in the given inclusive range.
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
+-- | Promotes a generator to a generator of monadic values.
 promote :: Monad m => m (Gen a) -> Gen (m a)
 promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 
+-- | Generates some example values and print them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
 sample (MkGen m) =
   do rnd <- newStdGen
@@ -71,8 +80,9 @@ sample (MkGen m) =
      sequence_ [ print (m r n) | (r,n) <- rnds rnd `zip` [1..10] ]
 
 --------------------------------------------------------------------------
--- common generator combinators
+-- ** Common generator combinators
 
+-- | Generates a value that satisfies a predicate.
 suchThat :: Gen a -> (a -> Bool) -> Gen a
 gen `suchThat` p =
   do mx <- gen `suchThatMaybe` p
@@ -80,6 +90,7 @@ gen `suchThat` p =
        Just x  -> return x
        Nothing -> sized (\n -> resize (n+1) (gen `suchThat` p))
 
+-- | Tries to generate a value that satisfies a predicate.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)
 gen `suchThatMaybe` p = sized (try 0 . max 1) 
  where
@@ -87,10 +98,14 @@ gen `suchThatMaybe` p = sized (try 0 . max 1)
   try k n = do x <- resize (2*k+n) gen
                if p x then return (Just x) else try (k+1) (n-1)
 
+-- | Randomly uses one of the given generators. The input list
+-- must be non-empty.
 oneof :: [Gen a] -> Gen a
 oneof [] = error "QuickCheck.oneof used with empty list"
 oneof gs = choose (0,length gs - 1) >>= (gs !!)
 
+-- | Chooses one of the given generators, with a weighted random distribution.
+-- The input list must be non-empty.
 frequency :: [(Int, Gen a)] -> Gen a
 frequency [] = error "QuickCheck.frequency used with empty list"
 frequency xs = choose (1, tot) >>= (`pick` xs)
@@ -102,10 +117,15 @@ frequency xs = choose (1, tot) >>= (`pick` xs)
     | otherwise = pick (n-k) xs
   pick _ _  = error "QuickCheck.pick used with empty list"
 
+-- | Generates of the given values. The input list must be non-empty.
 elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
+-- | Takes a list of elements of increasing size, and chooses
+-- among an initial segment of the list. The size of this initial
+-- segment increases with the size parameter.
+-- The input list must be non-empty.
 growingElements :: [a] -> Gen a
 growingElements [] = error "QuickCheck.growingElements used with empty list"
 growingElements xs = sized $ \n -> elements (take (1 `max` size n) xs)
@@ -121,16 +141,21 @@ growingElements xs = sized $ \n -> elements (take (1 `max` (n * k `div` 100)) xs
   k = length xs
 -}
 
+-- | Generates a list of random length. The maximum length depends on the
+-- size parameter.
 listOf :: Gen a -> Gen [a]
 listOf gen = sized $ \n ->
   do k <- choose (0,n)
      vectorOf k gen
 
+-- | Generates a non-empty list of random length. The maximum length 
+-- depends on the size parameter.
 listOf1 :: Gen a -> Gen [a]
 listOf1 gen = sized $ \n ->
   do k <- choose (1,1 `max` n)
      vectorOf k gen
 
+-- | Generates a list of the given length.
 vectorOf :: Int -> Gen a -> Gen [a]
 vectorOf k gen = sequence [ gen | _ <- [1..k] ]
 

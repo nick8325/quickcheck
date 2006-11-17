@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
+
+-- | Allows testing of monadic values.
 module Test.QuickCheck.Monadic where
 
 --------------------------------------------------------------------------

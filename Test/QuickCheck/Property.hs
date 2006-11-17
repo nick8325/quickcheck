@@ -31,7 +31,7 @@ infixr 0 ==>
 infixr 1 .&., .&&.
 
 --------------------------------------------------------------------------
--- type Property, Testable
+-- * Property and Testable types
 
 type Property = Gen Prop
 
@@ -57,13 +57,13 @@ instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
 
 --------------------------------------------------------------------------
--- type Prop
+-- ** Type Prop
 
 -- is this the right level to be abstract at?
 
 newtype Prop = MkProp{ unProp :: Rose (IO Result) }
 
--- type Rose
+-- ** type Rose
 
 data Rose a = MkRose a [Rose a]
 
@@ -81,7 +81,7 @@ instance Monad Rose where
   return x = MkRose x []
   m >>= k  = join (fmap k m)
 
--- type Result
+-- ** Result type
 
 data Result
   = MkResult
@@ -111,7 +111,7 @@ succeeded     = result{ ok = Just True }
 rejected      = result{ ok = Nothing }
 
 --------------------------------------------------------------------------
--- lifting and mapping functions
+-- ** Lifting and mapping functions
 
 liftBool :: Bool -> Property
 liftBool b = liftResult $
@@ -156,7 +156,7 @@ mapProp :: Testable prop => (Prop -> Prop) -> prop -> Property
 mapProp f = fmap f . property 
 
 --------------------------------------------------------------------------
--- property combinators
+-- ** Property combinators
 
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
 mapSize f p = sized ((`resize` property p) . f)

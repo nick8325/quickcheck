@@ -1,24 +1,29 @@
 {-# OPTIONS -fglasgow-exts #-}
 module Test.QuickCheck.Arbitrary
-  ( Arbitrary(..)
+  ( 
+  -- * Arbitrary and CoArbitrary classes.
+    Arbitrary(..)
   , CoArbitrary(..)
   
-  -- helper functions for Arbitrary instances
+  -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral   -- :: Num a => Gen a
   , arbitrarySizedFractional -- :: Fractional a => Gen a
   , arbitraryBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitraryBoundedRandom   -- :: (Bounded a, Random a) => Gen a
-  , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
-  , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
+  -- ** Helper functions for implementing shrink
   , shrinkNothing            -- :: a -> [a]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
+  -- ** Helper functions for implementing coarbitrary
+  , (><)
+  , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
+  , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
   
-  -- some generators
+  -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
   , orderedList -- :: (Ord a, Arbitrary a) => Gen [a]
 
-  -- some type-level modifiers
+  -- ** Type-level modifiers for changing generator behavior
   , Blind(..)
   , Fixed(..)
   , OrderedList(..)
@@ -75,14 +80,16 @@ import Control.Monad
   )
 
 --------------------------------------------------------------------------
--- class Arbitrary
+-- ** class Arbitrary
 
+-- | Random generation and shrinking of values.
 class Arbitrary a where
-  -- arbitrary
+  -- | A generator for values of the given type.
   arbitrary :: Gen a
   arbitrary = error "no default generator"
   
-  -- shrinking
+  -- | Produces a (possibly) empty list of all the possible
+  -- immediate shrinks of the given value.
   shrink :: a -> [a]
   shrink _ = []
 
@@ -212,14 +219,18 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
--- numeric arbitrary
+-- ** Helper functions for implementing arbitrary
 
+-- | Generates an integral number. The number can be positive or negative
+-- and its maximum absolute value depends on the size parameter.
 arbitrarySizedIntegral :: Num a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
     let n' = toInteger n in
       fmap fromInteger (choose (-n', n'))
 
+-- | Generates a fractional number. The number can be positive or negative
+-- and its maximum absolute value depends on the size parameter.
 arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n ->
@@ -230,6 +241,8 @@ arbitrarySizedFractional =
  where
   precision = 9999999999999 :: Integer
 
+-- | Generates an integral number. The number is chosen from the entire
+-- range of the type.
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral =
   do let mn = minBound
@@ -237,14 +250,18 @@ arbitraryBoundedIntegral =
      n <- choose (toInteger mn, toInteger mx)
      return (fromInteger n `asTypeOf` mn)
 
+-- | Generates an element of a bounded type. The element is
+-- chosen from the entire range of the type.
 arbitraryBoundedRandom :: (Bounded a, Random a) => Gen a
 arbitraryBoundedRandom = choose (minBound,maxBound)
 
--- shrink
+-- ** Helper functions for implementing shrink
 
+-- | Returns no shrinking alternatives. 
 shrinkNothing :: a -> [a]
 shrinkNothing _ = []
 
+-- | Shrink an integral number.
 shrinkIntegral :: Integral a => a -> [a]
 shrinkIntegral x = 
   nub $
@@ -257,6 +274,7 @@ shrinkIntegral x =
  where
   x << y = abs x < abs y
 
+-- | Shrink a fraction.
 shrinkRealFrac :: RealFrac a => a -> [a]
 shrinkRealFrac x =
   nub $
@@ -271,10 +289,16 @@ shrinkRealFrac x =
   x << y = abs x < abs y
 
 --------------------------------------------------------------------------
--- CoArbitrary
+-- ** CoArbitrary
 
+-- | Needed for random generation of functions.
 class CoArbitrary a where
-  -- coarbitrary
+  -- | Used to generate a function of type @a -> c@. The implementation
+  -- should use the first argument to perturb the random generator
+  -- given as the second argument. the returned generator 
+  -- is then used to generate the function result.
+  -- You can often use 'variant' and '(><)' to implement 
+  -- 'coarbitrary'.
   coarbitrary :: a -> Gen c -> Gen c
 
 {-
@@ -285,6 +309,8 @@ class CoArbitrary a where
   coarbitrary{| a :+: b |} (Inr y)   = variant (-1) . coarbitrary y
 -}
 
+-- | Combine two generator perturbing functions, for example the 
+-- results of calls to 'variant' or 'coarbitrary'.
 (><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a) 
 (><) f g gen =
   do n <- arbitrary
@@ -367,35 +393,37 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
--- numeric coarbitrary
+-- ** Helpers for implementing coarbitrary
 
+-- | A 'coarbitrary' implementation for integral numbers.
 coarbitraryIntegral :: Integral a => a -> Gen b -> Gen b
 coarbitraryIntegral = variant
 
+-- | A 'coarbitrary' implementation for real numbers.
 coarbitraryReal :: Real a => a -> Gen b -> Gen b
 coarbitraryReal x = coarbitrary (toRational x)
 
--- coarbitrary helper for lazy people :-)
-
+-- | 'coarbitrary' helper for lazy people :-).
 coarbitraryShow :: Show a => a -> Gen b -> Gen b
 coarbitraryShow x = coarbitrary (show x)
 
 --------------------------------------------------------------------------
--- arbitrary generators
+-- ** arbitrary generators
 
 -- these are here and not in Gen because of the Arbitrary class constraint
 
+-- | Generate a list of a given length.
 vector :: Arbitrary a => Int -> Gen [a]
 vector k = vectorOf k arbitrary
 
+-- | Generate an ordered list of a given length.
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
 
 --------------------------------------------------------------------------
--- arbitrary modifiers
+-- ** arbitrary modifiers
 
--- Blind x: as x, but x does not have to be in Show class
-
+-- | Blind x: as x, but x does not have to be in the Show class.
 newtype Blind a = Blind a
  deriving ( Eq, Ord, Num, Enum )
 
@@ -407,8 +435,7 @@ instance Arbitrary a => Arbitrary (Blind a) where
 
   shrink (Blind x) = [ Blind x' | x' <- shrink x ]
 
--- Fixed x: as x, but x will not be shrunk
-
+-- | Fixed x: as x, but will not be shrunk.
 newtype Fixed a = Fixed a
  deriving ( Eq, Ord, Num, Enum, Show, Read )
 
@@ -417,8 +444,7 @@ instance Arbitrary a => Arbitrary (Fixed a) where
   
   -- no shrink function
 
--- Ordered xs: guarantees that xs is ordered
-
+-- | Ordered xs: guarantees that xs is ordered.
 newtype OrderedList a = Ordered [a]
  deriving ( Eq, Ord, Show, Read )
 
@@ -431,8 +457,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
     , sort xs' == xs'
     ]
 
--- NonEmpty xs: guarantees that xs is non-empty
-
+-- | NonEmpty xs: guarantees that xs is non-empty.
 newtype NonEmptyList a = NonEmpty [a]
  deriving ( Eq, Ord, Show, Read )
 
@@ -445,8 +470,7 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
     , not (null xs')
     ]
 
--- Positive x: guarantees that x > 0
-
+-- | Positive x: guarantees that x > 0.
 newtype Positive a = Positive a
  deriving ( Eq, Ord, Num, Enum, Show, Read )
 
@@ -459,8 +483,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
     , x' > 0
     ]
 
--- NonNegative x: guarantees that x >= 0
-
+-- | NonNegative x: guarantees that x >= 0.
 newtype NonNegative a = NonNegative a
  deriving ( Eq, Ord, Num, Enum, Show, Read )
 
@@ -477,8 +500,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     , x' >= 0
     ]
 
--- Smart _ x: tries a different order when shrinking
-
+-- | Smart _ x: tries a different order when shrinking.
 data Smart a =
   Smart Int a
 
@@ -521,8 +543,7 @@ instance Arbitrary a => Arbitrary (Smart a) where
     -- == take k ys ++ drop k ys
     -- == ys
 
--- Shrinking _ x: allows for shrinking state
-
+-- | Shrinking _ x: allows for maintaining a state during shrinking.
 data Shrinking s a =
   Shrinking s a
 

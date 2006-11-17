@@ -24,20 +24,38 @@ import Data.List
   , intersperse
   )
 
+-- * Running tests
+
 --------------------------------------------------------------------------
 -- quickCheck
 
+-- | Tests a property and prints the results to 'stdout'.
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheck' p >> return ()
 
-quickCheck' :: Testable prop => prop -> IO Bool
+-- | Tests a property and prints the results to 'stdout'.
+quickCheck' :: Testable prop => 
+               prop 
+            -> IO Bool -- ^ 'True' if the property held for all the tests.
+                       -- 'False' if some test failed, or if the test data 
+                       -- generator gave up.
 quickCheck' p = quickCheckWith maxSuccessTests maxTryTests maxSize p
  where
   maxSuccessTests = 100
   maxTryTests     = 5 * maxSuccessTests
   maxSize         = 100
 
-quickCheckWith :: Testable prop => Int -> Int -> Int -> prop -> IO Bool
+-- | Tests a property and prints the results to 'stdout'.
+-- Allows control of the test parameters.
+quickCheckWith :: Testable prop => 
+                  Int  -- ^ Maximum number of tests to run.
+               -> Int  -- ^ Maximum number of attempts to make to 
+                       -- when trying to generate test data.
+               -> Int  -- ^ The maximum size of the generated test cases.
+               -> prop -- ^ The property to test.
+               -> IO Bool -- ^ 'True' if the property held for all the tests.
+                          -- 'False' if some test failed, or if the test data 
+                          -- generator gave up.
 quickCheckWith maxSuccessTests maxTryTests maxSize p =
   do tm  <- newTerminal
      rnd <- newStdGen
@@ -189,6 +207,7 @@ quickCheckWith maxSuccessTests maxTryTests maxSize p =
 
       showP p = (if p < 10 then " " else "") ++ show p ++ "% "
 
+-- | Test a property returned by an 'IO' action.
 quickCheckIO :: Testable prop => IO prop -> IO ()
 quickCheckIO iop =
   do p <- iop

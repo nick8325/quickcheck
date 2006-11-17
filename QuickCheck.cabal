@@ -11,13 +11,13 @@ Description:
   QuickCheck is a library for random testing of program properties.
 Exposed-Modules:
   Test.QuickCheck,
-  Test.QuickCheck.Function,
-  Test.QuickCheck.Monadic,
-  Test.QuickCheck.Text
-Other-Modules:
   Test.QuickCheck.Arbitrary,
-  Test.QuickCheck.Exception,
+  Test.QuickCheck.Function,
   Test.QuickCheck.Gen,
+  Test.QuickCheck.Monadic
   Test.QuickCheck.Property,
   Test.QuickCheck.Test
+Other-Modules:
+  Test.QuickCheck.Exception,
+  Test.QuickCheck.Text
 GHC-options: 
