@@ -35,6 +35,7 @@ infixr 1 .&., .&&.
 
 type Property = Gen Prop
 
+-- | The class of things which can be tested, i.e. turned into a property.
 class Testable prop where
   property :: prop -> Property
 
@@ -83,6 +84,7 @@ instance Monad Rose where
 
 -- ** Result type
 
+-- | The result of a single test.
 data Result
   = MkResult
   { ok        :: Maybe Bool
@@ -104,10 +106,16 @@ result =
   , callback' = return ()
   }
 
-failed, succeeded, rejected :: Result
+failed :: Result
 failed        = result{ ok = Just False }
+
+exception :: Show a => a -> Result
 exception err = failed{ reason = "Exception: '" ++ showErr err ++ "'" }
+
+succeeded :: Result 
 succeeded     = result{ ok = Just True }
+
+rejected :: Result
 rejected      = result{ ok = Nothing }
 
 --------------------------------------------------------------------------
@@ -158,18 +166,29 @@ mapProp f = fmap f . property
 --------------------------------------------------------------------------
 -- ** Property combinators
 
+-- | Change the maximum test case size for a property.
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
 mapSize f p = sized ((`resize` property p) . f)
 
-shrinking :: Testable prop => (a -> [a]) -> a -> (a -> prop) -> Property
+-- | Shrink the argument to property if it fails. Shrinking is done
+-- automatically for most types. This is only needed weh you want to
+-- override the default behavior.
+shrinking :: Testable prop =>
+             (a -> [a])  -- ^ 'shrink'-like function.
+          -> a           -- ^ The original argument
+          -> (a -> prop) -> Property
 shrinking shrink x pf = fmap (MkProp . join . fmap unProp) (promote (props x))
  where
   props x =
     MkRose (property (pf x)) [ props x' | x' <- shrink x ]
 
+-- | Perform an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
 whenFail m = mapResult (\res -> res{ callback = m >> callback res })
 
+-- | Perform an 'IO' action every time a property fails. Thus,
+-- if shrinking is done, this can be used to keep track of the 
+-- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
 whenFail' m = mapResult (\res -> res{ callback' = m >> callback' res })
 

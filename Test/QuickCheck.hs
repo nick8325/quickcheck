@@ -40,11 +40,8 @@ module Test.QuickCheck
   , ShrinkState(..)
 
     -- * Properties
-  , Property, Testable(..)
-  , result, failed, succeeded, rejected
-    -- ** Lifting and mapping functions
-  , liftBool, liftResult, liftIOResult
-  , mapResult, mapIOResult, mapProp
+  , Property, Prop, Testable(..)
+  , Result(..)
     -- ** Property combinators
   , mapSize, shrinking
   , (==>)
