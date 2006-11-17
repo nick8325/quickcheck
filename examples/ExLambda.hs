@@ -236,15 +236,6 @@ main =
 -- the end.
 
 {-
--- (demanded by bug in GHC)
-instance ShrinkSub Var where
-  shrinkSub' = undefined
-   
-instance ShrinkSub Con where
-  shrinkSub' = undefined
--}
-
-{-
 instance Arbitrary Exp where
   arbitrary = sized (arbExp [])
    where

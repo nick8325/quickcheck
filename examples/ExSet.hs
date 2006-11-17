@@ -220,9 +220,3 @@ main =
 
 --------------------------------------------------------------------------
 -- the end.
-
-{-
--- (demanded by bug in GHC)
-instance ShrinkSub Int where
-  shrinkSub' = undefined
--}
