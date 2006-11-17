@@ -36,11 +36,13 @@ module Test.QuickCheck.Arbitrary
 
 import Test.QuickCheck.Gen
 
+{-
 import Data.Generics
   ( (:*:)(..)
   , (:+:)(..)
   , Unit(..)
   )
+-}
 
 import Data.Char
   ( chr
