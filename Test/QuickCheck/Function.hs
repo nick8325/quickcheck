@@ -19,7 +19,7 @@ import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Property
 
 import Data.IORef
-import List
+import Data.List
 
 import System.IO.Unsafe
   ( unsafePerformIO -- yes, it's popping up its evil head again!

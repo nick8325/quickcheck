@@ -1,6 +1,6 @@
 Name: QuickCheck
 Version: 2.0
-Build-depends: haskell98, base, mtl
+Build-depends: base, mtl
 License: BSD4
 License-file: LICENSE
 Copyright: Koen Claessen <koen@cs.chalmers.se>

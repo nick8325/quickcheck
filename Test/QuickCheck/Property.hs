@@ -19,7 +19,7 @@ import Control.Concurrent
 
 import Data.IORef
 
-import IO
+import System.IO
   ( hFlush
   , stdout
   )
