@@ -1,0 +1,23 @@
+Name: QuickCheck
+Version: 2.0
+Build-depends: haskell98, base, mtl
+License: BSD4
+License-file: LICENSE
+Copyright: Koen Claessen <koen@cs.chalmers.se>
+Author: Koen Claessen <koen@cs.chalmers.se>
+Maintainer: Koen Claessen <koen@cs.chalmers.se>
+Homepage: http://www.haskell.org/QuickCheck/
+Description:
+  QuickCheck is a library for random testing of program properties.
+Exposed-Modules:
+  Test.QuickCheck,
+  Test.QuickCheck.Function,
+  Test.QuickCheck.Monadic,
+  Test.QuickCheck.Text
+Other-Modules:
+  Test.QuickCheck.Arbitrary,
+  Test.QuickCheck.Exception,
+  Test.QuickCheck.Gen,
+  Test.QuickCheck.Property,
+  Test.QuickCheck.Test
+GHC-options: 
