@@ -28,7 +28,8 @@ module Test.QuickCheck.Arbitrary
   , Fixed(..)
   , OrderedList(..)
   , NonEmptyList(..)
-  , Positive(..)
+  , Positive
+  , NonZero(..)
   , NonNegative(..)
   , Smart(..)
   , Shrinking(..)
@@ -471,17 +472,16 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
     ]
 
 -- | Positive x: guarantees that x > 0.
-newtype Positive a = Positive a
+type Positive a = NonZero (NonNegative a)
+
+-- | NonZero x: guarantees that x /= 0.
+newtype NonZero a = NonZero a
  deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
-instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
-  arbitrary = Positive `fmap` (arbitrary `suchThat` (> 0))
+instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
+  arbitrary = fmap NonZero $ arbitrary `suchThat` (/= 0)
 
-  shrink (Positive x) =
-    [ Positive x'
-    | x' <- shrink x
-    , x' > 0
-    ]
+  shrink (NonZero x) = [ NonZero x' | x' <- shrink x, x' /= 0 ]
 
 -- | NonNegative x: guarantees that x >= 0.
 newtype NonNegative a = NonNegative a
