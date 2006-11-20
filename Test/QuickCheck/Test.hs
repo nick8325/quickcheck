@@ -207,7 +207,7 @@ quickCheckWith maxSuccessTests maxTryTests maxSize p =
 
       showP p = (if p < 10 then " " else "") ++ show p ++ "% "
 
--- | Test a property returned by an 'IO' action.
+-- | Tests a property returned by an 'IO' action.
 quickCheckIO :: Testable prop => IO prop -> IO ()
 quickCheckIO iop =
   do p <- iop

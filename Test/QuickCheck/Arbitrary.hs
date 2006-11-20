@@ -291,7 +291,7 @@ shrinkRealFrac x =
 --------------------------------------------------------------------------
 -- ** CoArbitrary
 
--- | Needed for random generation of functions.
+-- | Used for random generation of functions.
 class CoArbitrary a where
   -- | Used to generate a function of type @a -> c@. The implementation
   -- should use the first argument to perturb the random generator
