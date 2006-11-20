@@ -166,11 +166,11 @@ mapProp f = fmap f . property
 --------------------------------------------------------------------------
 -- ** Property combinators
 
--- | Change the maximum test case size for a property.
+-- | Changes the maximum test case size for a property.
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
 mapSize f p = sized ((`resize` property p) . f)
 
--- | Shrink the argument to property if it fails. Shrinking is done
+-- | Shrinks the argument to property if it fails. Shrinking is done
 -- automatically for most types. This is only needed weh you want to
 -- override the default behavior.
 shrinking :: Testable prop =>
@@ -182,11 +182,11 @@ shrinking shrink x pf = fmap (MkProp . join . fmap unProp) (promote (props x))
   props x =
     MkRose (property (pf x)) [ props x' | x' <- shrink x ]
 
--- | Perform an 'IO' action after the last failure of a property.
+-- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
 whenFail m = mapResult (\res -> res{ callback = m >> callback res })
 
--- | Perform an 'IO' action every time a property fails. Thus,
+-- | Performs an 'IO' action every time a property fails. Thus,
 -- if shrinking is done, this can be used to keep track of the 
 -- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
@@ -216,12 +216,16 @@ cover b n s = mapIOResult $ \ior ->
          Right True  -> res{ stamp  = (s,n) : stamp res }
          Right False -> res
 
+-- | Implication for properties: The resulting property holds if
+-- the first argument is 'False', or if the given property holds.
 (==>) :: Testable prop => Bool -> prop -> Property
 False ==> _ = property ()
 True  ==> p = property p
 
 -- INVESTIGATE: does not work
 -- NOTE: n is in microseconds
+-- | Considers a property failed if it does not complete within
+-- the given number of microseconds.
 within :: Testable prop => Int -> prop -> Property
 within n = mapIOResult race
  where
@@ -297,6 +301,8 @@ forThisShrink x shrink pf =
       property (pf x')
 -}
 
+-- | Explicit universal quantification: uses an explicitly given
+-- test case generator.
 forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
@@ -304,12 +310,15 @@ forAll gen pf =
     whenFail (putStrLn (show x)) $
       property (pf x)
 
+-- | Like 'forAll', but does not require 'Show' for the argument type.
+-- Does not print the argument for failing test cases.
 forAllBlind :: Testable prop => Gen a -> (a -> prop) -> Property
 forAllBlind gen pf =
   gen >>= \x ->
     whenFail (putStrLn "(*)") $
       property (pf x)
 
+-- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
 forAllShrink gen shrink pf =
