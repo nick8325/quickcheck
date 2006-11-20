@@ -490,8 +490,8 @@ newtype NonNegative a = NonNegative a
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
     frequency 
-      [ (1, (NonNegative . abs) `fmap` arbitrary)
-      , (9, return 0)
+      [ (5, (NonNegative . abs) `fmap` arbitrary)
+      , (1, return 0)
       ]
 
   shrink (NonNegative x) =
