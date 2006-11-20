@@ -472,7 +472,7 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 
 -- | Positive x: guarantees that x > 0.
 newtype Positive a = Positive a
- deriving ( Eq, Ord, Num, Enum, Show, Read )
+ deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary = Positive `fmap` (arbitrary `suchThat` (> 0))
@@ -485,7 +485,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
 
 -- | NonNegative x: guarantees that x >= 0.
 newtype NonNegative a = NonNegative a
- deriving ( Eq, Ord, Num, Enum, Show, Read )
+ deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
