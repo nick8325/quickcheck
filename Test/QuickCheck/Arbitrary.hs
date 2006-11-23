@@ -424,7 +424,7 @@ orderedList = sort `fmap` arbitrary
 --------------------------------------------------------------------------
 -- ** arbitrary modifiers
 
--- | Blind x: as x, but x does not have to be in the Show class.
+-- | Blind x: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind a
  deriving ( Eq, Ord, Num, Enum )
 
@@ -471,10 +471,10 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
     , not (null xs')
     ]
 
--- | Positive x: guarantees that x > 0.
+-- | Positive x: guarantees that @x \> 0@.
 type Positive a = NonZero (NonNegative a)
 
--- | NonZero x: guarantees that x /= 0.
+-- | NonZero x: guarantees that @x \/= 0@.
 newtype NonZero a = NonZero a
  deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
@@ -483,7 +483,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
 
   shrink (NonZero x) = [ NonZero x' | x' <- shrink x, x' /= 0 ]
 
--- | NonNegative x: guarantees that x >= 0.
+-- | NonNegative x: guarantees that @x \>= 0@.
 newtype NonNegative a = NonNegative a
  deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
