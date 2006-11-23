@@ -1,0 +1,18 @@
+This is QuickCheck 2.0, a library for random testing of program properties.
+
+=== Installation ===
+
+Installation is done with Cabal:
+
+$ runghc Setup.lhs configure
+$ runghc Setup.lhs build
+$ runghc Setup.lhs install
+
+
+=== Documentation ===
+
+$ runghc Setup.lhs haddock
+
+generates API documentation in dist/doc/html/index.html
+
+
