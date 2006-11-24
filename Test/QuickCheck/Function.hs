@@ -100,7 +100,7 @@ newtype StrictlyMonotonicFunction = StrictlyMonotonic (Function Int Int)
  deriving ( Show )
 
 instance Arbitrary StrictlyMonotonicFunction where
-  arbitrary = StrictlyMonotonic `fmap` arbMonotonicFunction (\(Positive x) -> x)
+  arbitrary = StrictlyMonotonic `fmap` arbMonotonicFunction (\(NonZero (NonNegative x)) -> x)
 
 -- helper functions
 
