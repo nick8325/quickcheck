@@ -13,7 +13,7 @@ module Test.QuickCheck
   -- ** Generators which use Arbitrary
   , vector, orderedList
     -- ** Generator debugging
-  , sample
+  , sample, sample'
 
   -- * Arbitrary and CoArbitrary classes.
   , Arbitrary(..)

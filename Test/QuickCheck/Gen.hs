@@ -72,12 +72,18 @@ choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 promote :: Monad m => m (Gen a) -> Gen (m a)
 promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 
--- | Generates some example values and print them to 'stdout'.
-sample :: Show a => Gen a -> IO ()
-sample (MkGen m) =
+-- | Generates some example values
+sample' :: Gen a -> IO [a]
+sample' (MkGen m) =
   do rnd <- newStdGen
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
-     sequence_ [ print (m r n) | (r,n) <- rnds rnd `zip` [1..10] ]
+     return [(m r n) | (r,n) <- rnds rnd `zip` [1..10] ]
+
+-- | Generates some example values and print them to 'stdout'.
+sample :: Show a => Gen a -> IO ()
+sample g = 
+  do cases <- sample' g
+     sequence_ (map print cases)
 
 --------------------------------------------------------------------------
 -- ** Common generator combinators
