@@ -72,7 +72,7 @@ choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 promote :: Monad m => m (Gen a) -> Gen (m a)
 promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 
--- | Generates some example values
+-- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' (MkGen m) =
   do rnd <- newStdGen
