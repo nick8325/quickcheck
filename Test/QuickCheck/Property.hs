@@ -192,19 +192,35 @@ whenFail m = mapResult (\res -> res{ callback = m >> callback res })
 whenFail' :: Testable prop => IO () -> prop -> Property
 whenFail' m = mapResult (\res -> res{ callback' = m >> callback' res })
 
+-- | Modifies a property so that it is expected to fail for some test cases.
 expectFailure :: Testable prop => prop -> Property
 expectFailure = mapResult (\res -> res{ expect = False })
 
+-- | Attaches a label to a property. This is used for reporting
+-- test case distribution.
 label :: Testable prop => String -> prop -> Property
 label s = classify True s
 
+-- | Labels a property with a value:
+--
+-- > collect x = label (show x)
 collect :: (Show a, Testable prop) => a -> prop -> Property
 collect x = label (show x)
 
-classify :: Testable prop => Bool -> String -> prop -> Property
+-- | Conditionally labels test case.
+classify :: Testable prop => 
+            Bool    -- ^ @True@ if the test case should be labelled.
+         -> String  -- ^ Label.
+         -> prop -> Property
 classify b s = cover b 0 s
 
-cover :: Testable prop => Bool -> Int -> String -> prop -> Property
+-- | Checks that at least the given proportion of the test cases belong
+-- to the given class.
+cover :: Testable prop => 
+         Bool   -- ^ @True@ if the test case belongs to the class.
+      -> Int    -- ^ The required percentage (0-100) of test cases.
+      -> String -- ^ Label for the test case class.
+      -> prop -> Property
 cover b n s = mapIOResult $ \ior ->
   do eeb <- tryEvaluate b
      res <- ior

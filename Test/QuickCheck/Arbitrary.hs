@@ -298,7 +298,7 @@ class CoArbitrary a where
   -- should use the first argument to perturb the random generator
   -- given as the second argument. the returned generator 
   -- is then used to generate the function result.
-  -- You can often use 'variant' and '(><)' to implement 
+  -- You can often use 'variant' and '><' to implement 
   -- 'coarbitrary'.
   coarbitrary :: a -> Gen c -> Gen c
 
@@ -413,11 +413,11 @@ coarbitraryShow x = coarbitrary (show x)
 
 -- these are here and not in Gen because of the Arbitrary class constraint
 
--- | Generate a list of a given length.
+-- | Generates a list of a given length.
 vector :: Arbitrary a => Int -> Gen [a]
 vector k = vectorOf k arbitrary
 
--- | Generate an ordered list of a given length.
+-- | Generates an ordered list of a given length.
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
 
