@@ -7,6 +7,7 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( showErr )
 import Test.QuickCheck.Exception
+import Test.QuickCheck.State
 
 import Control.Concurrent
   ( forkIO
@@ -85,6 +86,12 @@ instance Monad Rose where
 
 -- ** Result type
 
+-- | Different kinds of callbacks
+data Callback
+  = PreTest (State -> IO ()) -- does not work (yet?)
+  | PostTest (State -> Result -> IO ())
+  | PostFinalFailure (State -> Result -> IO ())
+
 -- | The result of a single test.
 data Result
   = MkResult
@@ -92,8 +99,7 @@ data Result
   , expect    :: Bool
   , reason    :: String
   , stamp     :: [(String,Int)]
-  , callback  :: IO ()
-  , callback' :: IO ()
+  , callbacks :: [Callback]
   }
 
 result :: Result
@@ -103,8 +109,7 @@ result =
   , expect    = True
   , reason    = ""
   , stamp     = []
-  , callback  = return ()
-  , callback' = return ()
+  , callbacks = []
   }
 
 failed :: Result
@@ -183,15 +188,25 @@ shrinking shrink x pf = fmap (MkProp . join . fmap unProp) (promote (props x))
   props x =
     MkRose (property (pf x)) [ props x' | x' <- shrink x ]
 
+-- | Adds a callback
+callback :: Testable prop => Callback -> prop -> Property
+callback cb = mapResult (\res -> res{ callbacks = cb : callbacks res })
+
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
-whenFail m = mapResult (\res -> res{ callback = m >> callback res })
+whenFail m =
+  callback $ PostFinalFailure $ \st res ->
+    m
 
 -- | Performs an 'IO' action every time a property fails. Thus,
 -- if shrinking is done, this can be used to keep track of the 
 -- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
-whenFail' m = mapResult (\res -> res{ callback' = m >> callback' res })
+whenFail' m =
+  callback $ PostTest $ \st res ->
+    if ok res == Just False
+      then m
+      else return ()
 
 -- | Modifies a property so that it is expected to fail for some test cases.
 expectFailure :: Testable prop => prop -> Property
