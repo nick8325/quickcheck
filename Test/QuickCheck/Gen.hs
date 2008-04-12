@@ -79,7 +79,7 @@ sample' (MkGen m) =
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
      return [(m r n) | (r,n) <- rnds rnd `zip` [1..10] ]
 
--- | Generates some example values and print them to 'stdout'.
+-- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g = 
   do cases <- sample' g
@@ -123,7 +123,7 @@ frequency xs = choose (1, tot) >>= (`pick` xs)
     | otherwise = pick (n-k) xs
   pick _ _  = error "QuickCheck.pick used with empty list"
 
--- | Generates of the given values. The input list must be non-empty.
+-- | Generates one of the given values. The input list must be non-empty.
 elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)

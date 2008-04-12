@@ -424,7 +424,7 @@ orderedList = sort `fmap` arbitrary
 --------------------------------------------------------------------------
 -- ** arbitrary modifiers
 
--- | Blind x: as x, but x does not have to be in the 'Show' class.
+-- | @Blind x@: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind a
  deriving ( Eq, Ord, Num, Enum )
 
@@ -436,7 +436,7 @@ instance Arbitrary a => Arbitrary (Blind a) where
 
   shrink (Blind x) = [ Blind x' | x' <- shrink x ]
 
--- | Fixed x: as x, but will not be shrunk.
+-- | @Fixed x@: as x, but will not be shrunk.
 newtype Fixed a = Fixed a
  deriving ( Eq, Ord, Num, Enum, Show, Read )
 
@@ -445,7 +445,7 @@ instance Arbitrary a => Arbitrary (Fixed a) where
   
   -- no shrink function
 
--- | Ordered xs: guarantees that xs is ordered.
+-- | @Ordered xs@: guarantees that xs is ordered.
 newtype OrderedList a = Ordered [a]
  deriving ( Eq, Ord, Show, Read )
 
@@ -458,7 +458,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
     , sort xs' == xs'
     ]
 
--- | NonEmpty xs: guarantees that xs is non-empty.
+-- | @NonEmpty xs@: guarantees that xs is non-empty.
 newtype NonEmptyList a = NonEmpty [a]
  deriving ( Eq, Ord, Show, Read )
 
@@ -471,10 +471,10 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
     , not (null xs')
     ]
 
--- | Positive x: guarantees that @x \> 0@.
+-- | @Positive x@: guarantees that @x \> 0@.
 type Positive a = NonZero (NonNegative a)
 
--- | NonZero x: guarantees that @x \/= 0@.
+-- | @NonZero x@: guarantees that @x \/= 0@.
 newtype NonZero a = NonZero a
  deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
@@ -483,7 +483,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
 
   shrink (NonZero x) = [ NonZero x' | x' <- shrink x, x' /= 0 ]
 
--- | NonNegative x: guarantees that @x \>= 0@.
+-- | @NonNegative x@: guarantees that @x \>= 0@.
 newtype NonNegative a = NonNegative a
  deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
@@ -500,7 +500,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     , x' >= 0
     ]
 
--- | Smart _ x: tries a different order when shrinking.
+-- | @Smart _ x@: tries a different order when shrinking.
 data Smart a =
   Smart Int a
 
@@ -543,7 +543,7 @@ instance Arbitrary a => Arbitrary (Smart a) where
     -- == take k ys ++ drop k ys
     -- == ys
 
--- | Shrinking _ x: allows for maintaining a state during shrinking.
+-- | @Shrinking _ x@: allows for maintaining a state during shrinking.
 data Shrinking s a =
   Shrinking s a
 
