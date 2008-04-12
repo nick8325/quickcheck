@@ -1,0 +1,33 @@
+MUST FIX BEFORE RELEASE:
+
+* consider adding all QuickCheck1 flags (in particular: printing the number of test cases)
+
+* remove unnecessary incompatibilities with QuickCheck1
+
+* find consistent good names for functions (especially primed function names and callbacks)
+
+* add more callback functions
+
+* batch script
+
+* Poly
+
+* investigate what is wrong with reporting exceptions and see if it can be fixed
+
+* make sure a cut-down version works for Hugs
+
+* find a good principle to decide what to export and what not
+
+* decide what to export in Test.QuickCheck
+
+* consider introducing special wrapper modules for certain extensions (such as callbacks)
+
+* what to do about Test.QuickCheck.Functions?
+
+MAY FIX BEFORE RELEASE:
+
+* implement pre-test callbacks
+
+* fix monadic testing
+
+* Deriving arbitrary, coarbitrary, shrink
