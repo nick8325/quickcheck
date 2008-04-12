@@ -113,16 +113,16 @@ result =
   }
 
 failed :: Result
-failed        = result{ ok = Just False }
+failed = result{ ok = Just False }
 
 exception :: Show a => a -> Result
 exception err = failed{ reason = "Exception: '" ++ showErr err ++ "'" }
 
 succeeded :: Result 
-succeeded     = result{ ok = Just True }
+succeeded = result{ ok = Just True }
 
 rejected :: Result
-rejected      = result{ ok = Nothing }
+rejected = result{ ok = Nothing }
 
 --------------------------------------------------------------------------
 -- ** Lifting and mapping functions
