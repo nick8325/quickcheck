@@ -327,12 +327,15 @@ forAllShrink gen shrink pf =
       whenFail (putStrLn (show x')) $
         property (pf x')
 
--- experimental
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
   arbitrary >>= \b ->
     whenFail (putStrLn (if b then "LHS" else "RHS")) $
       if b then property p1 else property p2
+
+{-
+
+-- TODO
 
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&&. p2 = error "not implemented yet"
@@ -350,6 +353,7 @@ forSeveralShrink gen shrink pf =
  where
   shrink' [x] = [ [x'] | x' <- shrink x ]
   shrink' xs  = [ [x]  | x <- xs ]
+-}
 
 --------------------------------------------------------------------------
 -- the end.
