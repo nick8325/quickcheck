@@ -28,7 +28,8 @@ import System.IO
 -- fixeties
 
 infixr 0 ==>
-infixr 1 .&., .&&.
+infixr 1 .&.
+-- infixr 1 .&&.
 
 --------------------------------------------------------------------------
 -- * Property and Testable types

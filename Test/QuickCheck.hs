@@ -47,8 +47,7 @@ module Test.QuickCheck
   , mapSize, shrinking
   , (==>)
   , forAll, forAllBlind, forAllShrink
-  , (.&.), (.&&.)
-  , forSeveral, forSeveralShrink
+  , (.&.)
     -- *** Handling failure
   , whenFail, whenFail'
   , expectFailure, within
