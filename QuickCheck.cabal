@@ -2,7 +2,7 @@ Name: QuickCheck
 Version: 2.1
 Cabal-Version: >= 1.2
 Build-type: Simple
-License: BSD4
+License: BSD3
 License-file: LICENSE
 Copyright: Koen Claessen <koen@cs.chalmers.se>
 Author: Koen Claessen <koen@cs.chalmers.se>
