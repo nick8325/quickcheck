@@ -88,18 +88,18 @@ instance Monad Rose where
 
 -- | Different kinds of callbacks
 data Callback
-  = PreTest (State -> IO ()) -- does not work (yet?)
-  | PostTest (State -> Result -> IO ())
-  | PostFinalFailure (State -> Result -> IO ())
+  = PreTest (State -> IO ())                    -- ^ Called just before a test (not implemented)
+  | PostTest (State -> Result -> IO ())         -- ^ Called just after a test
+  | PostFinalFailure (State -> Result -> IO ()) -- ^ Called with the final failing test-case
 
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok        :: Maybe Bool
-  , expect    :: Bool
-  , reason    :: String
-  , stamp     :: [(String,Int)]
-  , callbacks :: [Callback]
+  { ok        :: Maybe Bool     -- ^ result of the test case; Nothing = discard
+  , expect    :: Bool           -- ^ indicates what the expected result of the property is
+  , reason    :: String         -- ^ a message indicating what went wrong
+  , stamp     :: [(String,Int)] -- ^ the collected values for this test case
+  , callbacks :: [Callback]     -- ^ the callbacks for this test case
   }
 
 result :: Result
