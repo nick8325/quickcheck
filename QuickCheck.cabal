@@ -11,11 +11,14 @@ Homepage: http://www.haskell.org/QuickCheck/
 Category:	    Testing
 Synopsis:	    Automatic testing of Haskell programs
 Description:
-    QuickCheck is a library for random testing of program properties.
+        QuickCheck is a library for random testing of program properties.
+        .
 	The programmer provides a specification of the program, in
 	the form of properties which functions should satisfy, and
 	QuickCheck then tests that the properties hold in a large number
-	of randomly generated cases.  Specifications are expressed in
+	of randomly generated cases.  
+        .
+        Specifications are expressed in
 	Haskell, using combinators defined in the QuickCheck library.
 	QuickCheck provides combinators to define properties, observe
 	the distribution of test data, and define test
