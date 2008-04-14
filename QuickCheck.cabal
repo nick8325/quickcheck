@@ -41,6 +41,7 @@ library
     Test.QuickCheck.Monadic
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
+    Test.QuickCheck.Poly,
     Test.QuickCheck.State
   Other-Modules:
     Test.QuickCheck.Exception,
