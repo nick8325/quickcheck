@@ -1,3 +1,4 @@
+------------------------------------------------------------------------------
 MUST FIX BEFORE RELEASE:
 
 * consider adding all QuickCheck1 flags (in particular: printing the number of test cases)
@@ -6,11 +7,13 @@ MUST FIX BEFORE RELEASE:
 
 * find consistent good names for functions (especially primed function names and callbacks)
 
+* add complete Haddock information
+
 * add more callback functions
 
-* batch script
+* implement pre-test callbacks (add these as a top-level flag)
 
-* Poly
+* batch script
 
 * investigate what is wrong with reporting exceptions and see if it can be fixed
 
@@ -24,12 +27,20 @@ MUST FIX BEFORE RELEASE:
 
 * what to do about Test.QuickCheck.Functions?
 
+------------------------------------------------------------------------------
 MAY FIX BEFORE RELEASE:
 
-* implement pre-test callbacks
-
-* fix monadic testing
+* fix monadic testing for ST (at least check if everything works again)
 
 * Deriving arbitrary, coarbitrary, shrink
 
 * Implement .&&. ("real" and), and possibly .||. (and .|. ?)
+
+------------------------------------------------------------------------------
+FIXED:
+
+* implement callbacks
+
+* Poly
+
+------------------------------------------------------------------------------
