@@ -25,7 +25,8 @@ MUST FIX BEFORE RELEASE:
 
 * consider introducing special wrapper modules for certain extensions (such as callbacks)
 
-* what to do about Test.QuickCheck.Functions?
+* what to do about Test.QuickCheck.Function? --> remove it from the distribution
+  (because in conjunction it does not work well)
 
 ------------------------------------------------------------------------------
 MAY FIX BEFORE RELEASE:

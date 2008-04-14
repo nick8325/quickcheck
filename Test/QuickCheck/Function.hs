@@ -1,13 +1,12 @@
 -- | Uses magic to show and shrink functions.
 module Test.QuickCheck.Function
-  ( 
-    -- * \"Magic\" functions
-    Function
-  , function, getFunction
-  , getTable, showTable
+  -- * \"Magic\" functions
+  ( Function(..)
+  , function
   
   -- * Generating monotonic functions
-  , MonotonicFunction(..), StrictlyMonotonicFunction(..)
+  , MonotonicFunction(..)
+  , StrictlyMonotonicFunction(..)
   )
  where
 
@@ -22,7 +21,7 @@ import Data.IORef
 import Data.List
 
 import System.IO.Unsafe
-  ( unsafePerformIO -- yes, it's popping up its evil head again!
+  ( unsafePerformIO -- this is used for the magic
   )
 
 --------------------------------------------------------------------------
