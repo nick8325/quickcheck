@@ -21,7 +21,8 @@ instance Show A where
   showsPrec n (A x) = showsPrec n x
 
 instance Arbitrary A where
-  arbitrary = A `fmap` arbitrary
+  arbitrary    = (A . abs) `fmap` arbitrary
+  shrink (A x) = [ A x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary A where
   coarbitrary = coarbitrary . unA
@@ -35,7 +36,8 @@ instance Show B where
   showsPrec n (B x) = showsPrec n x
 
 instance Arbitrary B where
-  arbitrary = B `fmap` arbitrary
+  arbitrary    = (B . abs) `fmap` arbitrary
+  shrink (B x) = [ B x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary B where
   coarbitrary = coarbitrary . unB
@@ -49,7 +51,8 @@ instance Show C where
   showsPrec n (C x) = showsPrec n x
 
 instance Arbitrary C where
-  arbitrary = C `fmap` arbitrary
+  arbitrary    = (C . abs) `fmap` arbitrary
+  shrink (C x) = [ C x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary C where
   coarbitrary = coarbitrary . unC
@@ -66,7 +69,8 @@ instance Show OrdA where
   showsPrec n (OrdA x) = showsPrec n x
 
 instance Arbitrary OrdA where
-  arbitrary = OrdA `fmap` arbitrary
+  arbitrary       = (OrdA . abs) `fmap` arbitrary
+  shrink (OrdA x) = [ OrdA x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary OrdA where
   coarbitrary = coarbitrary . unOrdA
@@ -80,7 +84,8 @@ instance Show OrdB where
   showsPrec n (OrdB x) = showsPrec n x
 
 instance Arbitrary OrdB where
-  arbitrary = OrdB `fmap` arbitrary
+  arbitrary       = (OrdB . abs) `fmap` arbitrary
+  shrink (OrdB x) = [ OrdB x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary OrdB where
   coarbitrary = coarbitrary . unOrdB
@@ -94,7 +99,8 @@ instance Show OrdC where
   showsPrec n (OrdC x) = showsPrec n x
 
 instance Arbitrary OrdC where
-  arbitrary = OrdC `fmap` arbitrary
+  arbitrary       = (OrdC . abs) `fmap` arbitrary
+  shrink (OrdC x) = [ OrdC x' | x' <- shrink x, x >= 0 ]
 
 instance CoArbitrary OrdC where
   coarbitrary = coarbitrary . unOrdC
