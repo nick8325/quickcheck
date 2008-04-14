@@ -28,6 +28,9 @@ MUST FIX BEFORE RELEASE:
 * what to do about Test.QuickCheck.Function? --> remove it from the distribution
   (because in conjunction it does not work well)
 
+* Control-C should stop testing/shrinking instead of throwing an exception and
+  making the tests fail
+
 ------------------------------------------------------------------------------
 MAY FIX BEFORE RELEASE:
 
