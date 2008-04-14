@@ -520,7 +520,8 @@ newtype NonNegative a = NonNegative a
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
-    frequency 
+    frequency
+      -- why is this distrbution like this?
       [ (5, (NonNegative . abs) `fmap` arbitrary)
       , (1, return 0)
       ]
