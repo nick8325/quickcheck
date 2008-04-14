@@ -31,3 +31,5 @@ MAY FIX BEFORE RELEASE:
 * fix monadic testing
 
 * Deriving arbitrary, coarbitrary, shrink
+
+* Implement .&&. ("real" and), and possibly .||. (and .|. ?)
