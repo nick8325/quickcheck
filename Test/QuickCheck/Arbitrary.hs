@@ -424,6 +424,26 @@ orderedList = sort `fmap` arbitrary
 --------------------------------------------------------------------------
 -- ** arbitrary modifiers
 
+-- These datatypes are mainly here to *pattern match* on in properties.
+-- This is a stylistic alternative to using explicit quantification.
+-- In other words, they should not be replaced by type synonyms, and their
+-- constructors should be exported.
+
+-- Examples:
+{-
+prop_TakeDropWhile (Blind p) (xs :: [A]) =
+  takeWhile p xs ++ dropWhile p xs == xs
+
+prop_TakeDrop (NonNegative n) (xs :: [A]) =    -- (BTW, also works for negative n)
+  take n xs ++ drop n xs == xs
+
+prop_Cycle (NonNegative n) (NonEmpty (xs :: [A])) =
+  take n (cycle xs) == take n (xs ++ cycle xs)
+
+prop_Sort (Ordered (xs :: [OrdA])) =
+  sort xs == xs
+-}
+
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind a
  deriving ( Eq, Ord, Num, Enum )
@@ -472,7 +492,18 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
     ]
 
 -- | @Positive x@: guarantees that @x \> 0@.
-type Positive a = NonZero (NonNegative a)
+newtype Positive a = Positive a
+ deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+
+instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
+  arbitrary =
+    (Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))
+
+  shrink (Positive x) =
+    [ Positive x'
+    | x' <- shrink x
+    , x' > 0
+    ]
 
 -- | @NonZero x@: guarantees that @x \/= 0@.
 newtype NonZero a = NonZero a
