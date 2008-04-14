@@ -87,7 +87,7 @@ quickCheckWith maxSuccessTests maxTryTests maxSize p =
 test :: State -> (StdGen -> Int -> Prop) -> IO Bool
 test st f
   | numSuccessTests st >= maxSuccessTests st = doneTesting st f
-  | numSuccessTests st >= maxTryTests st     = giveUp st f
+  | numTryTests st >= maxTryTests st         = giveUp st f
   | otherwise                                = runATest st f
 
 doneTesting :: State -> (StdGen -> Int -> Prop) -> IO Bool
