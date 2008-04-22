@@ -28,7 +28,7 @@ module Test.QuickCheck.Arbitrary
   , Fixed(..)
   , OrderedList(..)
   , NonEmptyList(..)
-  , Positive
+  , Positive(..)
   , NonZero(..)
   , NonNegative(..)
   , Smart(..)
