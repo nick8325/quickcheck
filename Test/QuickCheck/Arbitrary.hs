@@ -446,7 +446,7 @@ prop_Sort (Ordered (xs :: [OrdA])) =                 -- instead of "forAll order
 
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind a
- deriving ( Eq, Ord, Num, Enum )
+ deriving ( Eq, Ord, Num, Integral, Real, Enum )
 
 instance Show (Blind a) where
   show _ = "(*)"
@@ -458,7 +458,7 @@ instance Arbitrary a => Arbitrary (Blind a) where
 
 -- | @Fixed x@: as x, but will not be shrunk.
 newtype Fixed a = Fixed a
- deriving ( Eq, Ord, Num, Enum, Show, Read )
+ deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
 
 instance Arbitrary a => Arbitrary (Fixed a) where
   arbitrary = Fixed `fmap` arbitrary
