@@ -431,16 +431,16 @@ orderedList = sort `fmap` arbitrary
 
 -- Examples:
 {-
-prop_TakeDropWhile (Blind p) (xs :: [A]) =
+prop_TakeDropWhile (Blind p) (xs :: [A]) =           -- because functions cannot be shown
   takeWhile p xs ++ dropWhile p xs == xs
 
-prop_TakeDrop (NonNegative n) (xs :: [A]) =    -- (BTW, also works for negative n)
+prop_TakeDrop (NonNegative n) (xs :: [A]) =          -- (BTW, also works for negative n)
   take n xs ++ drop n xs == xs
 
-prop_Cycle (NonNegative n) (NonEmpty (xs :: [A])) =
+prop_Cycle (NonNegative n) (NonEmpty (xs :: [A])) =  -- cycle does not work for empty lists
   take n (cycle xs) == take n (xs ++ cycle xs)
 
-prop_Sort (Ordered (xs :: [OrdA])) =
+prop_Sort (Ordered (xs :: [OrdA])) =                 -- instead of "forAll orderedList"
   sort xs == xs
 -}
 
