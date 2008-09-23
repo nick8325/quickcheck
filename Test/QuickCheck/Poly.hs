@@ -14,7 +14,7 @@ import Test.QuickCheck.Arbitrary
 
 -- A
 
-newtype A = A{ unA :: Int }
+newtype A = A{ unA :: Integer }
   deriving ( Eq )
 
 instance Show A where
@@ -29,7 +29,7 @@ instance CoArbitrary A where
 
 -- B
 
-newtype B = B{ unB :: Int }
+newtype B = B{ unB :: Integer }
   deriving ( Eq )
 
 instance Show B where
@@ -44,7 +44,7 @@ instance CoArbitrary B where
 
 -- C
 
-newtype C = C{ unC :: Int }
+newtype C = C{ unC :: Integer }
   deriving ( Eq )
 
 instance Show C where
@@ -62,7 +62,7 @@ instance CoArbitrary C where
 
 -- OrdA
 
-newtype OrdA = OrdA{ unOrdA :: Int }
+newtype OrdA = OrdA{ unOrdA :: Integer }
   deriving ( Eq, Ord )
 
 instance Show OrdA where
@@ -77,7 +77,7 @@ instance CoArbitrary OrdA where
 
 -- OrdB
 
-newtype OrdB = OrdB{ unOrdB :: Int }
+newtype OrdB = OrdB{ unOrdB :: Integer }
   deriving ( Eq, Ord )
 
 instance Show OrdB where
@@ -92,7 +92,7 @@ instance CoArbitrary OrdB where
 
 -- OrdC
 
-newtype OrdC = OrdC{ unOrdC :: Int }
+newtype OrdC = OrdC{ unOrdC :: Integer }
   deriving ( Eq, Ord )
 
 instance Show OrdC where

@@ -257,6 +257,18 @@ arbitraryBoundedIntegral =
 arbitraryBoundedRandom :: (Bounded a, Random a) => Gen a
 arbitraryBoundedRandom = choose (minBound,maxBound)
 
+-- | Generates an integral number from a bounded domain.
+-- Inspired by demands from Phil Wadler.
+arbitrarySizedBoundedInt :: Gen Int
+arbitrarySizedBoundedInt =
+  sized $ \s ->
+    do let mn = minBound
+           mx = maxBound `asTypeOf` mn
+           k  = 2^(s `div` 3)
+           
+       n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
+       return (fromInteger n `asTypeOf` mn)
+
 -- ** Helper functions for implementing shrink
 
 -- | Returns no shrinking alternatives. 
