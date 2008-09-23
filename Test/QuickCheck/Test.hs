@@ -74,6 +74,7 @@ stdArgs = Args
   , maxSuccess = 100
   , maxDiscard = 500
   , maxSize    = 100
+-- noShrinking flag?
   }
 
 -- | Tests a property and prints the results to 'stdout'.
