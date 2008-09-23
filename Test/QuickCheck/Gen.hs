@@ -77,7 +77,7 @@ sample' :: Gen a -> IO [a]
 sample' (MkGen m) =
   do rnd <- newStdGen
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
-     return [(m r n) | (r,n) <- rnds rnd `zip` [1..10] ]
+     return [(m r n) | (r,n) <- rnds rnd `zip` [0,2..20] ]
 
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
