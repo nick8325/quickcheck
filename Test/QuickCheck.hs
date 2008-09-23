@@ -56,6 +56,9 @@ module Test.QuickCheck
     -- * Running tests
   , quickCheck, quickCheck'
   , quickCheckWith, quickCheckIO
+  
+    -- * Text formatting
+  , Str(..), ranges
   )
  where
 
@@ -68,6 +71,7 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Property
 import Test.QuickCheck.Test
+import Test.QuickCheck.Text
 
 --------------------------------------------------------------------------
 -- the end.
