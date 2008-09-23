@@ -46,4 +46,4 @@ library
     Test.QuickCheck.State
   Other-Modules:
     Test.QuickCheck.Exception,
-  GHC-options:    -Wall
+  GHC-options:
