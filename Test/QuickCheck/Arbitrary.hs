@@ -206,7 +206,8 @@ instance Arbitrary Integer where
   shrink    = shrinkIntegral
 
 instance Arbitrary Int where
-  arbitrary = arbitrarySizedIntegral
+  --arbitrary = arbitrarySizedIntegral
+  arbitrary = arbitrarySizedBoundedInt
   shrink    = shrinkIntegral
 
 instance Arbitrary Char where
