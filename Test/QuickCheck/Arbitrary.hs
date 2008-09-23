@@ -18,6 +18,7 @@ module Test.QuickCheck.Arbitrary
   , (><)
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
+  , coarbitraryShow          -- :: Show a => a -> Gen b -> Gen b
   
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]

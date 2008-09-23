@@ -88,8 +88,7 @@ instance Monad Rose where
 
 -- | Different kinds of callbacks
 data Callback
-  = PreTest (State -> IO ())                    -- ^ Called just before a test (not implemented)
-  | PostTest (State -> Result -> IO ())         -- ^ Called just after a test
+  = PostTest (State -> Result -> IO ())         -- ^ Called just after a test
   | PostFinalFailure (State -> Result -> IO ()) -- ^ Called with the final failing test-case
 
 -- | The result of a single test.
@@ -312,27 +311,6 @@ within n = mapIOResult race
         | otherwise = do putStrLn s
                          hFlush stdout
 
-{-
--- The following functions should be removed, because:
-forThis       x        pf = forAll (return x) pf
-forThisShrink x shrink pf = forAllShrink (return x) shrink pf
--}
-
-{-
-forThis :: (Show a, Testable prop)
-       => a -> (a -> prop) -> Property
-forThis x pf =
-  whenFail (putStrLn (show x)) $
-    property (pf x)
-
-forThisShrink :: (Show a, Testable prop)
-       => a -> (a -> [a]) -> (a -> prop) -> Property
-forThisShrink x shrink pf =
-  shrinking shrink x $ \x' ->
-    whenFail (putStrLn (show x')) $
-      property (pf x')
--}
-
 -- | Explicit universal quantification: uses an explicitly given
 -- test case generator.
 forAll :: (Show a, Testable prop)
@@ -340,14 +318,6 @@ forAll :: (Show a, Testable prop)
 forAll gen pf =
   gen >>= \x ->
     whenFail (putStrLn (show x)) $
-      property (pf x)
-
--- | Like 'forAll', but does not require 'Show' for the argument type.
--- Does not print the argument for failing test cases.
-forAllBlind :: Testable prop => Gen a -> (a -> prop) -> Property
-forAllBlind gen pf =
-  gen >>= \x ->
-    whenFail (putStrLn "(*)") $
       property (pf x)
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
@@ -366,25 +336,10 @@ p1 .&. p2 =
       if b then property p1 else property p2
 
 {-
-
 -- TODO
 
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&&. p2 = error "not implemented yet"
-
-forSeveral :: (Show a, Testable prop) => Gen a -> (a -> prop) -> Property
-forSeveral gen pf = forSeveralShrink gen shrinkNothing pf
-
-forSeveralShrink :: (Show a, Testable prop)
-                 => Gen a -> (a -> [a]) -> (a -> prop) -> Property
-forSeveralShrink gen shrink pf =
-  (listOf gen `suchThat` (not . null)) >>= \xs ->
-    shrinking shrink' xs $ \xs' ->
-      whenFail (print (last xs')) $
-        foldr1 (.&&.) [ property (pf x) | x <- xs' ]
- where
-  shrink' [x] = [ [x'] | x' <- shrink x ]
-  shrink' xs  = [ [x]  | x <- xs ]
 -}
 
 --------------------------------------------------------------------------

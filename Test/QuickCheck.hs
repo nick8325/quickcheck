@@ -9,34 +9,49 @@ module Test.QuickCheck
   , quickCheckResult
     
     -- * Random generation
-    Gen
+  , Gen
     -- ** Generator combinators
   , sized
-  , resize, choose
+  , resize
+  , choose
   , promote
-  , suchThat, suchThatMaybe
-  , oneof, frequency
-  , elements, growingElements
-  , listOf, listOf1, vectorOf
-  -- ** Generators which use Arbitrary
-  , vector, orderedList
+  , suchThat
+  , suchThatMaybe
+  , oneof
+  , frequency
+  , elements
+  , growingElements
+  , listOf
+  , listOf1
+  , vectorOf
+    -- ** Generators which use Arbitrary
+  , vector
+  , orderedList
     -- ** Generator debugging
-  , sample, sample'
+  , sample
+  , sample'
 
-  -- * Arbitrary and CoArbitrary classes.
+    -- * Arbitrary and CoArbitrary classes.
   , Arbitrary(..)
   , CoArbitrary(..)
   
-  -- ** Helper functions for implementing arbitrary
-  , arbitrarySizedIntegral, arbitrarySizedFractional
-  , arbitraryBoundedIntegral, arbitraryBoundedRandom
-  -- ** Helper functions for implementing shrink
-  , shrinkNothing, shrinkIntegral, shrinkRealFrac
-  -- ** Helper functions for implementing coarbitrary
-  , variant, (><)
-  , coarbitraryIntegral, coarbitraryReal
+    -- ** Helper functions for implementing arbitrary
+  , arbitrarySizedIntegral
+  , arbitrarySizedFractional
+  , arbitraryBoundedIntegral
+  , arbitraryBoundedRandom
+    -- ** Helper functions for implementing shrink
+  , shrinkNothing
+  , shrinkIntegral
+  , shrinkRealFrac
+    -- ** Helper functions for implementing coarbitrary
+  , variant
+  , (><)
+  , coarbitraryIntegral
+  , coarbitraryReal
+  , coarbitraryShow
 
-  -- ** Type-level modifiers for changing generator behavior
+    -- ** Type-level modifiers for changing generator behavior
   , Blind(..)
   , Fixed(..)
   , OrderedList(..)
@@ -51,13 +66,17 @@ module Test.QuickCheck
     -- * Properties
   , Property, Prop, Testable(..)
     -- ** Property combinators
-  , mapSize, shrinking
+  , mapSize
+  , shrinking
   , (==>)
-  , forAll, forAllBlind, forAllShrink
+  , forAll
+  , forAllShrink
   , (.&.)
     -- *** Handling failure
-  , whenFail, whenFail'
-  , expectFailure, within
+  , whenFail
+  , whenFail'
+  , expectFailure
+  , within
     -- *** Test distribution
   , label
   , collect
@@ -65,11 +84,10 @@ module Test.QuickCheck
   , cover
   
     -- * Text formatting
-  , Str(..), ranges
+  , Str(..)
+  , ranges
   )
  where
-
--- the above exports should probably be a bit more restrictive
 
 --------------------------------------------------------------------------
 -- imports
