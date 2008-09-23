@@ -4,7 +4,8 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property
+import Test.QuickCheck.Property hiding ( Result( reason ) )
+import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
 import Test.QuickCheck.Exception
@@ -26,53 +27,84 @@ import Data.List
   , intersperse
   )
 
--- * Running tests
-
 --------------------------------------------------------------------------
 -- quickCheck
 
+-- * Running tests
+
+-- | Args specifies arguments to the QuickCheck driver
+data Args
+  = Args
+  { replay     :: Maybe (StdGen,Int) -- ^ should we replay a previous test?
+  , maxSuccess :: Int                -- ^ maximum number of successful tests before succeeding
+  , maxDiscard :: Int                -- ^ maximum number of discarded tests before giving up
+  , maxSize    :: Int                -- ^ size to use for the biggest test cases
+  }
+ deriving ( Show, Read )
+
+-- | Result represents the test result
+data Result
+  = Success                          -- ^ a successful test run
+    { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+    }
+  | GaveUp                           -- ^ given up
+    { numTests  :: Int               -- ^ number of successful tests performed
+    , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+    }
+  | Failure                          -- ^ failed test run
+    { usedSeed  :: StdGen            -- ^ what seed was used
+    , usedSize  :: Int               -- ^ what was the test size
+    , reason    :: String            -- ^ what was the reason
+    , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+    }
+  | NoExpectedFailure                -- ^ the expected failure did not happen
+    { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+    }
+ deriving ( Show, Read )
+
+-- | isSuccess checks if the test run result was a success
+isSuccess :: Result -> Bool
+isSuccess Success{} = True
+isSuccess _         = False
+
+-- | stdArgs are the default test arguments used
+stdArgs :: Args
+stdArgs = Args
+  { replay     = Nothing
+  , maxSuccess = 100
+  , maxDiscard = 500
+  , maxSize    = 100
+  }
+
 -- | Tests a property and prints the results to 'stdout'.
 quickCheck :: Testable prop => prop -> IO ()
-quickCheck p = quickCheck' p >> return ()
+quickCheck p = quickCheckWith stdArgs p
 
--- | Tests a property returned by an 'IO' action.
-quickCheckIO :: Testable prop => IO prop -> IO ()
-quickCheckIO iop =
-  do p <- iop
-     quickCheck p
-     
--- | Tests a property and prints the results to 'stdout'.
-quickCheck' :: Testable prop => 
-               prop 
-            -> IO Bool -- ^ 'True' if the property held for all the tests.
-                       -- 'False' if some test failed, or if the test data 
-                       -- generator gave up.
-quickCheck' p = quickCheckWith maxSuccessTests maxTryTests maxSize p
- where
-  maxSuccessTests = 100
-  maxTryTests     = 5 * maxSuccessTests
-  maxSize         = 100
+-- | Tests a property, using test arguments, and prints the results to 'stdout'.
+quickCheckWith :: Testable prop => Args -> prop -> IO ()
+quickCheckWith args p = quickCheckWithResult args p >> return ()
 
--- | Tests a property and prints the results to 'stdout'.
--- Allows control of the test parameters.
-quickCheckWith :: Testable prop => 
-                  Int  -- ^ Maximum number of tests to run.
-               -> Int  -- ^ Maximum number of attempts to make to 
-                       -- when trying to generate test data.
-               -> Int  -- ^ The maximum size of the generated test cases.
-               -> prop -- ^ The property to test.
-               -> IO Bool -- ^ 'True' if the property held for all the tests.
-                          -- 'False' if some test failed, or if the test data 
-                          -- generator gave up.
-quickCheckWith maxSuccessTests maxTryTests maxSize p =
+-- | Tests a property, produces a test result, and prints the results to 'stdout'.
+quickCheckResult :: Testable prop => prop -> IO Result
+quickCheckResult p = quickCheckWithResult stdArgs p
+
+-- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
+quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
+quickCheckWithResult args p =
   do tm  <- newTerminal
-     rnd <- newStdGen
+     rnd <- case replay args of
+              Nothing      -> newStdGen
+              Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
-                 , maxSuccessTests   = maxSuccessTests
-                 , maxTryTests       = maxTryTests
-                 , maxSize           = maxSize
+                 , maxSuccessTests   = maxSuccess args
+                 , maxDiscardedTests = maxDiscard args
+                 , computeSize       = case replay args of
+                                         Nothing    -> \n d -> (n * maxSize args)
+                                                         `div` maxSuccess args
+                                                             + (d `div` 10)
+                                         Just (_,s) -> \_ _ -> s
                  , numSuccessTests   = 0
-                 , numTryTests       = 0
+                 , numDiscardedTests = 0
                  , collected         = []
                  , expectedFailure   = False
                  , randomSeed        = rnd
@@ -84,15 +116,15 @@ quickCheckWith maxSuccessTests maxTryTests maxSize p =
 --------------------------------------------------------------------------
 -- main test loop
 
-test :: State -> (StdGen -> Int -> Prop) -> IO Bool
+test :: State -> (StdGen -> Int -> Prop) -> IO Result
 test st f
-  | numSuccessTests st >= maxSuccessTests st = doneTesting st f
-  | numTryTests st >= maxTryTests st         = giveUp st f
-  | otherwise                                = runATest st f
+  | numSuccessTests st   >= maxSuccessTests st   = doneTesting st f
+  | numDiscardedTests st >= maxDiscardedTests st = giveUp st f
+  | otherwise                                    = runATest st f
 
-doneTesting :: State -> (StdGen -> Int -> Prop) -> IO Bool
+doneTesting :: State -> (StdGen -> Int -> Prop) -> IO Result
 doneTesting st f =
-  do -- PRE-CALL final
+  do -- CALLBACK done_testing?
      if expectedFailure st then
        putPart (terminal st)
          ( "+++ OK, passed "
@@ -107,33 +139,40 @@ doneTesting st f =
         ++ " tests (expected failure)"
          )
      success st
-     return (expectedFailure st)
+     if expectedFailure st then
+       return Success{ labels = summary st }
+      else
+       return NoExpectedFailure{ labels = summary st }
   
-giveUp :: State -> (StdGen -> Int -> Prop) -> IO Bool
+giveUp :: State -> (StdGen -> Int -> Prop) -> IO Result
 giveUp st f =
-  do putPart (terminal st)
+  do -- CALLBACK gave_up?
+     putPart (terminal st)
        ( bold ("*** Gave up!")
       ++ " Passed only "
       ++ show (numSuccessTests st)
       ++ " tests"
        )
      success st
-     return False
+     return GaveUp{ numTests = numSuccessTests st
+                  , labels   = summary st
+                  }
 
-runATest :: State -> (StdGen -> Int -> Prop) -> IO Bool
+runATest :: State -> (StdGen -> Int -> Prop) -> IO Result
 runATest st f =
-  do -- PRE-CALL before_test
+  do -- CALLBACK before_test
      putTemp (terminal st)
         ( "("
        ++ number (numSuccessTests st) "test"
-       ++ concat [ "; " ++ show (numTryTests st) ++ " discarded" | numTryTests st > 0 ]
+       ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
+                 | numDiscardedTests st > 0
+                 ]
        ++ ")"
         )
-     let size = (numSuccessTests st * maxSize st) `div` maxSuccessTests st
-              + (numTryTests st `div` 10)
+     let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
      (res, ts) <- run (unProp (f rnd1 size))
-     -- POST-CALL after_test
      callbackPostTest st res
+     
      case ok res of
        Just True -> -- successful test
          do test st{ numSuccessTests = numSuccessTests st + 1
@@ -143,9 +182,9 @@ runATest st f =
                    } f
        
        Nothing -> -- discarded test
-         do test st{ numTryTests     = numTryTests st + 1
-                   , randomSeed      = rnd2
-                   , expectedFailure = expect res
+         do test st{ numDiscardedTests = numDiscardedTests st + 1
+                   , randomSeed        = rnd2
+                   , expectedFailure   = expect res
                    } f
          
        Just False -> -- failed test
@@ -153,15 +192,34 @@ runATest st f =
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
             putTemp (terminal st)
-              ( short 30 (reason res)
+              ( short 30 (P.reason res)
              ++ " (after "
              ++ number (numSuccessTests st+1) "test"
              ++ ")..."
               )
             foundFailure st res ts
-            return (not (expect res))
+            if not (expect res) then
+              return Success{ labels = summary st }
+             else
+              return Failure{ usedSeed = randomSeed st -- correct! (this will be split first)
+                            , usedSize = size
+                            , reason   = P.reason res
+                            , labels   = summary st
+                            }
  where
   (rnd1,rnd2) = split (randomSeed st)
+
+summary :: State -> [(String,Int)]
+summary st = reverse
+           . sort
+           . map (\ss -> (head ss, (length ss * 100) `div` numSuccessTests st))
+           . group
+           . sort
+           $ [ concat (intersperse ", " s')
+             | s <- collected st
+             , let s' = [ t | (t,_) <- s ]
+             , not (null s')
+             ]
 
 success :: State -> IO ()
 success st =
@@ -217,7 +275,7 @@ run rose =
      return (res, ts)
  where
   errRose       err = MkRose (return (errResult failed err)) []
-  errResult res err = res{ reason = "Exception: '" ++ showErr err ++ "'" }
+  errResult res err = res{ P.reason = "Exception: '" ++ showErr err ++ "'" }
 
   m `orElseErr` (s,f) = -- either f id `fmap` try m
     do eex <- tryEvaluateIO m
@@ -243,14 +301,14 @@ run rose =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> Result -> [Rose (IO Result)] -> IO ()
+foundFailure :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
 foundFailure st res ts =
   do localMin st{ numTryShrinks = 0, isShrinking = True } res ts
 
-localMin :: State -> Result -> [Rose (IO Result)] -> IO ()
+localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
 localMin st res [] =
   do putLine (terminal st)
-       ( reason res
+       ( P.reason res
       ++ " (after " ++ number (numSuccessTests st+1) "test"
       ++ concat [ " and " ++ number (numSuccessShrinks st) "shrink"
                 | numSuccessShrinks st > 0
@@ -258,13 +316,12 @@ localMin st res [] =
       ++ "):  "
        )
      callbackPostFinalFailure st res
-     -- POST-CALL final_failure
 
 localMin st res (t : ts) =
-  do -- PRE-CALL before_test
+  do -- CALLBACK before_test
      (res',ts') <- run t
      putTemp (terminal st)
-       ( short 35 (reason res)
+       ( short 35 (P.reason res)
       ++ " (after " ++ number (numSuccessTests st+1) "test"
       ++ concat [ " and "
                ++ show (numSuccessShrinks st)
@@ -277,7 +334,6 @@ localMin st res (t : ts) =
                 ]
       ++ ")..."
        )
-     -- POST-CALL after_test
      callbackPostTest st res'
      if ok res' == Just False
        then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
@@ -286,11 +342,11 @@ localMin st res (t : ts) =
 --------------------------------------------------------------------------
 -- callbacks
 
-callbackPostTest :: State -> Result -> IO ()
+callbackPostTest :: State -> P.Result -> IO ()
 callbackPostTest st res =
   sequence_ [ f st res | PostTest f <- callbacks res ]
 
-callbackPostFinalFailure :: State -> Result -> IO ()
+callbackPostFinalFailure :: State -> P.Result -> IO ()
 callbackPostFinalFailure st res =
   sequence_ [ f st res | PostFinalFailure f <- callbacks res ]
 

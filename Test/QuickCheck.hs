@@ -1,5 +1,13 @@
 module Test.QuickCheck
   ( 
+    -- * Running tests
+    quickCheck
+  , Args(..), Result(..)
+  , stdArgs
+  , quickCheckWith
+  , quickCheckWithResult
+  , quickCheckResult
+    
     -- * Random generation
     Gen
     -- ** Generator combinators
@@ -51,11 +59,10 @@ module Test.QuickCheck
   , whenFail, whenFail'
   , expectFailure, within
     -- *** Test distribution
-  , label, collect, classify, cover
-         
-    -- * Running tests
-  , quickCheck, quickCheck'
-  , quickCheckWith, quickCheckIO
+  , label
+  , collect
+  , classify
+  , cover
   
     -- * Text formatting
   , Str(..), ranges
@@ -69,7 +76,7 @@ module Test.QuickCheck
 
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
-import Test.QuickCheck.Property
+import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Text
 
