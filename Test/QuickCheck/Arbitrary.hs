@@ -265,7 +265,7 @@ arbitrarySizedBoundedInt =
   sized $ \s ->
     do let mn = minBound
            mx = maxBound `asTypeOf` mn
-           k  = 2^(s `div` 3)
+           k  = 2^(s*2 `div` 5)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
        return (fromInteger n `asTypeOf` mn)
 
