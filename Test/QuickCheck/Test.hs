@@ -44,20 +44,20 @@ data Args
 
 -- | Result represents the test result
 data Result
-  = Success                          -- ^ a successful test run
+  = Success                          -- a successful test run
     { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
     }
-  | GaveUp                           -- ^ given up
+  | GaveUp                           -- given up
     { numTests  :: Int               -- ^ number of successful tests performed
     , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
     }
-  | Failure                          -- ^ failed test run
+  | Failure                          -- failed test run
     { usedSeed  :: StdGen            -- ^ what seed was used
     , usedSize  :: Int               -- ^ what was the test size
     , reason    :: String            -- ^ what was the reason
     , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
     }
-  | NoExpectedFailure                -- ^ the expected failure did not happen
+  | NoExpectedFailure                -- the expected failure did not happen
     { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
     }
  deriving ( Show, Read )
