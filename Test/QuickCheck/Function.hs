@@ -1,7 +1,8 @@
 -- | Uses magic to show and shrink functions.
 module Test.QuickCheck.Function
+  (
   -- * Magic functions
-  ( Function(..)
+    Function(..)
   , function
   
   -- * Generating monotonic functions
