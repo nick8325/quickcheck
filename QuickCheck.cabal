@@ -4,10 +4,10 @@ Cabal-Version: >= 1.2
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
-Copyright: Koen Claessen <koen@cs.chalmers.se>
-Author: Koen Claessen <koen@cs.chalmers.se>
-Maintainer: Koen Claessen <koen@cs.chalmers.se>
-Homepage: http://www.haskell.org/QuickCheck/
+Copyright: Koen Claessen <koen@chalmers.se>
+Author: Koen Claessen <koen@chalmers.se>
+Maintainer: Koen Claessen <koen@chalmers.se>
+Homepage: http://www.cs.chalmers.se/~koen
 Category:	    Testing
 Synopsis:	    Automatic testing of Haskell programs
 Description:
@@ -38,12 +38,12 @@ library
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Function,
     Test.QuickCheck.Gen,
-    Test.QuickCheck.Monadic
+    Test.QuickCheck.Monadic,
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
     Test.QuickCheck.State
   Other-Modules:
-    Test.QuickCheck.Exception,
+    Test.QuickCheck.Exception
   GHC-options:
