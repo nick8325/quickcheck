@@ -12,6 +12,11 @@ import System.Random
 
 import Control.Monad
   ( liftM
+  , ap
+  )
+
+import Control.Applicative
+  ( Applicative(..)
   )
 
 import Control.Monad.Reader()
@@ -30,6 +35,10 @@ newtype Gen a = MkGen{ unGen :: StdGen -> Int -> a }
 instance Functor Gen where
   fmap f (MkGen h) =
     MkGen (\r n -> f (h r n))
+
+instance Applicative Gen where
+  pure  = return
+  (<*>) = ap
 
 instance Monad Gen where
   return x =
