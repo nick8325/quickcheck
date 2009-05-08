@@ -545,6 +545,23 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     , x' >= 0
     ]
 
+-- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
+newtype Shrink2 a = Shrink2 a
+ deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+
+instance Arbitrary a => Arbitrary (Shrink2 a) where
+  arbitrary =
+    Shrink2 `fmap` arbitrary
+
+  shrink (Shrink2 x) =
+    [ Shrink2 y | y <- shrink_x ] ++
+    [ Shrink2 z
+    | y <- shrink_x
+    , z <- shrink y
+    ]
+   where
+    shrink_x = shrink x
+
 -- | @Smart _ x@: tries a different order when shrinking.
 data Smart a =
   Smart Int a
