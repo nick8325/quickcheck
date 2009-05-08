@@ -39,6 +39,7 @@ library
     Test.QuickCheck.Function,
     Test.QuickCheck.Gen,
     Test.QuickCheck.Monadic,
+    Test.QuickCheck.Modifiers,
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
     Test.QuickCheck.Text,
