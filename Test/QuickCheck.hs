@@ -60,6 +60,7 @@ module Test.QuickCheck
   , NonZero(..)
   , NonNegative(..)
   , Smart(..)
+  , Shrink2(..)
   , Shrinking(..)
   , ShrinkState(..)
 
