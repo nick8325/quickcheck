@@ -1,6 +1,6 @@
 module Test.QuickCheck.Poly
-  ( A, B, C
-  , OrdA, OrdB, OrdC
+  ( A(..), B(..), C(..)
+  , OrdA(..), OrdB(..), OrdC(..)
   )
  where
 
