@@ -1,4 +1,3 @@
-{-# OPTIONS -fglasgow-exts #-}
 module Test.QuickCheck.Arbitrary
   ( 
   -- * Arbitrary and CoArbitrary classes.

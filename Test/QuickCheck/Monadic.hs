@@ -1,5 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-
+{-# LANGUAGE Rank2Types #-}
 -- | Allows testing of monadic values.
 module Test.QuickCheck.Monadic where
 
