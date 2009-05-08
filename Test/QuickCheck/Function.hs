@@ -16,6 +16,7 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Property
 import Test.QuickCheck.Poly
+import Test.QuickCheck.Modifiers
 
 import Data.Char
 
@@ -24,17 +25,19 @@ import Data.Char
 
 -- the type of possibly partial concrete functions
 data a :-> c where
-  Pair  :: (a :-> (b :-> c)) -> ((a,b) :-> c)
-  (:+:) :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
-  Unit  :: c -> (() :-> c)
-  Nil   :: a :-> c
-  Map   :: (a -> b) -> (b -> a) -> (b :-> c) -> (a :-> c)
+  Pair   :: (a :-> (b :-> c)) -> ((a,b) :-> c)
+  (:+:)  :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
+  Unit   :: c -> (() :-> c)
+  Nil    :: a :-> c
+  FunInt :: FunInt c -> (Integer :-> c)
+  Map    :: (a -> b) -> (b -> a) -> (b :-> c) -> (a :-> c)
 
 instance Functor ((:->) a) where
   fmap f (Pair p)    = Pair (fmap (fmap f) p)
   fmap f (p:+:q)     = fmap f p :+: fmap f q
   fmap f (Unit c)    = Unit (f c)
   fmap f Nil         = Nil
+  fmap f (FunInt fn) = FunInt (fmap f fn)
   fmap f (Map g h p) = Map g h (fmap f p)
 
 instance (Show a, Show b) => Show (a:->b) where
@@ -56,6 +59,7 @@ abstract (Pair p)    d (x,y) = abstract (fmap (\q -> abstract q d y) p) d x
 abstract (p :+: q)   d exy   = either (abstract p d) (abstract q d) exy
 abstract (Unit c)    _ _     = c
 abstract Nil         d _     = d
+abstract (FunInt fn) d x     = abstractFunInt fn d x
 abstract (Map g _ p) d x     = abstract p d (g x)
 
 -- generating a table from a concrete function
@@ -65,7 +69,46 @@ table (p :+: q)   = [ (Left x, c) | (x,c) <- table p ]
                  ++ [ (Right y,c) | (y,c) <- table q ]
 table (Unit c)    = [ ((), c) ]
 table Nil         = []
+table (FunInt fn) = tableFunInt fn
 table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
+
+-- domains
+
+data FunInt c
+  = Everything (Integer -> c)
+  | Limited (Integer,Integer) (Integer -> c)
+  | Points [(Integer,c)]
+
+instance Functor FunInt where
+  fmap f (Everything fn)    = Everything (f . fn)
+  fmap f (Limited (a,b) fn) = Limited (a,b) (f . fn)
+  fmap f (Points xys)       = Points [(x, f y) | (x,y) <- xys]
+  
+abstractFunInt :: FunInt c -> c -> (Integer -> c)
+abstractFunInt (Everything f)    _ x = f x
+abstractFunInt (Limited (a,b) f) d x = if a <= x && x <= b then f x else d
+abstractFunInt (Points xys)      d x = head $ [y | (x',y) <- xys, x == x'] ++ [d]
+
+tableFunInt :: FunInt c -> [(Integer,c)]
+tableFunInt (Everything f)    = (0,f 0) : error "infinite function"
+tableFunInt (Limited (a,b) f) = [ (x, f x) | x <- [a..b] ]
+tableFunInt (Points xys)      = xys
+
+shrinkFunInt :: (c -> [c]) -> FunInt c -> [FunInt c]
+shrinkFunInt shr (Everything f) =
+  [ Limited (-x,x) f
+  | x <- iterate (*2) 1
+  ]
+
+shrinkFunInt shr (Limited (a,b) f) =
+  shrinkFunInt shr (Points [ (x, f x) | x <- [a..b] ])
+
+shrinkFunInt shr (Points xys) =
+  [ Points xys'
+  | xys' <- shrinkList shrXy xys
+  ]
+ where
+  shrXy (x,y) = [(x,y') | y' <- shr y ]
 
 --------------------------------------------------------------------------
 -- FunArbitrary
@@ -94,6 +137,11 @@ instance FunArbitrary () where
   funArbitrary =
     do c <- arbitrary
        return (Unit c)
+
+instance FunArbitrary Integer where
+  funArbitrary =
+    do fn <- arbitrary
+       return (FunInt (Everything fn))
 
 -- other instances (using Map)
 
@@ -132,6 +180,7 @@ instance FunArbitrary Bool where
     h (Left _)  = False
     h (Right _) = True
 
+{-
 instance FunArbitrary Integer where
   funArbitrary = funArbitraryMap g h
    where
@@ -142,12 +191,16 @@ instance FunArbitrary Integer where
     h (Left False)  = 0
     h (Left True)   = -1
     h (Right (b,k)) = 2*k + if b then 0 else 1
+-}
 
 instance FunArbitrary Int where
   funArbitrary = funArbitraryMap fromIntegral fromInteger
 
 instance FunArbitrary Char where
-  funArbitrary = funArbitraryMap ord chr
+  funArbitrary = funArbitraryMap ord chr'
+   where
+    chr' x | 0 <= x && x <= 255 = chr x
+           | otherwise          = error ("bad:" ++ show x)
 
 -- poly instances
 
@@ -191,18 +244,24 @@ shrinkFun shr (p :+: q) =
   Nil .+. Nil = Nil
   p   .+. q   = p :+: q
 
+shrinkFun shr (Unit c) =
+  [ Nil ] ++
+  [ Unit c' | c' <- shr c ]
+
+shrinkFun shr (FunInt fn) =
+  [ funInt fn' | fn' <- shrinkFunInt shr fn ]
+ where
+  funInt (Points []) = Nil
+  funInt fn          = FunInt fn
+
+shrinkFun shr Nil =
+  []
+
 shrinkFun shr (Map g h p) =
   [ mapp g h p' | p' <- shrinkFun shr p ]
  where
   mapp g h Nil = Nil
   mapp g h p   = Map g h p
-
-shrinkFun shr (Unit c) =
-  [ Nil ] ++
-  [ Unit c' | c' <- shr c ]
-
-shrinkFun shr Nil =
-  []
 
 --------------------------------------------------------------------------
 -- the Fun modifier
