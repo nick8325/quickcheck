@@ -94,6 +94,7 @@ module Test.QuickCheck
 
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
+import Test.QuickCheck.Modifiers
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Text
