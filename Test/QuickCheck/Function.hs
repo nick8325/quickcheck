@@ -147,15 +147,19 @@ instance FunArbitrary Bool where
     h (Right _) = True
 
 instance FunArbitrary Integer where
-  funArbitrary = funArbitraryMap g h
+  funArbitrary = funArbitraryMap gInteger hInteger
    where
-    g 0    = Left False
-    g (-1) = Left True
-    g n    = Right (even n, n `div` 2)
+    gInteger n | n < 0     = Left (gNatural (abs n - 1))
+               | otherwise = Right (gNatural n)
     
-    h (Left False)  = 0
-    h (Left True)   = -1
-    h (Right (b,k)) = 2*k + if b then 0 else 1
+    hInteger (Left ws)  = -(hNatural ws + 1)
+    hInteger (Right ws) = hNatural ws
+    
+    gNatural 0 = []
+    gNatural n = (fromIntegral (n `mod` 256) :: Word8) : gNatural (n `div` 256)
+    
+    hNatural []     = 0
+    hNatural (w:ws) = fromIntegral w + 256 * hNatural ws
 
 instance FunArbitrary Int where
   funArbitrary = funArbitraryMap fromIntegral fromInteger
