@@ -11,6 +11,7 @@ module Test.QuickCheck.Arbitrary
   , arbitraryBoundedRandom   -- :: (Bounded a, Random a) => Gen a
   -- ** Helper functions for implementing shrink
   , shrinkNothing            -- :: a -> [a]
+  , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
@@ -110,31 +111,33 @@ instance Arbitrary a => Arbitrary [a] where
     do k <- choose (0,n)
        sequence [ arbitrary | _ <- [1..k] ]
 
-  shrink xs = removeChunks xs
-           ++ shrinkOne xs
+  shrink xs = shrinkList shrink xs
+
+shrinkList :: (a -> [a]) -> [a] -> [[a]]
+shrinkList shr xs = removeChunks xs ++ shrinkOne xs
+ where
+  removeChunks xs = rem (length xs) xs
    where
-    removeChunks xs = rem (length xs) xs
+    rem 0 _  = []
+    rem 1 _  = [[]]
+    rem n xs = xs1
+             : xs2
+             : ( [ xs1' ++ xs2 | xs1' <- rem n1 xs1, not (null xs1') ]
+           `ilv` [ xs1 ++ xs2' | xs2' <- rem n2 xs2, not (null xs2') ]
+               )
      where
-      rem 0 _  = []
-      rem 1 _  = [[]]
-      rem n xs = xs1
-               : xs2
-               : ( [ xs1' ++ xs2 | xs1' <- rem n1 xs1, not (null xs1') ]
-             `ilv` [ xs1 ++ xs2' | xs2' <- rem n2 xs2, not (null xs2') ]
-                 )
-       where
-        n1  = n `div` 2
-        xs1 = take n1 xs
-        n2  = n - n1
-        xs2 = drop n1 xs
-    
-        []     `ilv` ys     = ys
-        xs     `ilv` []     = xs
-        (x:xs) `ilv` (y:ys) = x : y : (xs `ilv` ys)
-    
-    shrinkOne []     = []
-    shrinkOne (x:xs) = [ x':xs | x'  <- shrink x ]
-                    ++ [ x:xs' | xs' <- shrinkOne xs ] 
+      n1  = n `div` 2
+      xs1 = take n1 xs
+      n2  = n - n1
+      xs2 = drop n1 xs
+
+      []     `ilv` ys     = ys
+      xs     `ilv` []     = xs
+      (x:xs) `ilv` (y:ys) = x : y : (xs `ilv` ys)
+
+  shrinkOne []     = []
+  shrinkOne (x:xs) = [ x':xs | x'  <- shr x ]
+                  ++ [ x:xs' | xs' <- shrinkOne xs ] 
 
 {-
   -- "standard" definition for lists:
