@@ -9,6 +9,8 @@ import Control.Exception
 --------------------------------------------------------------------------
 -- try evaluate
 
+--type Exception = SomeException
+
 tryEvaluate :: a -> IO (Either Exception a)
 tryEvaluate x = tryEvaluateIO (return x)
 
