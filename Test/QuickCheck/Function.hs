@@ -26,12 +26,12 @@ import Data.Word
 
 -- the type of possibly partial concrete functions
 data a :-> c where
-  Pair   :: (a :-> (b :-> c)) -> ((a,b) :-> c)
-  (:+:)  :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
-  Unit   :: c -> (() :-> c)
-  Nil    :: a :-> c
-  Table  :: Eq a => [(a,c)] -> (a :-> c)
-  Map    :: (a -> b) -> (b -> a) -> (b :-> c) -> (a :-> c)
+  Pair  :: (a :-> (b :-> c)) -> ((a,b) :-> c)
+  (:+:) :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
+  Unit  :: c -> (() :-> c)
+  Nil   :: a :-> c
+  Table :: Eq a => [(a,c)] -> (a :-> c)
+  Map   :: (a -> b) -> (b -> a) -> (b :-> c) -> (a :-> c)
 
 instance Functor ((:->) a) where
   fmap f (Pair p)    = Pair (fmap (fmap f) p)
