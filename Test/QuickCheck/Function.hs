@@ -3,9 +3,9 @@ module Test.QuickCheck.Function
   ( Fun(..)
   , apply
   , (:->)
-  , FunArbitrary(..)
-  , funArbitraryMap
-  , funArbitraryShow
+  , Function(..)
+  , functionMap
+  , functionShow
   )
  where
 
@@ -74,53 +74,35 @@ table (Table xys) = xys
 table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 
 --------------------------------------------------------------------------
--- FunArbitrary
+-- Function
 
-class FunArbitrary a where
-  funArbitrary :: Arbitrary c => Gen (a :-> c)
+class Function a where
+  function :: (a->b) -> (a:->b)
+  
+-- basic instances
+  
+instance Function () where
+  function f = Unit (f ())
 
-instance (FunArbitrary a, Arbitrary c) => Arbitrary (a :-> c) where
-  arbitrary = funArbitrary
-  shrink    = shrinkFun shrink
+instance Function Word8 where
+  function f = Table [(x,f x) | x <- [0..255]]
 
--- basic instances: pairs, sums, units
+instance (Function a, Function b) => Function (a,b) where
+  function f = Pair (function `fmap` function (curry f))
 
-instance (FunArbitrary a, FunArbitrary b) => FunArbitrary (a,b) where
-  funArbitrary =
-    do p <- funArbitrary
-       return (Pair p)
+instance (Function a, Function b) => Function (Either a b) where
+  function f = function (f . Left) :+: function (f . Right)
 
-instance (FunArbitrary a, FunArbitrary b) => FunArbitrary (Either a b) where
-  funArbitrary =
-    do p <- funArbitrary
-       q <- funArbitrary
-       return (p :+: q)
+-- other instances
 
-instance FunArbitrary () where
-  funArbitrary =
-    do c <- arbitrary
-       return (Unit c)
+functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
+functionMap g h f = Map g h (function (\b -> f (h b)))
 
-instance FunArbitrary Word8 where
-  funArbitrary =
-    do xys <- sequence [ do y <- arbitrary
-                            return (x,y)
-                       | x <- [0..255]
-                       ]
-       return (Table xys)
+functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
+functionShow f = functionMap show read f
 
--- other instances (using Map)
-
-funArbitraryMap :: (FunArbitrary a, Arbitrary c) => (b -> a) -> (a -> b) -> Gen (b :-> c)
-funArbitraryMap g h =
-  do p <- funArbitrary
-     return (Map g h p)
-
-funArbitraryShow :: (Show a, Read a, Arbitrary c) => Gen (a :-> c)
-funArbitraryShow = funArbitraryMap show read
-
-instance FunArbitrary a => FunArbitrary [a] where
-  funArbitrary = funArbitraryMap g h
+instance Function a => Function [a] where
+  function = functionMap g h
    where
     g []     = Left ()
     g (x:xs) = Right (x,xs)
@@ -128,8 +110,8 @@ instance FunArbitrary a => FunArbitrary [a] where
     h (Left _)       = []
     h (Right (x,xs)) = x:xs
 
-instance FunArbitrary a => FunArbitrary (Maybe a) where
-  funArbitrary = funArbitraryMap g h
+instance Function a => Function (Maybe a) where
+  function = functionMap g h
    where
     g Nothing  = Left ()
     g (Just x) = Right x
@@ -137,8 +119,8 @@ instance FunArbitrary a => FunArbitrary (Maybe a) where
     h (Left _)  = Nothing
     h (Right x) = Just x
 
-instance FunArbitrary Bool where
-  funArbitrary = funArbitraryMap g h
+instance Function Bool where
+  function = functionMap g h
    where
     g False = Left ()
     g True  = Right ()
@@ -146,8 +128,8 @@ instance FunArbitrary Bool where
     h (Left _)  = False
     h (Right _) = True
 
-instance FunArbitrary Integer where
-  funArbitrary = funArbitraryMap gInteger hInteger
+instance Function Integer where
+  function = functionMap gInteger hInteger
    where
     gInteger n | n < 0     = Left (gNatural (abs n - 1))
                | otherwise = Right (gNatural n)
@@ -161,34 +143,40 @@ instance FunArbitrary Integer where
     hNatural []     = 0
     hNatural (w:ws) = fromIntegral w + 256 * hNatural ws
 
-instance FunArbitrary Int where
-  funArbitrary = funArbitraryMap fromIntegral fromInteger
+instance Function Int where
+  function = functionMap fromIntegral fromInteger
 
-instance FunArbitrary Char where
-  funArbitrary = funArbitraryMap ord' chr'
+instance Function Char where
+  function = functionMap ord' chr'
    where
     ord' c = fromIntegral (ord c) :: Word8
     chr' n = chr (fromIntegral n)
 
 -- poly instances
 
-instance FunArbitrary A where
-  funArbitrary = funArbitraryMap unA A
+instance Function A where
+  function = functionMap unA A
 
-instance FunArbitrary B where
-  funArbitrary = funArbitraryMap unB B
+instance Function B where
+  function = functionMap unB B
 
-instance FunArbitrary C where
-  funArbitrary = funArbitraryMap unC C
+instance Function C where
+  function = functionMap unC C
 
-instance FunArbitrary OrdA where
-  funArbitrary = funArbitraryMap unOrdA OrdA
+instance Function OrdA where
+  function = functionMap unOrdA OrdA
 
-instance FunArbitrary OrdB where
-  funArbitrary = funArbitraryMap unOrdB OrdB
+instance Function OrdB where
+  function = functionMap unOrdB OrdB
 
-instance FunArbitrary OrdC where
-  funArbitrary = funArbitraryMap unOrdC OrdC
+instance Function OrdC where
+  function = functionMap unOrdC OrdC
+
+-- instance Abritrary
+
+instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (a:->b) where
+  arbitrary = function `fmap` arbitrary
+  shrink    = shrinkFun shrink
 
 --------------------------------------------------------------------------
 -- shrinking
@@ -248,7 +236,7 @@ apply (Fun _ f) = f
 instance (Show a, Show b) => Show (Fun a b) where
   show (Fun p _) = show p
 
-instance (FunArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
+instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
   arbitrary = fun `fmap` arbitrary
 
   shrink (Fun p _) =
