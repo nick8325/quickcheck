@@ -43,6 +43,10 @@ import Data.Char
   ( chr
   , ord
   , isLower
+  , isUpper
+  , toLower
+  , isDigit
+  , isSpace
   )
 
 import Data.Ratio
@@ -202,8 +206,22 @@ instance Arbitrary Int where
 
 instance Arbitrary Char where
   arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
-  shrink c  = [ c' | c' <- ['a','b','c'], c' < c || not (isLower c) ]
-
+  shrink c  = filter (<. c) $ nub
+            $ ['a','b','c']
+           ++ [ toLower c | isUpper c ]
+           ++ ['A','B','C']
+           ++ ['1','2','3']
+           ++ [' ','\n']
+   where
+    a <. b  = stamp a < stamp b
+    stamp a = ( not (isLower a)
+              , not (isUpper a)
+              , not (isDigit a)
+              , not (a==' ')
+              , not (isSpace a)
+              , a
+              )
+    
 instance Arbitrary Float where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
