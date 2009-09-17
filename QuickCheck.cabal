@@ -33,7 +33,7 @@ flag extensibleExceptions
 library
   Build-depends: mtl
   if flag(extensibleExceptions)
-    Build-depends: base >= 4, random
+    Build-depends: base >= 4 && < 5, random
   else
     if flag(splitBase)
       Build-depends: base >= 3 && < 4, random
