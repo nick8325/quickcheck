@@ -27,12 +27,18 @@ Description:
 flag splitBase
   Description: Choose the new smaller, split-up base package.
 
+flag extensibleExceptions
+  Description: Choose the even newer, even smaller, split-up base package.
+
 library
   Build-depends: mtl
-  if flag(splitBase)
-    Build-depends: base >= 3, random
+  if flag(extensibleExceptions)
+    Build-depends: base >= 4, random
   else
-    Build-depends: base < 3
+    if flag(splitBase)
+      Build-depends: base >= 3 && < 4, random
+    else
+      Build-depends: base < 3
   Exposed-Modules:
     Test.QuickCheck,
     Test.QuickCheck.Arbitrary,
