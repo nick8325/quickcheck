@@ -6,7 +6,7 @@ License: BSD3
 License-file: LICENSE
 Copyright: Koen Claessen <koen@chalmers.se>
 Author: Koen Claessen <koen@chalmers.se>
-Maintainer: Koen Claessen <koen@chalmers.se>
+Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Homepage: http://www.cs.chalmers.se/~koen
 Category:	    Testing
 Synopsis:	    Automatic testing of Haskell programs
