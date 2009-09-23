@@ -267,7 +267,6 @@ within n = mapIOResult race
                 put "Evaluating OK ..."
                 putMVar resV res
        
-       -- used "mfix" here before but got non-termination problems
        pid1  <- forkIO evalProp
        pid2  <- forkIO waitAndFail
 
