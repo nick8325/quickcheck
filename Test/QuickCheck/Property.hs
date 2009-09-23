@@ -231,14 +231,10 @@ cover :: Testable prop =>
       -> Int    -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover b n s = mapIOResult $ \ior ->
-  do eeb <- tryEvaluate b
-     res <- ior
-     return $
-       case eeb of
-         Left err    -> exception res err
-         Right True  -> res{ stamp  = (s,n) : stamp res }
-         Right False -> res
+cover b n s = mapResult $ \res ->
+        case b of
+         True  -> res{ stamp  = (s,n) : stamp res }
+         False -> res
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False', or if the given property holds.
