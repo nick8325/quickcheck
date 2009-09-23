@@ -246,8 +246,6 @@ cover b n s = mapIOResult $ \ior ->
 False ==> _ = property ()
 True  ==> p = property p
 
--- INVESTIGATE: does not work
--- NOTE: n is in microseconds
 -- | Considers a property failed if it does not complete within
 -- the given number of microseconds.
 within :: Testable prop => Int -> prop -> Property
@@ -256,46 +254,28 @@ within n = mapIOResult race
   race ior =
     do put "Race starts ..."
        resV <- newEmptyMVar
-       pidV <- newEmptyMVar
-       partResV <- newIORef (failed result)
        
        let waitAndFail =
              do put "Waiting ..."
                 threadDelay n
                 put "Done waiting!"
-                partRes <- readIORef partResV
-                putMVar resV $
-                  partRes
-                  { ok     = Just False
-                  , reason = "Time out"
-                  }
+                putMVar resV (failed result{reason = "Time out"})
            
            evalProp =
              do put "Evaluating Result ..."
-                res <- ior
-                writeIORef partResV res
+                res <- protectResult ior
                 put "Evaluating OK ..."
-                mok <- tryEvaluate (ok res == Just False)
-                case mok of
-                  Left err -> do put "Exception!"
-                                 putMVar resV $
-                                   res
-                                   { ok     = Just False
-                                   , reason = "Exception: '" ++ showErr err ++ "'"
-                                   } 
-                  Right _  -> do put "Done!"
-                                 putMVar resV res
+                putMVar resV res
        
        -- used "mfix" here before but got non-termination problems
-       pid1  <- forkIO $ do pid2 <- takeMVar pidV
-                            evalProp
-                            killThread pid2
-       pid2  <- forkIO $ do waitAndFail
-                            killThread pid1
-       putMVar pidV pid2
+       pid1  <- forkIO evalProp
+       pid2  <- forkIO waitAndFail
 
        put "Blocking ..."
        res <- takeMVar resV
+       put "Killing threads ..."
+       killThread pid1
+       killThread pid2
        put ("Got Result: " ++ show (ok res))
        return res
          
