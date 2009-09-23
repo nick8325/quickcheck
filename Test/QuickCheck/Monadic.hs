@@ -35,7 +35,7 @@ instance Monad m => Monad (PropertyM m) where
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
   fail s              = MkPropertyM (\k -> return (return (property result)))
    where
-    result = failed{ reason = s }
+    result = failed result{ reason = s }
 
 -- should think about strictness/exceptions here
 --assert :: Testable prop => prop -> PropertyM m ()

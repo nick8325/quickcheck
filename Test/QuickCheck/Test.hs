@@ -270,13 +270,12 @@ success st =
 -- needed anymore?
 run rose =
   do MkRose mres ts <- return rose `orElseErr` ("rose", errRose)
-     res <- mres `orElseErr` ("mres", errResult failed)
-     res <- return (strictOk res) `orElseErr` ("ok", errResult res{ ok = Just False })
+     res <- mres `orElseErr` ("mres", exception result)
+     res <- return (strictOk res) `orElseErr` ("ok", exception res)
      ts <- repairList ts
      return (res, ts)
  where
-  errRose       err = MkRose (return (errResult failed err)) []
-  errResult res err = res{ P.reason = "Exception: '" ++ showErr err ++ "'" }
+  errRose       err = MkRose (return (exception result err)) []
 
   m `orElseErr` (s,f) = -- either f id `fmap` try m
     do eex <- tryEvaluateIO m

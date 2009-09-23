@@ -111,11 +111,14 @@ result =
   , callbacks = []
   }
 
-failed :: Result
-failed = result{ ok = Just False }
+failed :: Result -> Result
+failed res = res{ ok = Just False }
 
-exception :: Show a => a -> Result
-exception err = failed{ reason = "Exception: '" ++ showErr err ++ "'" }
+exception :: Show a => Result -> a -> Result
+exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'" }
+
+catchExceptions :: IO Result -> IO Result
+catchExceptions m = either (exception result) id `fmap` tryEvaluateIO m
 
 succeeded :: Result 
 succeeded = result{ ok = Just True }
@@ -137,30 +140,16 @@ liftResult :: Result -> Property
 liftResult r = liftIOResult (return r)
 
 liftIOResult :: IO Result -> Property
-liftIOResult m = liftRoseIOResult (return (wrap m))
- where
-  wrap m = either exception id `fmap` tryEvaluateIO m
+liftIOResult m = liftRoseIOResult (return (catchExceptions m))
 
 liftRoseIOResult :: Rose (IO Result) -> Property
 liftRoseIOResult t = return (MkProp t)
 
 mapResult :: Testable prop => (Result -> Result) -> prop -> Property
-mapResult f = mapIOResult (>>= wrap f)
- where
-  wrap f res =
-    do mres <- tryEvaluate res
-       return $ f $ case mres of
-         Left  err -> exception err
-         Right res -> res
-       
+mapResult f = mapIOResult (fmap f)
+
 mapIOResult :: Testable prop => (IO Result -> IO Result) -> prop -> Property
-mapIOResult f = mapRoseIOResult (fmap (f . wrap))
- where
-  wrap iores =
-    do miores <- tryEvaluate iores
-       case miores of
-         Left err    -> return (exception err)
-         Right iores -> iores
+mapIOResult f = mapRoseIOResult (fmap (f . catchExceptions))
 
 mapRoseIOResult :: Testable prop => (Rose (IO Result) -> Rose (IO Result)) -> prop -> Property
 mapRoseIOResult f = mapProp (\(MkProp t) -> MkProp (f t))
@@ -241,9 +230,7 @@ cover b n s = mapIOResult $ \ior ->
      res <- ior
      return $
        case eeb of
-         Left err    -> res{ ok     = Just False
-                           , reason = "Exception: '" ++ showErr err ++ "'"
-                           }
+         Left err    -> exception res err
          Right True  -> res{ stamp  = (s,n) : stamp res }
          Right False -> res
 
@@ -264,7 +251,7 @@ within n = mapIOResult race
     do put "Race starts ..."
        resV <- newEmptyMVar
        pidV <- newEmptyMVar
-       partResV <- newIORef failed
+       partResV <- newIORef (failed result)
        
        let waitAndFail =
              do put "Waiting ..."
