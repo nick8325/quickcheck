@@ -118,7 +118,8 @@ exception :: Show a => Result -> a -> Result
 exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'" }
 
 catchExceptions :: IO Result -> IO Result
-catchExceptions m = either (exception result) id `fmap` tryEvaluateIO m
+catchExceptions m = (either (exception result) id) `fmap` tryEvaluateIO (fmap force m)
+  where force res = ok res == Just False `seq` res
 
 succeeded :: Result 
 succeeded = result{ ok = Just True }

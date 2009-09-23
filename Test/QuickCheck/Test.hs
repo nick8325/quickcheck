@@ -171,7 +171,8 @@ runATest st f =
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
-     (res, ts) <- run (unProp (f rnd1 size))
+     MkRose mres ts <- run (unProp (f rnd1 size))
+     res <- mres
      callbackPostTest st res
      
      case ok res of
@@ -269,35 +270,11 @@ success st =
 -- this was there to take care of exceptions, but it does not seem to be
 -- needed anymore?
 run rose =
-  do MkRose mres ts <- return rose `orElseErr` ("rose", errRose)
-     res <- mres `orElseErr` ("mres", exception result)
-     res <- return (strictOk res) `orElseErr` ("ok", exception res)
-     ts <- repairList ts
-     return (res, ts)
+  do MkRose mres ts <- either errRose id `fmap` tryEvaluate rose
+     return (MkRose (catchExceptions mres) ts)
  where
-  errRose       err = MkRose (return (exception result err)) []
+  errRose err = MkRose (return (exception result err)) []
 
-  m `orElseErr` (s,f) = -- either f id `fmap` try m
-    do eex <- tryEvaluateIO m
-       case eex of
-         Left err -> do --putStrLn ("EX: [" ++ s ++ "]")
-                        return s -- to make warning go away
-                        return (f err)
-         Right x  -> do return x
-  
-  strictOk res =
-    (ok res == Just False) `seq` res
-  
-  repairList xs =
-    return xs
-    {-
-    unsafeInterleaveIO $
-      do eexs <- tryEvaluate xs
-         case eexs of
-           Right (x:xs) -> do xs' <- repairList xs; return (x:xs')
-           _            -> do return []
-    -}
-    
 --------------------------------------------------------------------------
 -- main shrinking loop
 
@@ -319,7 +296,8 @@ localMin st res [] =
 
 localMin st res (t : ts) =
   do -- CALLBACK before_test
-     (res',ts') <- run t
+     MkRose mres' ts' <- run t
+     res' <- mres'
      putTemp (terminal st)
        ( short 35 (P.reason res)
       ++ " (after " ++ number (numSuccessTests st+1) "test"
