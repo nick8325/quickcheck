@@ -171,7 +171,7 @@ runATest st f =
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
-     MkRose mres ts <- run (unProp (f rnd1 size))
+     MkRose mres ts <- protectRose (unProp (f rnd1 size))
      res <- mres
      callbackPostTest st res
      
@@ -267,14 +267,6 @@ success st =
 
   showP p = (if p < 10 then " " else "") ++ show p ++ "% "
 
--- this was there to take care of exceptions, but it does not seem to be
--- needed anymore?
-run rose =
-  do MkRose mres ts <- either errRose id `fmap` tryEvaluate rose
-     return (MkRose (catchExceptions mres) ts)
- where
-  errRose err = MkRose (return (exception result err)) []
-
 --------------------------------------------------------------------------
 -- main shrinking loop
 
@@ -296,7 +288,7 @@ localMin st res [] =
 
 localMin st res (t : ts) =
   do -- CALLBACK before_test
-     MkRose mres' ts' <- run t
+     MkRose mres' ts' <- protectRose t
      res' <- mres'
      putTemp (terminal st)
        ( short 35 (P.reason res)

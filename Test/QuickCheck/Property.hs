@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 module Test.QuickCheck.Property where
 
 --------------------------------------------------------------------------
@@ -84,6 +85,10 @@ instance Monad Rose where
   return x = MkRose x []
   m >>= k  = join (fmap k m)
 
+protectRose :: Rose (IO Result) -> IO (Rose (IO Result))
+protectRose rose = either (return . return . exception result) id `fmap` tryEvaluate (unpack rose)
+  where unpack (MkRose mres ts) = MkRose (protectResult mres) ts
+
 -- ** Result type
 
 -- | Different kinds of callbacks
@@ -117,8 +122,8 @@ failed res = res{ ok = Just False }
 exception :: Show a => Result -> a -> Result
 exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'" }
 
-catchExceptions :: IO Result -> IO Result
-catchExceptions m = (either (exception result) id) `fmap` tryEvaluateIO (fmap force m)
+protectResult :: IO Result -> IO Result
+protectResult m = either (exception result) id `fmap` tryEvaluateIO (fmap force m)
   where force res = ok res == Just False `seq` res
 
 succeeded :: Result 
@@ -141,7 +146,7 @@ liftResult :: Result -> Property
 liftResult r = liftIOResult (return r)
 
 liftIOResult :: IO Result -> Property
-liftIOResult m = liftRoseIOResult (return (catchExceptions m))
+liftIOResult m = liftRoseIOResult (return m)
 
 liftRoseIOResult :: Rose (IO Result) -> Property
 liftRoseIOResult t = return (MkProp t)
@@ -150,7 +155,7 @@ mapResult :: Testable prop => (Result -> Result) -> prop -> Property
 mapResult f = mapIOResult (fmap f)
 
 mapIOResult :: Testable prop => (IO Result -> IO Result) -> prop -> Property
-mapIOResult f = mapRoseIOResult (fmap (f . catchExceptions))
+mapIOResult f = mapRoseIOResult (fmap (f . protectResult))
 
 mapRoseIOResult :: Testable prop => (Rose (IO Result) -> Rose (IO Result)) -> prop -> Property
 mapRoseIOResult f = mapProp (\(MkProp t) -> MkProp (f t))
