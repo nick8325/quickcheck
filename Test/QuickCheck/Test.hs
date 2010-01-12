@@ -100,9 +100,7 @@ quickCheckWithResult args p =
                  , maxSuccessTests   = maxSuccess args
                  , maxDiscardedTests = maxDiscard args
                  , computeSize       = case replay args of
-                                         Nothing    -> \n d -> (n * maxSize args)
-                                                         `div` maxSuccess args
-                                                             + (d `div` 10)
+                                         Nothing    -> computeSize (maxSuccess args) (maxSize args)
                                          Just (_,s) -> \_ _ -> s
                  , numSuccessTests   = 0
                  , numDiscardedTests = 0
@@ -113,6 +111,15 @@ quickCheckWithResult args p =
                  , numSuccessShrinks = 0
                  , numTryShrinks     = 0
                  } (unGen (property p))
+  where computeSize maxSuccess maxSize n d
+          -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
+          -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
+          | n `roundTo` maxSize + maxSize <= maxSuccess ||
+            n >= maxSuccess ||
+            maxSuccess `mod` maxSize == 0 = n `mod` maxSize + d `div` 10
+          | otherwise =
+            (n `mod` maxSize) * maxSize `div` (maxSuccess `mod` maxSize) + d `div` 10
+        n `roundTo` m = (n `div` m) * m
 
 --------------------------------------------------------------------------
 -- main test loop
