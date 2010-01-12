@@ -4,7 +4,7 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason ) )
+import Test.QuickCheck.Property hiding ( Result( reason, interrupted ) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
@@ -44,21 +44,21 @@ data Args
 
 -- | Result represents the test result
 data Result
-  = Success                          -- a successful test run
-    { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+  = Success                         -- a successful test run
+    { labels      :: [(String,Int)] -- ^ labels and frequencies found during all tests
     }
-  | GaveUp                           -- given up
-    { numTests  :: Int               -- ^ number of successful tests performed
-    , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+  | GaveUp                          -- given up
+    { numTests    :: Int            -- ^ number of successful tests performed
+    , labels      :: [(String,Int)] -- ^ labels and frequencies found during all tests
     }
-  | Failure                          -- failed test run
-    { usedSeed  :: StdGen            -- ^ what seed was used
-    , usedSize  :: Int               -- ^ what was the test size
-    , reason    :: String            -- ^ what was the reason
-    , labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+  | Failure                         -- failed test run
+    { usedSeed    :: StdGen         -- ^ what seed was used
+    , usedSize    :: Int            -- ^ what was the test size
+    , reason      :: String         -- ^ what was the reason
+    , labels      :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
     }
-  | NoExpectedFailure                -- the expected failure did not happen
-    { labels    :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+  | NoExpectedFailure               -- the expected failure did not happen
+    { labels      :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
     }
  deriving ( Show, Read )
 
@@ -203,10 +203,10 @@ runATest st f =
             if not (expect res) then
               return Success{ labels = summary st }
              else
-              return Failure{ usedSeed = randomSeed st -- correct! (this will be split first)
-                            , usedSize = size
-                            , reason   = P.reason res
-                            , labels   = summary st
+              return Failure{ usedSeed    = randomSeed st -- correct! (this will be split first)
+                            , usedSize    = size
+                            , reason      = P.reason res
+                            , labels      = summary st
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
@@ -275,16 +275,8 @@ foundFailure st res ts =
   do localMin st{ numTryShrinks = 0, isShrinking = True } res ts
 
 localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
-localMin st res [] =
-  do putLine (terminal st)
-       ( P.reason res
-      ++ " (after " ++ number (numSuccessTests st+1) "test"
-      ++ concat [ " and " ++ number (numSuccessShrinks st) "shrink"
-                | numSuccessShrinks st > 0
-                ]
-      ++ "):  "
-       )
-     callbackPostFinalFailure st res
+localMin st res [] = localMinFound st res
+localMin st res _ | P.interrupted res = localMinFound st res
 
 localMin st res (t : ts) =
   do -- CALLBACK before_test
@@ -308,6 +300,18 @@ localMin st res (t : ts) =
      if ok res' == Just False
        then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
        else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
+
+localMinFound :: State -> P.Result -> IO ()
+localMinFound st res =
+  do putLine (terminal st)
+       ( P.reason res
+      ++ " (after " ++ number (numSuccessTests st+1) "test"
+      ++ concat [ " and " ++ number (numSuccessShrinks st) "shrink"
+                | numSuccessShrinks st > 0
+                ]
+      ++ "):  "
+       )
+     callbackPostFinalFailure st res
 
 --------------------------------------------------------------------------
 -- callbacks

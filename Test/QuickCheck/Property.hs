@@ -99,28 +99,30 @@ data Callback
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok        :: Maybe Bool     -- ^ result of the test case; Nothing = discard
-  , expect    :: Bool           -- ^ indicates what the expected result of the property is
-  , reason    :: String         -- ^ a message indicating what went wrong
-  , stamp     :: [(String,Int)] -- ^ the collected values for this test case
-  , callbacks :: [Callback]     -- ^ the callbacks for this test case
+  { ok          :: Maybe Bool     -- ^ result of the test case; Nothing = discard
+  , expect      :: Bool           -- ^ indicates what the expected result of the property is
+  , reason      :: String         -- ^ a message indicating what went wrong
+  , interrupted :: Bool           -- ^ indicates if the test case was cancelled by pressing ^C
+  , stamp       :: [(String,Int)] -- ^ the collected values for this test case
+  , callbacks   :: [Callback]     -- ^ the callbacks for this test case
   }
 
 result :: Result
 result =
   MkResult
-  { ok        = undefined
-  , expect    = True
-  , reason    = ""
-  , stamp     = []
-  , callbacks = []
+  { ok          = undefined
+  , expect      = True
+  , reason      = ""
+  , interrupted = False
+  , stamp       = []
+  , callbacks   = []
   }
 
 failed :: Result -> Result
 failed res = res{ ok = Just False }
 
-exception :: Show a => Result -> a -> Result
-exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'" }
+exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'",
+                                interrupted = isInterrupt err }
 
 protectResult :: IO Result -> IO Result
 protectResult m = either (exception result) id `fmap` tryEvaluateIO (fmap force m)
