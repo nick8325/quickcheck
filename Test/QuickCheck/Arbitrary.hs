@@ -56,6 +56,9 @@ import Data.Ratio
   , denominator
   )
 
+import Data.Complex
+  ( Complex((:+)) )
+
 import System.Random
   ( Random
   )
@@ -154,6 +157,11 @@ shrinkList shr xs = removeChunks xs ++ shrinkOne xs
 instance (Integral a, Arbitrary a) => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
+
+instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
+  arbitrary = liftM2 (:+) arbitrary arbitrary
+  shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
+                    [ x :+ y' | y' <- shrink y ]
 
 instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
@@ -367,6 +375,9 @@ instance CoArbitrary a => CoArbitrary [a] where
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
+
+instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
+  coarbitrary (x :+ y) = coarbitrary x >< coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
       => CoArbitrary (a,b)
