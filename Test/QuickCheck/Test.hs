@@ -282,8 +282,8 @@ foundFailure st res ts =
   do localMin st{ numTryShrinks = 0, isShrinking = True } res ts
 
 localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
-localMin st res [] = localMinFound st res
 localMin st res _ | P.interrupted res = localMinFound st res
+localMin st res [] = localMinFound st res
 
 localMin st res (t : ts) =
   do -- CALLBACK before_test
