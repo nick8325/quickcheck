@@ -1,13 +1,21 @@
-This is QuickCheck 2.1.0.2, a library for random testing of program properties.
+This is QuickCheck 2.1.1, a library for random testing of program properties.
 
 === Installation ===
 
 Installation is done with Cabal:
 
+$ cabal install
+
+or, if you're missing the cabal command,
+
 $ runghc Setup.lhs configure
 $ runghc Setup.lhs build
 $ runghc Setup.lhs install
 
+=== Bugs ===
+
+Please report bugs to the QuickCheck mailing list at
+quickcheck@projects.haskell.org.
 
 === Documentation ===
 
