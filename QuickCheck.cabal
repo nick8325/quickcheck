@@ -4,6 +4,7 @@ Cabal-Version: >= 1.2
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
+Extra-source-files: README
 Copyright: Koen Claessen <koen@chalmers.se>
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
