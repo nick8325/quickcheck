@@ -8,10 +8,8 @@ module Test.QuickCheck.Exception where
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 607
 #define GHC_INTERRUPT
 
-#if defined(MIN_VERSION_base)
-#if !(MIN_VERSION_base(4,3,0))
+#if __GLASGOW_HASKELL__ < 613
 #define GHCI_INTERRUPTED_EXCEPTION
-#endif
 #endif
 #endif
 
