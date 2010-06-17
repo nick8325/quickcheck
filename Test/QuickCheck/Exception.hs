@@ -7,6 +7,12 @@ module Test.QuickCheck.Exception where
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 607
 #define GHC_INTERRUPT
+
+#if defined(MIN_VERSION_base)
+#if !(MIN_VERSION_base(4,3,0))
+#define GHCI_INTERRUPTED_EXCEPTION
+#endif
+#endif
 #endif
 
 #if defined OLD_EXCEPTIONS
@@ -20,7 +26,9 @@ import Control.Exception.Extensible(evaluate, try, SomeException(SomeException)
 #endif
 
 #if defined(GHC_INTERRUPT)
+#if defined(GHCI_INTERRUPTED_EXCEPTION)
 import Panic(GhcException(Interrupted))
+#endif
 import Data.Typeable
 #if defined(OLD_EXCEPTIONS)
 import Data.Dynamic
@@ -51,9 +59,11 @@ isInterrupt :: AnException -> Bool
 #if defined(OLD_EXCEPTIONS)
 isInterrupt (DynException e) = fromDynamic e == Just Interrupted
 isInterrupt _ = False
-#else
+#elif defined(GHCI_INTERRUPTED_EXCEPTION)
 isInterrupt (SomeException e) =
   cast e == Just Interrupted || cast e == Just UserInterrupt
+#else
+isInterrupt (SomeException e) = cast e == Just UserInterrupt
 #endif
 
 #else /* !defined(GHC_INTERRUPT) */
