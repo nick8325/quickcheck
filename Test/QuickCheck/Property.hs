@@ -173,7 +173,7 @@ mapSize :: Testable prop => (Int -> Int) -> prop -> Property
 mapSize f p = sized ((`resize` property p) . f)
 
 -- | Shrinks the argument to property if it fails. Shrinking is done
--- automatically for most types. This is only needed weh you want to
+-- automatically for most types. This is only needed when you want to
 -- override the default behavior.
 shrinking :: Testable prop =>
              (a -> [a])  -- ^ 'shrink'-like function.
