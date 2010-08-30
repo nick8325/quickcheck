@@ -135,8 +135,11 @@ result =
   , callbacks   = []
   }
 
-exception msg err = failed{ reason = msg ++ ": '" ++ showErr err ++ "'",
-                            interrupted = isInterrupt err }
+failed :: Result -> Result
+failed res = res{ ok = Just False }
+
+exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'",
+                                interrupted = isInterrupt err }
 
 protectResult :: IO Result -> IO Result
 protectResult m = either (exception "Exception") id `fmap` tryEvaluateIO (fmap force m)
@@ -194,15 +197,15 @@ shrinking :: Testable prop =>
              (a -> [a])  -- ^ 'shrink'-like function.
           -> a           -- ^ The original argument
           -> (a -> prop) -> Property
-shrinking shrink x pf = fmap (MkProp . join . fmap unProp) (promote (props x))
+shrinking shrinker x0 pf = fmap (MkProp . join . fmap unProp) (promote (props x0))
  where
   props x =
-    MkRose (property (pf x)) [ props x' | x' <- shrink x ]
+    MkRose (property (pf x)) [ props x' | x' <- shrinker x ]
 
 -- | Disables shrinking for a property altogether.
 noShrinking :: Testable prop => prop -> Property
 noShrinking = mapRoseIOResult f
-  where f (MkRose mres ts) = MkRose mres []
+  where f (MkRose mres _ts) = MkRose mres []
 
 -- | Adds a callback
 callback :: Testable prop => Callback -> prop -> Property
@@ -211,7 +214,7 @@ callback cb = mapResult (\res -> res{ callbacks = cb : callbacks res })
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
 whenFail m =
-  callback $ PostFinalFailure $ \st res ->
+  callback $ PostFinalFailure $ \_st _res ->
     m
 
 -- | Performs an 'IO' action every time a property fails. Thus,
@@ -219,7 +222,7 @@ whenFail m =
 -- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
 whenFail' m =
-  callback $ PostTest $ \st res ->
+  callback $ PostTest $ \_st res ->
     if ok res == Just False
       then m
       else return ()
@@ -313,9 +316,9 @@ forAll gen pf =
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
-forAllShrink gen shrink pf =
+forAllShrink gen shrinker pf =
   gen >>= \x ->
-    shrinking shrink x $ \x' ->
+    shrinking shrinker x $ \x' ->
       whenFail (putStrLn (show x')) $
         property (pf x')
 
