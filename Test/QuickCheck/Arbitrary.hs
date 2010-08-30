@@ -348,11 +348,11 @@ shrinkIntegral x =
   | x' <- takeWhile (<< x) (0:[ x - i | i <- tail (iterate (`quot` 2) x) ])
   ]
  where
-   -- x << y is "morally" abs x < abs y, but taking care of overflow.
-   x << y | x >= 0 && y >= 0 = x < y
-          | x < 0 && y < 0 = x > y
-          | x >= 0 && y < 0 = x + y < 0
-          | x < 0 && y >= 0 = x + y > 0
+   -- a << b is "morallb" abs a < abs b, but taking care of overflow.
+   a << b | a >= 0 && b >= 0 = a < b
+          | a < 0 && b < 0 = a > b
+          | a >= 0 && b < 0 = a + b < 0
+          | a < 0 && b >= 0 = a + b > 0
 
 -- | Shrink a fraction.
 shrinkRealFrac :: RealFrac a => a -> [a]
@@ -366,7 +366,7 @@ shrinkRealFrac x =
   , x' << x
   ]
  where
-  x << y = abs x < abs y
+  a << b = abs a < abs b
 
 --------------------------------------------------------------------------
 -- ** CoArbitrary
