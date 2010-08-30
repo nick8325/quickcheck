@@ -177,7 +177,7 @@ instance Arbitrary a => Arbitrary (Smart a) where
 
   shrink (Smart i x) = take i' ys `ilv` drop i' ys
    where
-    ys = [ Smart i y | (i,y) <- [0..] `zip` shrink x ]
+    ys = [ Smart j y | (j,y) <- [0..] `zip` shrink x ]
     i' = 0 `max` (i-2)
 
     []     `ilv` bs     = bs
