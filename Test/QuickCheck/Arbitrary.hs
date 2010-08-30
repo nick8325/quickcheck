@@ -340,7 +340,7 @@ shrinkIntegral :: Integral a => a -> [a]
 shrinkIntegral x = 
   nub $
   [ -x
-  | -x < x
+  | -x > x
   ] ++
   [ x'
   | x' <- takeWhile (<< x) (0:[ x - i | i <- tail (iterate (`quot` 2) x) ])
