@@ -56,7 +56,7 @@ instance Monad Gen where
 
 -- | Modifies a generator using an integer seed.
 variant :: Integral n => n -> Gen a -> Gen a
-variant k (MkGen m) = MkGen (\r n -> m (var k r) n)
+variant k0 (MkGen m) = MkGen (\r n -> m (var k0 r) n)
  where
   var k = (if k == k' then id  else var k')
         . (if even k  then fst else snd)
@@ -84,9 +84,9 @@ promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' (MkGen m) =
-  do rnd <- newStdGen
+  do rnd0 <- newStdGen
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
-     return [(m r n) | (r,n) <- rnds rnd `zip` [0,2..20] ]
+     return [(m r n) | (r,n) <- rnds rnd0 `zip` [0,2..20] ]
 
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
@@ -123,9 +123,9 @@ oneof gs = choose (0,length gs - 1) >>= (gs !!)
 -- The input list must be non-empty.
 frequency :: [(Int, Gen a)] -> Gen a
 frequency [] = error "QuickCheck.frequency used with empty list"
-frequency xs = choose (1, tot) >>= (`pick` xs)
+frequency xs0 = choose (1, tot) >>= (`pick` xs0)
  where
-  tot = sum (map fst xs)
+  tot = sum (map fst xs0)
 
   pick n ((k,x):xs)
     | n <= k    = x
