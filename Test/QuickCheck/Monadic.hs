@@ -29,7 +29,7 @@ instance Functor (PropertyM m) where
 instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
-  fail s              = MkPropertyM (\k -> return (return (property result)))
+  fail s              = MkPropertyM (\_ -> return (return (property result)))
    where
     result = failed{ reason = s }
 
