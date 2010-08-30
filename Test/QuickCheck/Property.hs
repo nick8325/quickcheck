@@ -19,8 +19,6 @@ import Control.Concurrent
   , putMVar
   )
 
-import Data.IORef
-
 import System.IO
   ( hFlush
   , stdout
