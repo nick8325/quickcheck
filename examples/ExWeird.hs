@@ -45,3 +45,6 @@ instance Arbitrary B where
   shrink = loop
 
 prop_loop2 (x :: B) = prop_loop2 x :: Bool
+
+prop_forevershrink =
+  forAllShrink arbitrary shrink $ \n -> if n == (0 :: Int) then prop_forevershrink else error "fail"
