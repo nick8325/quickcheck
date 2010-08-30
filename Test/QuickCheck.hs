@@ -38,6 +38,7 @@ module Test.QuickCheck
     -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral
   , arbitrarySizedFractional
+  , arbitrarySizedBoundedIntegral
   , arbitraryBoundedIntegral
   , arbitraryBoundedRandom
     -- ** Helper functions for implementing shrink

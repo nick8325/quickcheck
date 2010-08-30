@@ -5,10 +5,11 @@ module Test.QuickCheck.Arbitrary
   , CoArbitrary(..)
   
   -- ** Helper functions for implementing arbitrary
-  , arbitrarySizedIntegral   -- :: Num a => Gen a
-  , arbitrarySizedFractional -- :: Fractional a => Gen a
-  , arbitraryBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
-  , arbitraryBoundedRandom   -- :: (Bounded a, Random a) => Gen a
+  , arbitrarySizedIntegral        -- :: Num a => Gen a
+  , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
+  , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
+  , arbitrarySizedFractional      -- :: Fractional a => Gen a
+  , arbitraryBoundedRandom        -- :: (Bounded a, Random a) => Gen a
   -- ** Helper functions for implementing shrink
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
@@ -75,6 +76,9 @@ import Control.Monad
   , liftM4
   , liftM5
   )
+
+import Data.Int(Int8, Int16, Int32, Int64)
+import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -208,8 +212,43 @@ instance Arbitrary Integer where
   shrink    = shrinkIntegral
 
 instance Arbitrary Int where
-  --arbitrary = arbitrarySizedIntegral
-  arbitrary = arbitrarySizedBoundedInt
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Int8 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Int16 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Int32 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Int64 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Word where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Word8 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Word16 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Word32 where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink    = shrinkIntegral
+
+instance Arbitrary Word64 where
+  arbitrary = arbitrarySizedBoundedIntegral
   shrink    = shrinkIntegral
 
 instance Arbitrary Char where
@@ -260,8 +299,9 @@ arbitrarySizedFractional =
  where
   precision = 9999999999999 :: Integer
 
--- | Generates an integral number. The number is chosen from the entire
--- range of the type.
+-- | Generates an integral number. The number is chosen uniformly from
+-- the entire range of the type. You may want to use
+-- 'arbitrarySizedBoundedIntegral' instead.
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral =
   do let mn = minBound
@@ -274,14 +314,18 @@ arbitraryBoundedIntegral =
 arbitraryBoundedRandom :: (Bounded a, Random a) => Gen a
 arbitraryBoundedRandom = choose (minBound,maxBound)
 
--- | Generates an integral number from a bounded domain.
--- Inspired by demands from Phil Wadler.
-arbitrarySizedBoundedInt :: Gen Int
-arbitrarySizedBoundedInt =
+-- | Generates an integral number from a bounded domain. The number is
+-- chosen from the entire range of the type, but small numbers are
+-- generated more often than big numbers. Inspired by demands from
+-- Phil Wadler.
+arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
+arbitrarySizedBoundedIntegral =
   sized $ \s ->
     do let mn = minBound
            mx = maxBound `asTypeOf` mn
-           k  = 2^(s*2 `div` 5)
+           bits n | n `quot` 2 == 0 = 0
+                  | otherwise = 1 + bits (n `quot` 2)
+           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
        return (fromInteger n `asTypeOf` mn)
 
@@ -296,13 +340,17 @@ shrinkIntegral :: Integral a => a -> [a]
 shrinkIntegral x = 
   nub $
   [ -x
-  | x < 0
+  | -x < x
   ] ++
   [ x'
   | x' <- takeWhile (<< x) (0:[ x - i | i <- tail (iterate (`quot` 2) x) ])
   ]
  where
-  x << y = abs x < abs y
+   -- x << y is "morally" abs x < abs y, but taking care of overflow.
+   x << y | x >= 0 && y >= 0 = x < y
+          | x < 0 && y < 0 = x > y
+          | x >= 0 && y < 0 = x + y < 0
+          | x < 0 && y >= 0 = x + y > 0
 
 -- | Shrink a fraction.
 shrinkRealFrac :: RealFrac a => a -> [a]
@@ -415,6 +463,33 @@ instance CoArbitrary Integer where
   coarbitrary = coarbitraryIntegral
 
 instance CoArbitrary Int where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Int8 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Int16 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Int32 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Int64 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Word where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Word8 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Word16 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Word32 where
+  coarbitrary = coarbitraryIntegral
+
+instance CoArbitrary Word64 where
   coarbitrary = coarbitraryIntegral
 
 instance CoArbitrary Char where
