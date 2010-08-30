@@ -350,10 +350,11 @@ shrinkIntegral x =
   ]
  where
    -- a << b is "morally" abs a < abs b, but taking care of overflow.
-   a << b | a >= 0 && b >= 0 = a < b
-          | a < 0 && b < 0 = a > b
-          | a >= 0 && b < 0 = a + b < 0
-          | a < 0 && b >= 0 = a + b > 0
+   a << b = case (a >= 0, b >= 0) of
+            (True,  True)  -> a < b
+            (False, False) -> a > b
+            (True,  False) -> a + b < 0
+            (False, True)  -> a + b > 0
 
 -- | Shrink a fraction.
 shrinkRealFrac :: RealFrac a => a -> [a]
