@@ -349,7 +349,7 @@ shrinkIntegral x =
   | x' <- takeWhile (<< x) (0:[ x - i | i <- tail (iterate (`quot` 2) x) ])
   ]
  where
-   -- a << b is "morallb" abs a < abs b, but taking care of overflow.
+   -- a << b is "morally" abs a < abs b, but taking care of overflow.
    a << b | a >= 0 && b >= 0 = a < b
           | a < 0 && b < 0 = a > b
           | a >= 0 && b < 0 = a + b < 0
