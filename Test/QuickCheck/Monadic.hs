@@ -15,10 +15,6 @@ import Control.Monad
 
 import Control.Monad.ST
 
-import System.IO.Unsafe
-  ( unsafePerformIO
-  )
-
 -- instance of monad transformer?
 
 --------------------------------------------------------------------------
@@ -35,7 +31,7 @@ instance Monad m => Monad (PropertyM m) where
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
   fail s              = MkPropertyM (\k -> return (return (property result)))
    where
-    result = failed result{ reason = s }
+    result = failed{ reason = s }
 
 -- should think about strictness/exceptions here
 --assert :: Testable prop => prop -> PropertyM m ()
@@ -85,63 +81,19 @@ monitor f = MkPropertyM (\k -> (f `liftM`) `fmap` (k ()))
 -- run functions
 
 monadic :: Monad m => (m Property -> Property) -> PropertyM m a -> Property
-monadic run (MkPropertyM m) =
-  do mp <- m (const (return (return (property True))))
-     run mp
+monadic run m = property (fmap run (monadic' m))
 
-{-
-monadicIO :: Monad m => (m Property -> IO Property) -> PropertyM m a -> IO Property
-monadicIO run (MkPropertyM m) =
-  do mp <- m (const (return (return (property True))))
-     run mp
--}
+monadic' :: Monad m => PropertyM m a -> Gen (m Property)
+monadic' (MkPropertyM m) = m (const (return (return (property True))))
 
--- Can't make this work in any other way... :-(
 monadicIO :: PropertyM IO a -> Property
-monadicIO (MkPropertyM m) =
-  property $
-    unsafePerformIO `fmap`
-      m (const (return (return (property True))))
+monadicIO = monadic property
 
-newtype IdM m s a = MkIdM { unIdM :: m s a }
-
-data MonadS' m
-  = MkMonadS
-  { ret :: forall a   s . a -> m s a
-  , bin :: forall a b s . m s a -> (a -> m s b) -> m s b
-  }
-
---grab () = MkMonadS return (>>=)
-
-class MonadS m where
-  return' :: a -> m s a
-  bind'   :: m s a -> (a -> m s b) -> m s b
-
-instance MonadS m => Monad (IdM m s) where
-  return = MkIdM . return'
-  MkIdM m >>= k = MkIdM (m `bind'` (unIdM . k))
-
-{-
-monadicS :: MonadS m => ((forall s . m s Property) -> Property) -> (forall s . PropertyM (m s) a) -> Property
-monadicS run mp = MkGen $ \r n ->
-  let MkGen g'      = run (let MkPropertyM f = mp'                                        
-                               MkGen g       = f (const (return (return (property True))))
-                            in unIdM (g r n))
-   in g' undefined undefined
- where
-  mp' = MkPropertyM (\k -> fmap MkIdM (unPropertyM mp (\a -> fmap unIdM (k a))))
--}
-
-{-
-
--- does not compile with GHC 6.6
 imperative :: (forall s. PropertyM (ST s) a) -> Property
-imperative m = MkGen $ \r n ->
-  let MkPropertyM f = m
-      MkGen g = f (const (return (return (property True))))
-      MkGen q = runST (g r n)
-   in q undefined undefined
--}
+imperative m = property (runSTGen (monadic' m))
+
+runSTGen :: (forall s. Gen (ST s a)) -> Gen a
+runSTGen g = MkGen $ \r n -> runST (unGen g r n)
 
 --------------------------------------------------------------------------
 -- the end.
