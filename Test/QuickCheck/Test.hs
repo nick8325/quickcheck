@@ -39,26 +39,35 @@ data Args
   , maxSuccess :: Int                -- ^ maximum number of successful tests before succeeding
   , maxDiscard :: Int                -- ^ maximum number of discarded tests before giving up
   , maxSize    :: Int                -- ^ size to use for the biggest test cases
+  , chatty     :: Bool               -- ^ whether to print anything
   }
  deriving ( Show, Read )
 
 -- | Result represents the test result
 data Result
-  = Success                         -- a successful test run
-    { labels      :: [(String,Int)] -- ^ labels and frequencies found during all tests
+  = Success                            -- a successful test run
+    { numTests       :: Int            -- ^ number of successful tests performed
+    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all tests
+    , output         :: String         -- ^ printed output
     }
-  | GaveUp                          -- given up
-    { numTests    :: Int            -- ^ number of successful tests performed
-    , labels      :: [(String,Int)] -- ^ labels and frequencies found during all tests
+  | GaveUp                             -- given up
+    { numTests       :: Int            -- ^ number of successful tests performed
+    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all tests
+    , output         :: String         -- ^ printed output
     }
-  | Failure                         -- failed test run
-    { usedSeed    :: StdGen         -- ^ what seed was used
-    , usedSize    :: Int            -- ^ what was the test size
-    , reason      :: String         -- ^ what was the reason
-    , labels      :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
+  | Failure                            -- failed test run
+    { numTests       :: Int            -- ^ number of tests performed
+    , numShrinks     :: Int            -- ^ number of successful shrinking steps performed
+    , usedSeed       :: StdGen         -- ^ what seed was used
+    , usedSize       :: Int            -- ^ what was the test size
+    , reason         :: String         -- ^ what was the reason
+    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
+    , output         :: String         -- ^ printed output
     }
-  | NoExpectedFailure               -- the expected failure did not happen
-    { labels      :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
+  | NoExpectedFailure                  -- the expected failure did not happen
+    { numTests       :: Int            -- ^ number of tests performed
+    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
+    , output         :: String         -- ^ printed output
     }
  deriving ( Show, Read )
 
@@ -74,6 +83,7 @@ stdArgs = Args
   , maxSuccess = 100
   , maxDiscard = 500
   , maxSize    = 100
+  , chatty     = True
 -- noShrinking flag?
   }
 
@@ -91,24 +101,9 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult a p = do
-  tm <- newStdioTerminal
-  quickCheckWithResultAndTerminal tm a p
-
--- | Tests a property, using test arguments, produces a test result,
--- and returns the results as a string instead of printing them.
-quietQuickCheckWithResult :: Testable prop => Args -> prop -> IO (Result, String)
-quietQuickCheckWithResult a p = do
-  out <- newIORef ""
-  let put s = modifyIORef out (++ s)
-  tm <- newTerminal put (const (return ()))
-  res <- quickCheckWithResultAndTerminal tm a p
-  s <- readIORef out
-  return (res, s)
-
-quickCheckWithResultAndTerminal :: Testable prop => Terminal -> Args -> prop -> IO Result
-quickCheckWithResultAndTerminal tm a p =
-  do rnd <- case replay a of
+quickCheckWithResult a p =
+  do tm <- if chatty a then newStdioTerminal else newNullTerminal
+     rnd <- case replay a of
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
@@ -161,10 +156,15 @@ doneTesting st _f =
         ++ " tests (expected failure)"
          )
      success st
+     theOutput <- terminalOutput (terminal st)
      if expectedFailure st then
-       return Success{ labels = summary st }
+       return Success{ labels = summary st,
+                       numTests = numSuccessTests st,
+                       output = theOutput }
       else
-       return NoExpectedFailure{ labels = summary st }
+       return NoExpectedFailure{ labels = summary st,
+                                 numTests = numSuccessTests st,
+                                 output = theOutput }
   
 giveUp :: State -> (StdGen -> Int -> Prop) -> IO Result
 giveUp st _f =
@@ -176,8 +176,10 @@ giveUp st _f =
       ++ " tests"
        )
      success st
+     theOutput <- terminalOutput (terminal st)
      return GaveUp{ numTests = numSuccessTests st
                   , labels   = summary st
+                  , output   = theOutput
                   }
 
 runATest :: State -> (StdGen -> Int -> Prop) -> IO Result
@@ -220,12 +222,18 @@ runATest st f =
              ++ number (numSuccessTests st+1) "test"
              ++ ")..."
               )
-            foundFailure st res ts
+            numShrinks <- foundFailure st res ts
+            theOutput <- terminalOutput (terminal st)
             if not (expect res) then
-              return Success{ labels = summary st }
+              return Success{ labels = summary st,
+                              numTests = numSuccessTests st+1,
+                              output = theOutput }
              else
               return Failure{ usedSeed    = randomSeed st -- correct! (this will be split first)
                             , usedSize    = size
+                            , numTests    = numSuccessTests st+1
+                            , numShrinks  = numShrinks
+                            , output      = theOutput
                             , reason      = P.reason res
                             , labels      = summary st
                             }
@@ -291,11 +299,11 @@ success st =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
+foundFailure :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
 foundFailure st res ts =
   do localMin st{ numTryShrinks = 0 } res ts
 
-localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
+localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
 localMin st res _ | P.interrupted res = localMinFound st res
 localMin st res ts = do
   r <- tryEvaluate ts
@@ -305,7 +313,7 @@ localMin st res ts = do
          (exception "Exception while generating shrink-list" err)
     Right ts' -> localMin' st res ts'
 
-localMin' :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
+localMin' :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
 localMin' st res [] = localMinFound st res
 localMin' st res (t:ts) =
   do -- CALLBACK before_test
@@ -330,7 +338,7 @@ localMin' st res (t:ts) =
       then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
       else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
 
-localMinFound :: State -> P.Result -> IO ()
+localMinFound :: State -> P.Result -> IO Int
 localMinFound st res =
   do putLine (terminal st)
        ( P.reason res
@@ -341,6 +349,7 @@ localMinFound st res =
       ++ "):  "
        )
      callbackPostFinalFailure st res
+     return (numSuccessShrinks st)
 
 --------------------------------------------------------------------------
 -- callbacks

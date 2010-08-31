@@ -6,7 +6,6 @@ module Test.QuickCheck
   , stdArgs
   , quickCheckWith
   , quickCheckWithResult
-  , quietQuickCheckWithResult
   , quickCheckResult
     
     -- * Random generation
