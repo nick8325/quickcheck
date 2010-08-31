@@ -8,6 +8,9 @@ module Test.QuickCheck.Text
   , bold
   
   , newTerminal
+  , newStdioTerminal
+  , newNullTerminal
+  , handle
   , Terminal
   , putTemp
   , putPart
@@ -23,6 +26,7 @@ import System.IO
   , hPutStr
   , stdout
   , stderr
+  , Handle
   )
 
 import Data.IORef
@@ -65,50 +69,54 @@ bold s = s -- for now
 --------------------------------------------------------------------------
 -- putting strings
 
-newtype Terminal
-  = MkTerminal (IORef (IO ()))
+data Terminal
+  = MkTerminal (IORef (IO ())) (String -> IO ()) (String -> IO ())
 
-newTerminal :: IO Terminal
-newTerminal =
-  do hFlush stdout
-     hFlush stderr
-     ref <- newIORef (return ())
-     return (MkTerminal ref)
+newTerminal :: (String -> IO ()) -> (String -> IO ()) -> IO Terminal
+newTerminal out err =
+  do ref <- newIORef (return ())
+     return (MkTerminal ref out err)
+
+newStdioTerminal :: IO Terminal
+newStdioTerminal = newTerminal (handle stdout) (handle stderr)
+
+newNullTerminal :: IO Terminal
+newNullTerminal = newTerminal (const (return ())) (const (return ()))
+
+handle :: Handle -> String -> IO ()
+handle h s = do
+  hPutStr h s
+  hFlush h
 
 flush :: Terminal -> IO ()
-flush (MkTerminal ref) =
+flush (MkTerminal ref _ _) =
   do io <- readIORef ref
      writeIORef ref (return ())
      io
 
 postpone :: Terminal -> IO () -> IO ()
-postpone (MkTerminal ref) io' =
+postpone (MkTerminal ref _ _) io' =
   do io <- readIORef ref
      writeIORef ref (io >> io')
 
 putPart, putTemp, putLine :: Terminal -> String -> IO ()
-putPart tm s =
+putPart tm@(MkTerminal _ out _) s =
   do flush tm
-     putStr s
-     hFlush stdout
+     out s
      
-putTemp tm s =
+putTemp tm@(MkTerminal _ _ err) s =
   do flush tm
-     hPutStr h s
-     hPutStr h [ '\b' | _ <- s ]
-     hFlush h
+     err s
+     err [ '\b' | _ <- s ]
      postpone tm $
-       do hPutStr h ( [ ' ' | _ <- s ]
-                   ++ [ '\b' | _ <- s ]
-                    )
- where
-  --h = stdout
-  h = stderr
+       err ( [ ' ' | _ <- s ]
+          ++ [ '\b' | _ <- s ]
+           )
      
-putLine tm s =
+putLine tm@(MkTerminal _ out _) s =
   do flush tm
-     putStrLn s
-     hFlush stdout    
+     out s
+     out "\n"
 
 --------------------------------------------------------------------------
 -- the end.

@@ -6,7 +6,7 @@ module Test.QuickCheck.Property where
 
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
-import Test.QuickCheck.Text( showErr )
+import Test.QuickCheck.Text( showErr, putLine )
 import Test.QuickCheck.Exception
 import Test.QuickCheck.State
 
@@ -208,6 +208,12 @@ noShrinking = mapRoseIOResult f
 callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapResult (\res -> res{ callbacks = cb : callbacks res })
 
+-- | Prints a message to the terminal after the last failure of a property.
+whenFailPrint :: Testable prop => String -> prop -> Property
+whenFailPrint s =
+  callback $ PostFinalFailure $ \st _res ->
+    putLine (terminal st) s
+
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
 whenFail m =
@@ -307,7 +313,7 @@ forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
   gen >>= \x ->
-    whenFail (putStrLn (show x)) $
+    whenFailPrint (show x) $
       property (pf x)
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
@@ -316,13 +322,13 @@ forAllShrink :: (Show a, Testable prop)
 forAllShrink gen shrinker pf =
   gen >>= \x ->
     shrinking shrinker x $ \x' ->
-      whenFail (putStrLn (show x')) $
+      whenFailPrint (show x') $
         property (pf x')
 
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
   arbitrary >>= \b ->
-    whenFail (putStrLn (if b then "LHS" else "RHS")) $
+    whenFailPrint (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
 {-

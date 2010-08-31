@@ -25,7 +25,6 @@ data State
   , randomSeed        :: StdGen     -- ^ the current random seed
   
   -- shrinking
-  , isShrinking       :: Bool       -- ^ are we in a shrinking phase?
   , numSuccessShrinks :: Int        -- ^ number of successful shrinking steps so far
   , numTryShrinks     :: Int        -- ^ number of failed shrinking steps since the last successful shrink
   }

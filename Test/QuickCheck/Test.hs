@@ -9,6 +9,7 @@ import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
 import Test.QuickCheck.Exception
+import Data.IORef
 
 import System.Random
   ( RandomGen(..)
@@ -26,7 +27,6 @@ import Data.List
   , groupBy
   , intersperse
   )
-
 --------------------------------------------------------------------------
 -- quickCheck
 
@@ -91,9 +91,24 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult a p =
-  do tm  <- newTerminal
-     rnd <- case replay a of
+quickCheckWithResult a p = do
+  tm <- newStdioTerminal
+  quickCheckWithResultAndTerminal tm a p
+
+-- | Tests a property, using test arguments, produces a test result,
+-- and returns the results as a string instead of printing them.
+quietQuickCheckWithResult :: Testable prop => Args -> prop -> IO (Result, String)
+quietQuickCheckWithResult a p = do
+  out <- newIORef ""
+  let put s = modifyIORef out (++ s)
+  tm <- newTerminal put (const (return ()))
+  res <- quickCheckWithResultAndTerminal tm a p
+  s <- readIORef out
+  return (res, s)
+
+quickCheckWithResultAndTerminal :: Testable prop => Terminal -> Args -> prop -> IO Result
+quickCheckWithResultAndTerminal tm a p =
+  do rnd <- case replay a of
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
@@ -107,7 +122,6 @@ quickCheckWithResult a p =
                  , collected         = []
                  , expectedFailure   = False
                  , randomSeed        = rnd
-                 , isShrinking       = False
                  , numSuccessShrinks = 0
                  , numTryShrinks     = 0
                  } (unGen (property p))
@@ -279,7 +293,7 @@ success st =
 
 foundFailure :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
 foundFailure st res ts =
-  do localMin st{ numTryShrinks = 0, isShrinking = True } res ts
+  do localMin st{ numTryShrinks = 0 } res ts
 
 localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
 localMin st res _ | P.interrupted res = localMinFound st res
