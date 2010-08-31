@@ -77,7 +77,7 @@ resize n (MkGen m) = MkGen (\r _ -> m r n)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
--- | Promotes a generator to a generator of monadic values.
+-- | Promotes a monadic generator to a generator of monadic values.
 promote :: Monad m => m (Gen a) -> Gen (m a)
 promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 

@@ -104,6 +104,8 @@ instance Arbitrary () where
 
 instance Arbitrary Bool where
   arbitrary = choose (False,True)
+  shrink True = [False]
+  shrink False = []
 
 instance Arbitrary a => Arbitrary (Maybe a) where
   arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
