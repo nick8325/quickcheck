@@ -28,32 +28,21 @@ instance Functor (PropertyM m) where
 instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
-  fail s              = MkPropertyM (\_ -> return (return (property failed{ reason = s })))
+  fail s              = stop (failed { reason = s })
+
+stop :: (Testable prop, Monad m) => prop -> PropertyM m a
+stop p = MkPropertyM (\_k -> return (return (property p)))
 
 -- should think about strictness/exceptions here
 --assert :: Testable prop => prop -> PropertyM m ()
 assert :: Monad m => Bool -> PropertyM m ()
-assert b = MkPropertyM $ \k ->
-  if b
-    then k ()
-    else return (return (property False))
-
-{-
-let Prop p = property a in Monadic $ \k ->
-  do r <- p
-     case ok r of
-       Just True -> do m <- k ()
-                       return (do p' <- m
-		                  return (r &&& p'))
-       _ -> return (return (property r))
--}
+assert True = return ()
+assert False = fail "Assertion failed"
 
 -- should think about strictness/exceptions here
 pre :: Monad m => Bool -> PropertyM m ()
-pre b = MkPropertyM $ \k ->
-  if b
-    then k ()
-    else return (return (property ()))
+pre True = return ()
+pre False = stop rejected
 
 -- should be called lift?
 run :: Monad m => m a -> PropertyM m a
