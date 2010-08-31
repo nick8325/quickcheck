@@ -91,16 +91,16 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult args p =
+quickCheckWithResult a p =
   do tm  <- newTerminal
-     rnd <- case replay args of
+     rnd <- case replay a of
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
-                 , maxSuccessTests   = maxSuccess args
-                 , maxDiscardedTests = maxDiscard args
-                 , computeSize       = case replay args of
-                                         Nothing    -> computeSize (maxSuccess args) (maxSize args)
+                 , maxSuccessTests   = maxSuccess a
+                 , maxDiscardedTests = maxDiscard a
+                 , computeSize       = case replay a of
+                                         Nothing    -> computeSize'
                                          Just (_,s) -> \_ _ -> s
                  , numSuccessTests   = 0
                  , numDiscardedTests = 0
@@ -111,14 +111,14 @@ quickCheckWithResult args p =
                  , numSuccessShrinks = 0
                  , numTryShrinks     = 0
                  } (unGen (property p))
-  where computeSize maxSuccess maxSize n d
+  where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
-          | n `roundTo` maxSize + maxSize <= maxSuccess ||
-            n >= maxSuccess ||
-            maxSuccess `mod` maxSize == 0 = n `mod` maxSize + d `div` 10
+          | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
+            n >= maxSuccess a ||
+            maxSuccess a `mod` maxSize a == 0 = n `mod` maxSize a + d `div` 10
           | otherwise =
-            (n `mod` maxSize) * maxSize `div` (maxSuccess `mod` maxSize) + d `div` 10
+            (n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10
         n `roundTo` m = (n `div` m) * m
 
 --------------------------------------------------------------------------
@@ -131,7 +131,7 @@ test st f
   | otherwise                                    = runATest st f
 
 doneTesting :: State -> (StdGen -> Int -> Prop) -> IO Result
-doneTesting st f =
+doneTesting st _f =
   do -- CALLBACK done_testing?
      if expectedFailure st then
        putPart (terminal st)
@@ -153,7 +153,7 @@ doneTesting st f =
        return NoExpectedFailure{ labels = summary st }
   
 giveUp :: State -> (StdGen -> Int -> Prop) -> IO Result
-giveUp st f =
+giveUp st _f =
   do -- CALLBACK gave_up?
      putPart (terminal st)
        ( bold ("*** Gave up!")
@@ -232,7 +232,7 @@ summary st = reverse
 
 success :: State -> IO ()
 success st =
-  case labels ++ covers of
+  case allLabels ++ covers of
     []    -> do putLine (terminal st) "."
     [pt]  -> do putLine (terminal st)
                   ( " ("
@@ -242,16 +242,16 @@ success st =
     cases -> do putLine (terminal st) ":"
                 sequence_ [ putLine (terminal st) pt | pt <- cases ]
  where
-  labels = reverse
-         . sort
-         . map (\ss -> (showP ((length ss * 100) `div` numSuccessTests st) ++ head ss))
-         . group
-         . sort
-         $ [ concat (intersperse ", " s')
-           | s <- collected st
-           , let s' = [ t | (t,0) <- s ]
-           , not (null s')
-           ]
+  allLabels = reverse
+            . sort
+            . map (\ss -> (showP ((length ss * 100) `div` numSuccessTests st) ++ head ss))
+            . group
+            . sort
+            $ [ concat (intersperse ", " s')
+              | s <- collected st
+              , let s' = [ t | (t,0) <- s ]
+              , not (null s')
+              ]
   
   covers = [ ("only " ++ show occurP ++ "% " ++ fst (head lps) ++ "; not " ++ show reqP ++ "%")
            | lps <- groupBy first
@@ -289,29 +289,32 @@ localMin st res ts = do
     Left err ->
       localMinFound st
          (exception "Exception while generating shrink-list" err)
-    Right [] -> localMinFound st res
-    Right (t:ts) ->
-      do -- CALLBACK before_test
-        (mres', ts') <- unpackRose t
-        res' <- mres'
-        putTemp (terminal st)
-          ( short 35 (P.reason res)
-         ++ " (after " ++ number (numSuccessTests st+1) "test"
-         ++ concat [ " and "
-                  ++ show (numSuccessShrinks st)
-                  ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
-                  ++ " shrink"
-                  ++ (if numSuccessShrinks st == 1
-                      && numTryShrinks st == 0
-                      then "" else "s")
-                   | numSuccessShrinks st > 0 || numTryShrinks st > 0
-                   ]
-         ++ ")..."
-          )
-        callbackPostTest st res'
-        if ok res' == Just False
-          then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
-          else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
+    Right ts' -> localMin' st res ts'
+
+localMin' :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
+localMin' st res [] = localMinFound st res
+localMin' st res (t:ts) =
+  do -- CALLBACK before_test
+    (mres', ts') <- unpackRose t
+    res' <- mres'
+    putTemp (terminal st)
+      ( short 35 (P.reason res)
+     ++ " (after " ++ number (numSuccessTests st+1) "test"
+     ++ concat [ " and "
+              ++ show (numSuccessShrinks st)
+              ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
+              ++ " shrink"
+              ++ (if numSuccessShrinks st == 1
+                  && numTryShrinks st == 0
+                  then "" else "s")
+               | numSuccessShrinks st > 0 || numTryShrinks st > 0
+               ]
+     ++ ")..."
+      )
+    callbackPostTest st res'
+    if ok res' == Just False
+      then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
+      else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
 
 localMinFound :: State -> P.Result -> IO ()
 localMinFound st res =

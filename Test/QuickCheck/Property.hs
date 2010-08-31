@@ -202,6 +202,7 @@ shrinking shrinker x0 pf = fmap (MkProp . join . fmap unProp) (promote (props x0
 noShrinking :: Testable prop => prop -> Property
 noShrinking = mapRoseIOResult f
   where f (MkRose mres _ts) = MkRose mres []
+        f (IORose rm) = IORose (fmap f rm)
 
 -- | Adds a callback
 callback :: Testable prop => Callback -> prop -> Property

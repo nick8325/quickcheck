@@ -7,7 +7,6 @@ module Test.QuickCheck.Monadic where
 
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Property
-import Test.QuickCheck.Arbitrary
 
 import Control.Monad
   ( liftM
@@ -29,9 +28,7 @@ instance Functor (PropertyM m) where
 instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
-  fail s              = MkPropertyM (\_ -> return (return (property result)))
-   where
-    result = failed{ reason = s }
+  fail s              = MkPropertyM (\_ -> return (return (property failed{ reason = s })))
 
 -- should think about strictness/exceptions here
 --assert :: Testable prop => prop -> PropertyM m ()
