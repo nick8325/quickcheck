@@ -81,9 +81,7 @@ monitor f = MkPropertyM (\k -> (f `liftM`) `fmap` (k ()))
 -- run functions
 
 monadic :: Monad m => (m Property -> Property) -> PropertyM m a -> Property
-monadic run (MkPropertyM m) =
-  do mp <- m (const (return (return (property True))))
-     run mp
+monadic runner m = property (fmap runner (monadic' m))
 
 monadic' :: Monad m => PropertyM m a -> Gen (m Property)
 monadic' (MkPropertyM m) = m (const (return (return (property True))))

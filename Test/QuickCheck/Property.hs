@@ -133,11 +133,9 @@ result =
   , callbacks   = []
   }
 
-failed :: Result -> Result
-failed res = res{ ok = Just False }
-
-exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'",
-                                interrupted = isInterrupt err }
+exception :: String -> AnException -> Result
+exception msg err = failed{ reason = msg ++ ": '" ++ showErr err ++ "'",
+                            interrupted = isInterrupt err }
 
 protectResult :: IO Result -> IO Result
 protectResult m = either (exception "Exception") id `fmap` tryEvaluateIO (fmap force m)
