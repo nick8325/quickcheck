@@ -52,10 +52,13 @@ instance Testable Result where
   property = return . MkProp . return . return
 
 instance Testable Prop where
-  property = return
+  property = return . protectProp
 
 instance Testable prop => Testable (Gen prop) where
   property mp = do p <- mp; property p
+
+instance Testable prop => Testable (IO prop) where
+  property = fmap (MkProp . IORose . fmap unProp) . promote . fmap property
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
@@ -67,27 +70,41 @@ instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
 
 newtype Prop = MkProp{ unProp :: Rose (IO Result) }
 
+protectProp :: Prop -> Prop
+protectProp (MkProp r) =
+  MkProp . IORose $ do
+    (x, rs) <- unpackRose r
+    return (MkRose x rs)
+
 -- ** type Rose
 
-data Rose a = MkRose a [Rose a]
+-- We never allow a rose tree to be _|_. This makes avoiding
+-- exceptions easier.
+-- This relies on the fact that the 'property' function never returns _|_.
+data Rose a = MkRose a [Rose a] | IORose (IO (Rose a))
 
 join :: Rose (Rose a) -> Rose a
-join (MkRose ~(MkRose x ts) tts) =
+join (IORose rs) = IORose (fmap join rs)
+join (MkRose (IORose rm) rs) = IORose $ do r <- rm; return (join (MkRose r rs))
+join (MkRose (MkRose x ts) tts) =
   -- first shrinks outer quantification; makes most sense
   MkRose x (map join tts ++ ts)
   -- first shrinks inner quantification
   --MkRose x (ts ++ map join tts)
 
 instance Functor Rose where
-  fmap f ~(MkRose x rs) = MkRose (f x) [ fmap f r | r <- rs ]
+  fmap f (IORose rs) = IORose (fmap (fmap f) rs)
+  fmap f (MkRose x rs) = MkRose (f x) [ fmap f r | r <- rs ]
 
 instance Monad Rose where
   return x = MkRose x []
   m >>= k  = join (fmap k m)
 
-protectRose :: Rose (IO Result) -> IO (Rose (IO Result))
-protectRose rose = either (return . return . exception result) id `fmap` tryEvaluate (unpack rose)
-  where unpack (MkRose mres ts) = MkRose (protectResult mres) ts
+unpackRose :: Rose (IO Result) -> IO (IO Result, [Rose (IO Result)])
+unpackRose rose = either (\e -> (return (exception "Exception" e), [])) id
+                  `fmap` tryEvaluateIO (unpack rose)
+  where unpack (MkRose x xs) = return (x, xs)
+        unpack (IORose m) = m >>= unpack
 
 -- ** Result type
 
@@ -118,18 +135,18 @@ result =
   , callbacks   = []
   }
 
-failed :: Result -> Result
-failed res = res{ ok = Just False }
-
-exception res err = failed res{ reason = "Exception: '" ++ showErr err ++ "'",
-                                interrupted = isInterrupt err }
+exception msg err = failed{ reason = msg ++ ": '" ++ showErr err ++ "'",
+                            interrupted = isInterrupt err }
 
 protectResult :: IO Result -> IO Result
-protectResult m = either (exception result) id `fmap` tryEvaluateIO (fmap force m)
+protectResult m = either (exception "Exception") id `fmap` tryEvaluateIO (fmap force m)
   where force res = ok res == Just False `seq` res
 
 succeeded :: Result 
 succeeded = result{ ok = Just True }
+
+failed :: Result
+failed = result{ ok = Just False }
 
 rejected :: Result
 rejected = result{ ok = Nothing }
@@ -148,10 +165,7 @@ liftResult :: Result -> Property
 liftResult r = liftIOResult (return r)
 
 liftIOResult :: IO Result -> Property
-liftIOResult m = liftRoseIOResult (return m)
-
-liftRoseIOResult :: Rose (IO Result) -> Property
-liftRoseIOResult t = return (MkProp t)
+liftIOResult m = property (MkProp (return m))
 
 mapResult :: Testable prop => (Result -> Result) -> prop -> Property
 mapResult f = mapIOResult (fmap f)
@@ -159,11 +173,12 @@ mapResult f = mapIOResult (fmap f)
 mapIOResult :: Testable prop => (IO Result -> IO Result) -> prop -> Property
 mapIOResult f = mapRoseIOResult (fmap (f . protectResult))
 
+-- f here has to be total.
 mapRoseIOResult :: Testable prop => (Rose (IO Result) -> Rose (IO Result)) -> prop -> Property
 mapRoseIOResult f = mapProp (\(MkProp t) -> MkProp (f t))
 
 mapProp :: Testable prop => (Prop -> Prop) -> prop -> Property
-mapProp f = fmap f . property 
+mapProp f = fmap f . property
 
 --------------------------------------------------------------------------
 -- ** Property combinators
@@ -262,7 +277,7 @@ within n = mapIOResult race
              do put "Waiting ..."
                 threadDelay n
                 put "Done waiting!"
-                putMVar resV (failed result{reason = "Time out"})
+                putMVar resV (failed {reason = "Time out"})
            
            evalProp =
              do put "Evaluating Result ..."

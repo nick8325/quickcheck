@@ -178,7 +178,7 @@ runATest st f =
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
-     MkRose mres ts <- protectRose (unProp (f rnd1 size))
+     (mres, ts) <- unpackRose (unProp (f rnd1 size))
      res <- mres
      callbackPostTest st res
      
@@ -283,30 +283,35 @@ foundFailure st res ts =
 
 localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO ()
 localMin st res _ | P.interrupted res = localMinFound st res
-localMin st res [] = localMinFound st res
-
-localMin st res (t : ts) =
-  do -- CALLBACK before_test
-     MkRose mres' ts' <- protectRose t
-     res' <- mres'
-     putTemp (terminal st)
-       ( short 35 (P.reason res)
-      ++ " (after " ++ number (numSuccessTests st+1) "test"
-      ++ concat [ " and "
-               ++ show (numSuccessShrinks st)
-               ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
-               ++ " shrink"
-               ++ (if numSuccessShrinks st == 1
-                   && numTryShrinks st == 0
-                   then "" else "s")
-                | numSuccessShrinks st > 0 || numTryShrinks st > 0
-                ]
-      ++ ")..."
-       )
-     callbackPostTest st res'
-     if ok res' == Just False
-       then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
-       else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
+localMin st res ts = do
+  r <- tryEvaluate ts
+  case r of
+    Left err ->
+      localMinFound st
+         (exception "Exception while generating shrink-list" err)
+    Right [] -> localMinFound st res
+    Right (t:ts) ->
+      do -- CALLBACK before_test
+        (mres', ts') <- unpackRose t
+        res' <- mres'
+        putTemp (terminal st)
+          ( short 35 (P.reason res)
+         ++ " (after " ++ number (numSuccessTests st+1) "test"
+         ++ concat [ " and "
+                  ++ show (numSuccessShrinks st)
+                  ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
+                  ++ " shrink"
+                  ++ (if numSuccessShrinks st == 1
+                      && numTryShrinks st == 0
+                      then "" else "s")
+                   | numSuccessShrinks st > 0 || numTryShrinks st > 0
+                   ]
+         ++ ")..."
+          )
+        callbackPostTest st res'
+        if ok res' == Just False
+          then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
+          else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
 
 localMinFound :: State -> P.Result -> IO ()
 localMinFound st res =
