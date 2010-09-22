@@ -206,6 +206,7 @@ shrinkFun shr (p :+: q) =
   [ p' .+. q  | p' <- shrinkFun shr p ] ++
   [ p  .+. q' | q' <- shrinkFun shr q ]
  where
+  isNil :: (a :-> b) -> Bool
   isNil Nil = True
   isNil _   = False
  
