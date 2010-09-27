@@ -55,8 +55,8 @@ instance Testable Prop where
 instance Testable prop => Testable (Gen prop) where
   property mp = do p <- mp; property p
 
-instance Testable prop => Testable (IO prop) where
-  property = fmap (MkProp . IORose . fmap unProp) . promote . fmap property
+morallyDubiousIOProperty :: Testable prop => IO prop -> Property
+morallyDubiousIOProperty = fmap (MkProp . IORose . fmap unProp) . promote . fmap property
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
