@@ -19,7 +19,7 @@ import Data.Char
 -- example
 
 prop_WriteThenRead =
-  monadicS runST (
+  monadicST (
     do ref <- run (newSTRef undefined)
        x <- pick (arbitrary :: Gen Int)
        run (writeSTRef ref x)
@@ -31,10 +31,6 @@ newtype PrintableChar = Printable{ unPrintable :: Char }
 
 instance Arbitrary PrintableChar where
   arbitrary = (Printable . chr) `fmap` choose (32,127)
-
-instance MonadS ST where
-  return' = return
-  bind'   = (>>=)
 
 {-
 propIO_WriteFileThenRead =
