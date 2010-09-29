@@ -355,5 +355,34 @@ conjoin ps =
                  then return (conj ps)
                  else return (MkRose (return result) roses))
 
+(.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
+p1 .||. p2 = disjoin [("(False .||. _):",property p1), ("(_ .||. False):",property p2)]
+
+disjoin :: Testable prop => [(String,prop)] -> Property
+disjoin ps = 
+  do roses <- sequence [ do MkProp rose <- property (whenFailPrint s p)
+                            return rose
+                       | (s,p) <- ps
+                       ]
+     return (MkProp (foldr disj (MkRose (return failed) []) roses))
+ where
+  disj :: Rose (IO Result) -> Rose (IO Result) -> Rose (IO Result)
+  disj p q =
+    do ioResult1 <- p
+       ioResult2 <- q
+       return (do result1 <- ioResult1
+                  if ok result1 == Just True
+                    then return result1
+                    else do result2 <- ioResult2
+                            return (result1 >>> result2))
+
+  result1 >>> result2 =
+    result2
+    { reason      = if null (reason result2) then reason result1 else reason result2
+    , interrupted = interrupted result1 || interrupted result2
+    , stamp       = stamp result1 ++ stamp result2
+    , callbacks   = callbacks result1 ++ callbacks result2
+    }
+
 --------------------------------------------------------------------------
 -- the end.
