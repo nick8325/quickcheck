@@ -81,14 +81,14 @@ protectProp (MkProp r) =
 -- This relies on the fact that the 'property' function never returns _|_.
 data Rose a = MkRose a [Rose a] | IORose (IO (Rose a))
 
-join :: Rose (Rose a) -> Rose a
-join (IORose rs) = IORose (fmap join rs)
-join (MkRose (IORose rm) rs) = IORose $ do r <- rm; return (join (MkRose r rs))
-join (MkRose (MkRose x ts) tts) =
+joinRose :: Rose (Rose a) -> Rose a
+joinRose (IORose rs) = IORose (fmap joinRose rs)
+joinRose (MkRose (IORose rm) rs) = IORose $ do r <- rm; return (joinRose (MkRose r rs))
+joinRose (MkRose (MkRose x ts) tts) =
   -- first shrinks outer quantification; makes most sense
-  MkRose x (map join tts ++ ts)
+  MkRose x (map joinRose tts ++ ts)
   -- first shrinks inner quantification
-  --MkRose x (ts ++ map join tts)
+  --MkRose x (ts ++ map joinRose tts)
 
 instance Functor Rose where
   fmap f (IORose rs) = IORose (fmap (fmap f) rs)
@@ -96,7 +96,7 @@ instance Functor Rose where
 
 instance Monad Rose where
   return x = MkRose x []
-  m >>= k  = join (fmap k m)
+  m >>= k  = joinRose (fmap k m)
 
 unpackRose :: Rose (IO Result) -> IO (IO Result, [Rose (IO Result)])
 unpackRose rose = either (\e -> (return (exception "Exception" e), [])) id
@@ -193,7 +193,7 @@ shrinking :: Testable prop =>
              (a -> [a])  -- ^ 'shrink'-like function.
           -> a           -- ^ The original argument
           -> (a -> prop) -> Property
-shrinking shrinker x0 pf = fmap (MkProp . join . fmap unProp) (promote (props x0))
+shrinking shrinker x0 pf = fmap (MkProp . joinRose . fmap unProp) (promote (props x0))
  where
   props x =
     MkRose (property (pf x)) [ props x' | x' <- shrinker x ]
