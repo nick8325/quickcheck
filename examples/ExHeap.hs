@@ -1,4 +1,3 @@
-{-# OPTIONS -fglasgow-exts #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -172,3 +171,4 @@ prop_HeapIsNotSorted (h :: Heap Int) =
   expectFailure $
     toList h == toSortedList h
 -}
+
