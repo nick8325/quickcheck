@@ -331,12 +331,29 @@ p1 .&. p2 =
     whenFailPrint (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
-{-
--- TODO
-
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
-p1 .&&. p2 = error "not implemented yet"
--}
+p1 .&&. p2 =
+  conjoin [("(False .&&. _)",property p1), ("(_ .&&. False)",property p2)]
+
+conjoin :: Testable prop => [(String,prop)] -> Property
+conjoin ps = 
+  do roses <- sequence [ do MkProp rose <- property (whenFailPrint s p)
+                            return rose
+                       | (s,p) <- ps
+                       ]
+     return (MkProp (conj roses))
+ where
+  conj [] =
+    MkRose (return succeeded) []
+
+  conj (IORose ioRose : ps) =
+    IORose (do p <- ioRose; return (conj (p:ps)))
+
+  conj (MkRose ioResult roses : ps) =
+    IORose (do result <- ioResult
+               if ok result == Just True
+                 then return (conj ps)
+                 else return (MkRose (return result) roses))
 
 --------------------------------------------------------------------------
 -- the end.
