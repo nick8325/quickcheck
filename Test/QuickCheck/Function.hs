@@ -20,6 +20,8 @@ import Test.QuickCheck.Modifiers
 
 import Data.Char
 import Data.Word
+import Data.List( intersperse )
+import Data.Maybe( fromJust )
 
 --------------------------------------------------------------------------
 -- concrete functions
@@ -42,17 +44,17 @@ instance Functor ((:->) a) where
   fmap f (Map g h p) = Map g h (fmap f p)
 
 instance (Show a, Show b) => Show (a:->b) where
-  -- only use this on finite functions
-  show p =
-    "{" ++ (case table p of
-             []        -> ""
-             (_,c):xcs -> concat [ show x ++ "->" ++ show c ++ ","
-                                 | (x,c) <- xcs
-                                 ]
-                       ++ "_->" ++ show c)
-        ++ "}"
-   where
-    xcs = table p
+  show p = showFunction p Nothing
+
+-- only use this on finite functions
+showFunction :: (Show a, Show b) => (a :-> b) -> Maybe b -> String
+showFunction p md =
+  "{" ++ concat (intersperse "," ( [ show x ++ "->" ++ show c
+                                   | (x,c) <- table p
+                                   ]
+                                ++ [ "_->" ++ show d
+                                   | Just d <- [md]
+                                   ] )) ++ "}"
 
 -- turning a concrete function into an abstract function (with a default result)
 abstract :: (a :-> c) -> c -> (a -> c)
@@ -73,12 +75,47 @@ table Nil         = []
 table (Table xys) = xys
 table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 
+-- finding a default result
+
+-- breadth-first search (can't use depth-first search!)
+data Steps a = Step (Steps a) | Fail | Result a
+
+(#) :: Steps a -> Steps a -> Steps a
+Result x # t        = Result x
+s        # Result y = Result y
+Fail     # t        = t
+s        # Fail     = s
+Step s   # Step t   = Step (s # t)
+
+instance Monad Steps where
+  Step s   >>= k = Step (s >>= k)
+  Result x >>= k = k x
+  Fail     >>= k = Fail
+
+  return x = Result x
+
+run :: Steps a -> Maybe a
+run (Step s)   = run s
+run (Result x) = Just x
+run Fail       = Nothing
+
+defaultSteps :: (a :-> c) -> Steps c
+defaultSteps (Pair p)          = defaultSteps p >>= defaultSteps
+defaultSteps (p :+: q)         = Step (defaultSteps p # defaultSteps q)
+defaultSteps (Unit c)          = Result c
+defaultSteps (Table ((_,y):_)) = Result y
+defaultSteps (Map _ _ p)       = defaultSteps p
+defaultSteps _                 = Fail
+
+defaultResult :: (a :-> c) -> Maybe c
+defaultResult = run . defaultSteps
+
 --------------------------------------------------------------------------
 -- Function
 
 class Function a where
   function :: (a->b) -> (a:->b)
-  
+
 -- basic instances
   
 instance Function () where
@@ -172,7 +209,7 @@ instance Function OrdB where
 instance Function OrdC where
   function = functionMap unOrdC OrdC
 
--- instance Abritrary
+-- instance Arbitrary
 
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (a:->b) where
   arbitrary = function `fmap` arbitrary
@@ -191,8 +228,8 @@ shrinkFun shr (Pair p) =
 shrinkFun shr (p :+: q) =
   [ p .+. Nil | not (isNil q) ] ++
   [ Nil .+. q | not (isNil p) ] ++
-  [ p' .+. q  | p' <- shrinkFun shr p ] ++
-  [ p  .+. q' | q' <- shrinkFun shr q ]
+  [ p  .+. q' | q' <- shrinkFun shr q ] ++
+  [ p' .+. q  | p' <- shrinkFun shr p ]
  where
   isNil :: (a :-> b) -> Bool
   isNil Nil = True
@@ -225,22 +262,26 @@ shrinkFun shr (Map g h p) =
 --------------------------------------------------------------------------
 -- the Fun modifier
 
-data Fun a b = Fun (a :-> b) (a -> b)
+data Fun a b = Fun (a :-> b, b) (a -> b)
 
-fun :: (a :-> b) -> Fun a b
-fun p = Fun p (abstract p (snd (head (table p))))
+mkFun :: (a :-> b) -> b -> Fun a b
+mkFun p d = Fun (p,d) (abstract p d)
 
 apply :: Fun a b -> (a -> b)
 apply (Fun _ f) = f
 
 instance (Show a, Show b) => Show (Fun a b) where
-  show (Fun p _) = show p
+  show (Fun (p,d) _) = showFunction p (Just d)
 
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
-  arbitrary = fun `fmap` arbitrary
+  arbitrary =
+    do p <- arbitrary
+       return (mkFun p (fromJust (defaultResult p)))
 
-  shrink (Fun p _) =
-    [ fun p' | p' <- shrink p, _:_ <- [table p'] ]
+  shrink (Fun (p,d) _) =
+       [ mkFun p' d' | p' <- shrink p, Just d' <- [defaultResult p'] ]
+    ++ [ mkFun p' d  | p' <- shrink p ]
+    ++ [ mkFun p d'  | d' <- shrink d ]
 
 --------------------------------------------------------------------------
 -- the end.
