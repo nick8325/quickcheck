@@ -43,7 +43,7 @@ instance Arbitrary Var where
     sized $ \n ->
       elements [ MkVar [c] | c <- take (n `div` 2 + 1) ['a'..'z'] ]
 
-  shrinkPrim = fromList . shrinkNothing
+  shrink = const [] -- ??? is this right?
 
 instance Arbitrary Exp where
   arbitrary = sized (arbExp [])

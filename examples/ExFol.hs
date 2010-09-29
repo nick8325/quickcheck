@@ -196,7 +196,7 @@ clauseSetSat =
 
 prop_Sound =
   mapSize (`div` 4) $
-  forAllBlind clauseSetSat $ \clss ->
+  clauseSetSat >>= \clss ->
     monadicIO $
       do mn <- run $
            do --runParadox clss

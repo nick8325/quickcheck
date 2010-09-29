@@ -3,7 +3,7 @@ module Main where
 --------------------------------------------------------------------------
 -- imports
 
-import QuickCheck
+import Test.QuickCheck
 import Char
 
 {-
