@@ -13,7 +13,7 @@ module Test.QuickCheck.Exception where
 #endif
 #endif
 
-#if defined OLD_EXCEPTIONS
+#if defined(OLD_EXCEPTIONS)
 import Control.Exception(evaluate, try, Exception(..))
 #else
 import Control.Exception.Extensible(evaluate, try, SomeException(SomeException)
