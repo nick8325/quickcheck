@@ -91,7 +91,7 @@ joinRose (MkRose (MkRose x ts) tts) =
   --MkRose x (ts ++ map joinRose tts)
 
 instance Functor Rose where
-  fmap f (IORose rs) = IORose (fmap (fmap f) rs)
+  fmap f (IORose rs)   = IORose (fmap (fmap f) rs)
   fmap f (MkRose x rs) = MkRose (f x) [ fmap f r | r <- rs ]
 
 instance Monad Rose where
