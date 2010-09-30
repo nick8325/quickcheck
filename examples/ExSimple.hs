@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -6,6 +6,7 @@ module Main where
 
 --import Debug.QuickCheck
 import Test.QuickCheck
+import Test.QuickCheck.TH
 
 --------------------------------------------------------------------------
 -- example 1
@@ -19,13 +20,13 @@ prop_SimonThompson x y (z :: Int) =
 --------------------------------------------------------------------------
 -- example 2
 
-prop_ReverseReverse (xs :: [Int]) =
+prop_ReverseReverse xs =
   reverse (reverse xs) == xs
 
 --------------------------------------------------------------------------
 -- example 3
 
-prop_Error (x::Int,y) =
+prop_Error (x,y) =
   2*x <= 5*y
     
 --------------------------------------------------------------------------
@@ -33,7 +34,9 @@ prop_Error (x::Int,y) =
 
 main =
   do quickCheck prop_SimonThompson
-     quickCheck prop_ReverseReverse
+     quickCheck $(mono 'prop_ReverseReverse)
+
+addQuickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.

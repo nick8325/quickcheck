@@ -1,3 +1,4 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 module Test.QuickCheck.Poly
   ( A(..), B(..), C(..)
   , OrdA(..), OrdB(..), OrdC(..)
@@ -63,7 +64,7 @@ instance CoArbitrary C where
 -- OrdA
 
 newtype OrdA = OrdA{ unOrdA :: Integer }
-  deriving ( Eq, Ord )
+  deriving ( Eq, Ord, Num )
 
 instance Show OrdA where
   showsPrec n (OrdA x) = showsPrec n x
@@ -78,7 +79,7 @@ instance CoArbitrary OrdA where
 -- OrdB
 
 newtype OrdB = OrdB{ unOrdB :: Integer }
-  deriving ( Eq, Ord )
+  deriving ( Eq, Ord, Num )
 
 instance Show OrdB where
   showsPrec n (OrdB x) = showsPrec n x
@@ -93,7 +94,7 @@ instance CoArbitrary OrdB where
 -- OrdC
 
 newtype OrdC = OrdC{ unOrdC :: Integer }
-  deriving ( Eq, Ord )
+  deriving ( Eq, Ord, Num )
 
 instance Show OrdC where
   showsPrec n (OrdC x) = showsPrec n x
