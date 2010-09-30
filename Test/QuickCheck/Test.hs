@@ -217,7 +217,7 @@ runATest st f =
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
             putTemp (terminal st)
-              ( short 30 (P.reason res)
+              ( short 26 (P.reason res)
              ++ " (after "
              ++ number (numSuccessTests st+1) "test"
              ++ ")..."
@@ -320,7 +320,7 @@ localMin' st res (t:ts) =
     (mres', ts') <- unpackRose t
     res' <- mres'
     putTemp (terminal st)
-      ( short 35 (P.reason res)
+      ( short 26 (P.reason res)
      ++ " (after " ++ number (numSuccessTests st+1) "test"
      ++ concat [ " and "
               ++ show (numSuccessShrinks st)
