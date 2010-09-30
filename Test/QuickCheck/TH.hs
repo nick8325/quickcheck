@@ -51,12 +51,16 @@ addQuickCheckAll = do
   Loc { loc_filename = filename } <- location
   when (filename == "<interactive>") $ error "don't run this interactively"
   ls <- runIO (fmap lines (readFile filename))
-  let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_')) ls
-      idents = filter ("prop_" `isPrefixOf`) prefixes
-      quickCheckOne :: String -> Q [Exp]
-      quickCheckOne x = sequence [
-                    [| putStrLn $(stringE $ "Checking " ++ x) |],
-                    polyQuickCheck (mkName x) ]
+  let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_') . dropWhile (\c -> isSpace c || c == '>')) ls
+      idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
+      quickCheckOne :: (Int, String) -> Q [Exp]
+      quickCheckOne (l, x) = do
+        exists <- return False `recover` (reify (mkName x) >> return True)
+        if exists then
+          sequence [
+            [| putStrLn $(stringE $ "Checking " ++ x ++ " on line " ++ show l ++ "...") |],
+            polyQuickCheck (mkName x) ]
+          else return []
   [d|
       quickCheckAll :: IO ()
       quickCheckAll = $(fmap (DoE . map NoBindS . concat) (mapM quickCheckOne idents)) |]

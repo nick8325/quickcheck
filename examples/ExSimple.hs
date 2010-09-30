@@ -20,8 +20,16 @@ prop_SimonThompson x y (z :: Int) =
 --------------------------------------------------------------------------
 -- example 2
 
+prop_ReverseReverse :: Eq a => [a] -> Bool
 prop_ReverseReverse xs =
   reverse (reverse xs) == xs
+
+prop_Reverse xs =
+  reverse xs == xs
+
+{-
+prop_Blahblah
+-}
 
 --------------------------------------------------------------------------
 -- example 3
@@ -32,11 +40,9 @@ prop_Error (x,y) =
 --------------------------------------------------------------------------
 -- main
 
-main =
-  do quickCheck prop_SimonThompson
-     quickCheck $(mono 'prop_ReverseReverse)
+$(addQuickCheckAll)
 
-addQuickCheckAll
+main = quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.
