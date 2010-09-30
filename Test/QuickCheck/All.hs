@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types #-}
-module Test.QuickCheck.All where
+module Test.QuickCheck.All(addQuickCheckAll, mono, polyQuickCheck) where
 
 import Language.Haskell.TH
 import Test.QuickCheck.Test
