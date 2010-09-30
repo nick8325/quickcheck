@@ -2,6 +2,7 @@
 module Test.QuickCheck.All(addQuickCheckAll, mono, polyQuickCheck) where
 
 import Language.Haskell.TH
+import Test.QuickCheck.Property
 import Test.QuickCheck.Test
 import Data.Char
 import Data.List
@@ -53,13 +54,19 @@ addQuickCheckAll = do
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
         exists <- return False `recover` (reify (mkName x) >> return True)
-        if exists then
-          sequence [
-            [| putStrLn $(stringE $ "Checking " ++ x ++ " on line " ++ show l ++ "...") |],
-            polyQuickCheck (mkName x) ]
-          else return []
-      makeDoBlock [] = [| return () |]
-      makeDoBlock xs = return (DoE (map NoBindS xs))
+        if exists then sequence [ [| ($(stringE $ x ++ " on " ++ filename ++ ":" ++ show l),
+                                     property $(mono (mkName x))) |] ]
+         else return []
   [d|
-      quickCheckAll :: IO ()
-      quickCheckAll = $(fmap concat (mapM quickCheckOne idents) >>= makeDoBlock) |]
+      quickCheckAll :: IO Bool
+      quickCheckAll = runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
+
+runQuickCheckAll :: [(String, Property)] -> IO Bool
+runQuickCheckAll ps =
+  fmap and . forM ps $ \(xs, p) -> do
+    putStrLn $ "=== " ++ xs ++ " ==="
+    r <- quickCheckResult p
+    return $ case r of
+      Success { } -> True
+      Failure { } -> False
+      NoExpectedFailure { } -> False
