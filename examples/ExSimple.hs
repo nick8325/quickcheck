@@ -6,7 +6,7 @@ module Main where
 
 --import Debug.QuickCheck
 import Test.QuickCheck
-import Test.QuickCheck.TH
+import Test.QuickCheck.All
 
 --------------------------------------------------------------------------
 -- example 1

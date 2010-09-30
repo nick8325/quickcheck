@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types #-}
-module Test.QuickCheck.TH where
+module Test.QuickCheck.All where
 
 import Language.Haskell.TH
 import Test.QuickCheck.Test
@@ -22,9 +22,8 @@ mono t = do
   case polys of
     [] -> return (VarE t)
     _ -> do
-      monos <- sequence [[t| OrdA |], [t| OrdB |], [t| OrdC |]]
-      when (length polys > length monos) $ err "Too many type variables in type"
-      ty' <- substitute err (zip polys monos) ty
+      integer <- [t| Integer |]
+      ty' <- monomorphise err integer ty
       return (SigE (VarE t) ty')
 
 infoType :: Info -> Type
@@ -40,11 +39,11 @@ deconstructType err ty0@(ForallT xs ctx ty) = do
   return (map (\(PlainTV x) -> x) xs, ctx, ty)
 deconstructType _ ty = return ([], [], ty)
 
-substitute :: Error -> [(Name, Type)] -> Type -> TypeQ
-substitute err subst ty@(VarT n) = return (fromMaybe ty (lookup n subst))
-substitute err subst (AppT t1 t2) = liftM2 AppT (substitute err subst t1) (substitute err subst t2)
-substitute err subst ty@(ForallT _ _ _) = err $ "Higher-ranked type"
-substitute err subst ty = return ty
+monomorphise :: Error -> Type -> Type -> TypeQ
+monomorphise err mono ty@(VarT n) = return mono
+monomorphise err mono (AppT t1 t2) = liftM2 AppT (monomorphise err mono t1) (monomorphise err mono t2)
+monomorphise err mono ty@(ForallT _ _ _) = err $ "Higher-ranked type"
+monomorphise err mono ty = return ty
 
 addQuickCheckAll :: Q [Dec]
 addQuickCheckAll = do
