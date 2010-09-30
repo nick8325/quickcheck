@@ -58,6 +58,8 @@ addQuickCheckAll = do
             [| putStrLn $(stringE $ "Checking " ++ x ++ " on line " ++ show l ++ "...") |],
             polyQuickCheck (mkName x) ]
           else return []
+      makeDoBlock [] = [| return () |]
+      makeDoBlock xs = return (DoE (map NoBindS xs))
   [d|
       quickCheckAll :: IO ()
-      quickCheckAll = $(fmap (DoE . map NoBindS . concat) (mapM quickCheckOne idents)) |]
+      quickCheckAll = $(fmap concat (mapM quickCheckOne idents) >>= makeDoBlock) |]
