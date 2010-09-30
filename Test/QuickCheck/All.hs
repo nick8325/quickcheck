@@ -3,9 +3,7 @@ module Test.QuickCheck.All(addQuickCheckAll, mono, polyQuickCheck) where
 
 import Language.Haskell.TH
 import Test.QuickCheck.Test
-import Test.QuickCheck.Poly
 import Data.Char
-import Data.Maybe
 import Data.List
 import Control.Monad
 
