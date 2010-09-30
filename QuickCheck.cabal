@@ -31,9 +31,6 @@ flag splitBase
 flag extensibleExceptions
   Description: Choose the even newer, even smaller, split-up base package.
 
-flag templateHaskell
-  Description: Include Template Haskell helper functions for running all properties in a module.
-
 library
   Build-depends: mtl
   if flag(extensibleExceptions)
@@ -59,7 +56,7 @@ library
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
     Test.QuickCheck.State
-  if flag(templateHaskell)
+  if impl(ghc >= 6.12)
     Build-depends: template-haskell
     Exposed-Modules: Test.QuickCheck.All
   Other-Modules:
