@@ -24,6 +24,9 @@ import System.IO
   , stdout
   )
 
+import System.Timeout(timeout)
+import Data.Maybe
+
 --------------------------------------------------------------------------
 -- fixities
 
@@ -184,6 +187,11 @@ mapResult f = mapIOResult (fmap f)
 mapIOResult :: Testable prop => (IO Result -> IO Result) -> prop -> Property
 mapIOResult f = mapRoseIOResult (fmap (f . protectResult))
 
+mapBottomUp :: Testable prop => (IO (IO Result, [Rose (IO Result)]) -> Rose (IO Result)) -> prop -> Property
+mapBottomUp f = mapRoseIOResult g
+  where g r = f (fmap h (unpackRose r))
+        h (m, rs) = (m, map g rs)
+
 -- f here has to be total (rose tree invariant).
 mapRoseIOResult :: Testable prop => (Rose (IO Result) -> Rose (IO Result)) -> prop -> Property
 mapRoseIOResult f = mapProp (\(MkProp t) -> MkProp (f t))
@@ -285,39 +293,16 @@ True  ==> p = property p
 -- | Considers a property failed if it does not complete within
 -- the given number of microseconds.
 within :: Testable prop => Int -> prop -> Property
-within n = mapIOResult race
+within n = mapBottomUp race
  where
-  race ior =
-    do put "Race starts ..."
-       resV <- newEmptyMVar
-       
-       let waitAndFail =
-             do put "Waiting ..."
-                threadDelay n
-                put "Done waiting!"
-                putMVar resV (failed {reason = "Time out"})
-           
-           evalProp =
-             do put "Evaluating Result ..."
-                res <- protectResult ior
-                put "Evaluating OK ..."
-                putMVar resV res
-       
-       pid1  <- forkIO evalProp
-       pid2  <- forkIO waitAndFail
-
-       put "Blocking ..."
-       res <- takeMVar resV
-       put "Killing threads ..."
-       killThread pid1
-       killThread pid2
-       put ("Got Result: " ++ show (ok res))
-       return res
-         
-
-  put s | True      = do return ()
-        | otherwise = do putStrLn s
-                         hFlush stdout
+  race m = IORose $ do
+    do x <- timeout n $ do { x <- m; return $! x }
+       case x of
+         Nothing -> return (return (return failed { reason = "Timeout" }))
+         Just (m, rs) -> do
+           y <- fmap (fromMaybe failed { reason = "Timeout" })
+                     (timeout n $ do { x <- m; return $! x })
+           return (MkRose (return y) rs)
 
 -- | Explicit universal quantification: uses an explicitly given
 -- test case generator.
