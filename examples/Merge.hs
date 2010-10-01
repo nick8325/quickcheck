@@ -1,4 +1,4 @@
-{-# OPTIONS -fglasgow-exts #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 module Main where
 
 --------------------------------------------------------------------------
