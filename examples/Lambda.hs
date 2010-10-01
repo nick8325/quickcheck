@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 module Main where
 
 --------------------------------------------------------------------------
