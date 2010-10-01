@@ -1,8 +1,8 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types #-}
-module Test.QuickCheck.All(addQuickCheckAll, mono, polyQuickCheck) where
+module Test.QuickCheck.All(forAllProperties, quickCheckAll, mono, polyQuickCheck) where
 
 import Language.Haskell.TH
-import Test.QuickCheck.Property
+import Test.QuickCheck.Property hiding (Result)
 import Test.QuickCheck.Test
 import Data.Char
 import Data.List
@@ -44,8 +44,8 @@ monomorphise err mono (AppT t1 t2) = liftM2 AppT (monomorphise err mono t1) (mon
 monomorphise err mono ty@(ForallT _ _ _) = err $ "Higher-ranked type"
 monomorphise err mono ty = return ty
 
-addQuickCheckAll :: Q [Dec]
-addQuickCheckAll = do
+forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
+forAllProperties = do
   Loc { loc_filename = filename } <- location
   when (filename == "<interactive>") $ error "don't run this interactively"
   ls <- runIO (fmap lines (readFile filename))
@@ -57,15 +57,16 @@ addQuickCheckAll = do
         if exists then sequence [ [| ($(stringE $ x ++ " on " ++ filename ++ ":" ++ show l),
                                      property $(mono (mkName x))) |] ]
          else return []
-  [d|
-      quickCheckAll :: IO Bool
-      quickCheckAll = runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
+  [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
 
-runQuickCheckAll :: [(String, Property)] -> IO Bool
-runQuickCheckAll ps =
+quickCheckAll :: Q Exp
+quickCheckAll = [| $(forAllProperties) quickCheckResult |]
+
+runQuickCheckAll :: [(String, Property)] -> (Property -> IO Result) -> IO Bool
+runQuickCheckAll ps qc =
   fmap and . forM ps $ \(xs, p) -> do
     putStrLn $ "=== " ++ xs ++ " ==="
-    r <- quickCheckResult p
+    r <- qc p
     return $ case r of
       Success { } -> True
       Failure { } -> False
