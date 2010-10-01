@@ -127,11 +127,22 @@ instance Arbitrary a => Arbitrary [a] where
   shrink xs = shrinkList shrink xs
 
 shrinkList :: (a -> [a]) -> [a] -> [[a]]
-shrinkList shr xs0 = removeChunks xs0 ++ shrinkOne xs0
+shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div`2) n) ]
+                 ++ shrinkOne xs
  where
+  n = length xs
+
   shrinkOne []     = []
   shrinkOne (x:xs) = [ x':xs | x'  <- shr x ]
                   ++ [ x:xs' | xs' <- shrinkOne xs ] 
+
+  removes k n xs
+    | k > n     = []
+    | null xs2  = [[]]
+    | otherwise = xs2 : map (xs1 ++) (removes k (n-k) xs2)
+   where
+    xs1 = take k xs
+    xs2 = drop k xs
 
 {-
   -- "standard" definition for lists:
@@ -140,26 +151,6 @@ shrinkList shr xs0 = removeChunks xs0 ++ shrinkOne xs0
                ++ [ x:xs' | xs' <- shrink xs ]
                ++ [ x':xs | x'  <- shrink x ]
 -}
-
-removeChunks :: [a] -> [[a]]
-removeChunks xs0 = remC (length xs0) xs0
-   where
-    remC 0 _  = []
-    remC 1 _  = [[]]
-    remC n xs = xs1
-              : xs2
-              : ( [ xs1' ++ xs2 | xs1' <- remC n1 xs1, not (null xs1') ]
-            `ilv` [ xs1 ++ xs2' | xs2' <- remC n2 xs2, not (null xs2') ]
-                )
-     where
-      n1  = n `div` 2
-      xs1 = take n1 xs
-      n2  = n - n1
-      xs2 = drop n1 xs
-
-      []     `ilv` bs     = bs
-      as     `ilv` []     = as
-      (a:as) `ilv` (b:bs) = a : b : (as `ilv` bs)
 
 instance (Integral a, Arbitrary a) => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
