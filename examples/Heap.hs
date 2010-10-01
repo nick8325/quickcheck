@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -6,6 +6,7 @@ module Main where
 
 import Test.QuickCheck
 import Test.QuickCheck.Text
+import Test.QuickCheck.All
 
 import Data.List
   ( sort
@@ -144,6 +145,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
 --------------------------------------------------------------------------
 -- main
 
+{-
 main =
   do quickCheck prop_Empty
      quickCheck prop_Unit
@@ -153,6 +155,10 @@ main =
      quickCheck prop_Merge
      quickCheck prop_FromList
      quickCheck prop_ToSortedList
+-}
+
+$(addQuickCheckAll)
+main = quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.
