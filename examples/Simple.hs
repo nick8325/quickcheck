@@ -4,7 +4,6 @@ module Main where
 --------------------------------------------------------------------------
 -- imports
 
---import Debug.QuickCheck
 import Test.QuickCheck
 import Test.QuickCheck.All
 
