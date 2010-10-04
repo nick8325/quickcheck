@@ -32,25 +32,25 @@ empty = Nil
 
 isEmpty :: Heap a -> Bool
 isEmpty Nil = True
-isEmpty _     = False
+isEmpty _   = False
 
 unit :: a -> Heap a
 unit x = Node x empty empty
 
 size :: Heap a -> Int
-size Nil          = 0
+size Nil            = 0
 size (Node _ h1 h2) = 1 + size h1 + size h2
 
 insert :: Ord a => a -> Heap a -> Heap a
 insert x h = unit x `merge` h
 
 removeMin :: Ord a => Heap a -> Maybe (a, Heap a)
-removeMin Nil          = Nothing
+removeMin Nil            = Nothing
 removeMin (Node x h1 h2) = Just (x, h1 `merge` h2)
 
 merge :: Ord a => Heap a -> Heap a -> Heap a
-h1    `merge` Nil = h1
-Nil `merge` h2    = h2
+h1  `merge` Nil = h1
+Nil `merge` h2  = h2
 h1@(Node x h11 h12) `merge` h2@(Node y h21 h22)
   | x <= y    = Node x (h12 `merge` h2) h11
   | otherwise = Node y (h22 `merge` h1) h21
@@ -70,11 +70,11 @@ toList :: Heap a -> [a]
 toList h = toList' [h]
  where
   toList' []                  = []
-  toList' (Nil        : hs) = toList' hs
+  toList' (Nil          : hs) = toList' hs
   toList' (Node x h1 h2 : hs) = x : toList' (h1:h2:hs)
 
 toSortedList :: Ord a => Heap a -> [a]
-toSortedList Nil          = []
+toSortedList Nil            = []
 toSortedList (Node x h1 h2) = x : toList (h1 `merge` h2)
 
 --------------------------------------------------------------------------
