@@ -8,9 +8,11 @@ import Test.QuickCheck
 import Test.QuickCheck.Text
 import Test.QuickCheck.All
 import Test.QuickCheck.Poly
+import Test.QuickCheck.Property
 
 import Data.List
   ( sort
+  , nub
   , (\\)
   )
 
@@ -157,8 +159,12 @@ instance (Ord a, Arbitrary a) => Arbitrary (HeapPP a) where
 --------------------------------------------------------------------------
 -- properties
 
-(=~) :: Heap Char -> Heap Char -> Bool
+(=~) :: Heap Char -> Heap Char -> Property
+{-
 h1 =~ h2 = sort (toList h1) == sort (toList h2)
+-}
+h1 =~ h2 = property (nub (sort (toList h1)) == nub (sort (toList h2))) -- bug!
+
 
 {-
 The normal form is:
@@ -190,8 +196,8 @@ prop_RemoveMin_Insert2 x y (HeapPP _ h) =
   f `mapf` Just (x,h) = Just (x, f h)
   f `mapf` Nothing    = Nothing
 
-  Nothing     ==~ Nothing     = True
-  Just (x,h1) ==~ Just (y,h2) = x==y && h1 =~ h2
+  Nothing     ==~ Nothing     = property True
+  Just (x,h1) ==~ Just (y,h2) = x==y .&&. h1 =~ h2
 
 prop_InsertSwap x y (HeapPP _ h) =
   insert x (insert y h) =~ insert y (insert x h)
