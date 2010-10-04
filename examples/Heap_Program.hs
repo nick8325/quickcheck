@@ -188,18 +188,6 @@ prop_ToSortedList (HeapPP _ h) =
 --------------------------------------------------------------------------
 -- main
 
-{-
-main =
-  do quickCheck prop_Empty
-     quickCheck prop_Unit
-     quickCheck prop_Size
-     quickCheck prop_Insert
-     quickCheck prop_RemoveMin
-     quickCheck prop_Merge
-     quickCheck prop_FromList
-     quickCheck prop_ToSortedList
--}
-
 main = $(quickCheckAll)
 
 --------------------------------------------------------------------------
@@ -207,9 +195,4 @@ main = $(quickCheckAll)
 
 -- toSortedList (Node x h1 h2) = x : toSortedList (h1 `merge` h2)
 
-{-
-prop_HeapIsNotSorted (h :: Heap Int) =
-  expectFailure $
-    toList h == toSortedList h
--}
 
