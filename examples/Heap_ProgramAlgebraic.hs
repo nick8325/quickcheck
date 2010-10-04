@@ -62,15 +62,12 @@ h1@(Node x h11 h12) `merge` h2@(Node y h21 h22)
   | otherwise = Node y (h22 `merge` h1) h21
         
 fromList :: Ord a => [a] -> Heap a
-fromList xs = merging [ unit x | x <- xs ]
+fromList xs = merging [ unit x | x <- xs ] []
  where
-  merging []  = empty
-  merging [h] = h
-  merging hs  = merging (sweep hs) 
-
-  sweep []         = []
-  sweep [h]        = [h]
-  sweep (h1:h2:hs) = (h1 `merge` h2) : sweep hs
+  merging []       [] = empty
+  merging [p]      [] = p
+  merging (p:q:ps) qs = merging ps ((p`merge`q):qs)
+  merging ps       qs = merging (ps ++ reverse qs) []
 
 toList :: Heap a -> [a]
 toList h = toList' [h]
@@ -81,7 +78,7 @@ toList h = toList' [h]
 
 toSortedList :: Ord a => Heap a -> [a]
 toSortedList Nil            = []
-toSortedList (Node x h1 h2) = x : toList (h1 `merge` h2)
+toSortedList (Node x h1 h2) = x : toSortedList (h1 `merge` h2)
 
 --------------------------------------------------------------------------
 -- heap programs
@@ -174,14 +171,10 @@ The normal form is:
 where x1 <= x2 <= ...
 -}
 
+-- heap creating operations
+
 prop_Unit x =
   unit x =~ insert x empty
-
-prop_Size_Empty =
-  size empty == 0
-
-prop_Size_Insert x (HeapPP _ h) =
-  size (insert x h) == 1 + size h
 
 prop_RemoveMin_Empty =
   removeMin (empty :: Heap OrdA) == Nothing
@@ -191,10 +184,10 @@ prop_RemoveMin_Insert1 x =
 
 prop_RemoveMin_Insert2 x y (HeapPP _ h) =
   removeMin (insert x (insert y h)) ==~
-    (insert (max x y) `mapf` removeMin (insert (min x y) h))
+    (insert (max x y) `maph` removeMin (insert (min x y) h))
  where
-  f `mapf` Just (x,h) = Just (x, f h)
-  f `mapf` Nothing    = Nothing
+  f `maph` Just (x,h) = Just (x, f h)
+  f `maph` Nothing    = Nothing
 
   Nothing     ==~ Nothing     = property True
   Just (x,h1) ==~ Just (y,h2) = x==y .&&. h1 =~ h2
@@ -208,6 +201,23 @@ prop_MergeInsertLeft x (HeapPP _ h1) (HeapPP _ h2) =
 prop_MergeInsertRight x (HeapPP _ h1) (HeapPP _ h2) =
   (h1 `merge` insert x h2) =~ insert x (h1 `merge` h2)
 
+-- heap observing operations
+
+prop_Size_Empty =
+  size empty == 0
+
+prop_Size_Insert x (HeapPP _ (h :: Heap OrdA)) =
+  size (insert x h) == 1 + size h
+
+prop_ToList_Empty =
+  toList empty == ([] :: [OrdA])
+
+prop_ToList_Insert x (HeapPP _ (h :: Heap OrdA)) =
+  sort (toList (insert x h)) == sort (x : toList h)
+
+prop_ToSortedList (HeapPP _ (h :: Heap OrdA)) =
+  toSortedList h == sort (toList h)
+
 --------------------------------------------------------------------------
 -- main
 
@@ -216,6 +226,5 @@ main = $(quickCheckAll)
 --------------------------------------------------------------------------
 -- the end.
 
--- toSortedList (Node x h1 h2) = x : toSortedList (h1 `merge` h2)
 
 
