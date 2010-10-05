@@ -145,20 +145,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
 --------------------------------------------------------------------------
 -- main
 
-{-
-main =
-  do quickCheck prop_Empty
-     quickCheck prop_Unit
-     quickCheck prop_Size
-     quickCheck prop_Insert
-     quickCheck prop_RemoveMin
-     quickCheck prop_Merge
-     quickCheck prop_FromList
-     quickCheck prop_ToSortedList
--}
-
-$(addQuickCheckAll)
-main = quickCheckAll
+main = $(quickCheckAll)
 
 --------------------------------------------------------------------------
 -- the end.
