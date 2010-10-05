@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell, GADTs #-}
 module Main where
 
 --------------------------------------------------------------------------
@@ -92,13 +92,16 @@ data HeapP a
   | FromList [a]
  deriving (Show)
 
+safeRemoveMin :: Ord a => Heap a -> Heap a
+safeRemoveMin h = case removeMin h of
+                    Nothing    -> empty -- arbitrary choice
+                    Just (_,h) -> h
+
 heap :: Ord a => HeapP a -> Heap a
 heap Empty             = empty
 heap (Unit x)          = unit x
 heap (Insert x p)      = insert x (heap p)
-heap (SafeRemoveMin p) = case removeMin (heap p) of
-                           Nothing    -> empty -- arbitrary choice
-                           Just (_,h) -> h
+heap (SafeRemoveMin p) = safeRemoveMin (heap p)
 heap (Merge p q)       = heap p `merge` heap q
 heap (FromList xs)     = fromList xs
 
@@ -156,12 +159,35 @@ instance (Ord a, Arbitrary a) => Arbitrary (HeapPP a) where
 --------------------------------------------------------------------------
 -- properties
 
-(=~) :: Heap Char -> Heap Char -> Property
-{-
-h1 =~ h2 = sort (toList h1) == sort (toList h2)
--}
-h1 =~ h2 = property (nub (sort (toList h1)) == nub (sort (toList h2))) -- bug!
+data Context a where
+  Context :: Eq b => (Heap a -> b) -> Context a
 
+instance (Ord a, Arbitrary a) => Arbitrary (Context a) where
+  arbitrary =
+    do f <- sized arbContext
+       let vec h = (size h, toSortedList h, isEmpty h)
+       return (Context (vec . f))
+   where
+    arbContext s =
+      frequency
+      [ (1, do return id)
+      , (s, do x <- arbitrary
+               f <- arbContext (s-1)
+               return (insert x . f))
+      , (s, do f <- arbContext (s-1)
+               return (safeRemoveMin . f))
+      , (s, do HeapPP _ h <- arbitrary
+               f <- arbContext (s`div`2)
+               elements [ (h `merge`) . f, (`merge` h) . f ])
+      ]
+
+instance Show (Context a) where
+  show _ = "*"
+
+(=~) :: Heap Char -> Heap Char -> Property
+--h1 =~ h2 = sort (toList h1) == sort (toList h2)
+--h1 =~ h2 = property (nub (sort (toList h1)) == nub (sort (toList h2))) -- bug!
+h1 =~ h2 = property (\(Context c) -> c h1 == c h2)
 
 {-
 The normal form is:
