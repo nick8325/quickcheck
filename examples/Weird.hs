@@ -16,10 +16,11 @@ prop2 (Fun _ f :: Fun Int Int) (Fun _ g :: Fun Int Int) x = f (g x) == g (f x)
 
 fibs = 0:1:zipWith (+) fibs (tail fibs)
 
-prop3 n = n >= 0 && n <= 100000 ==> 100000 `within` (fibs!!(n+50000) + fibs!!(n+50001) == fibs!!(n+50002))
-prop4 = within 100000 (loop :: Property)
-prop5 = within 100000 (loop :: Test.QuickCheck.Property.Result)
-prop6 = within 100000 (loop :: Bool)
+prop3 n = n >= 0 && n <= 100000 ==> 1000000 `within` (fibs!!(n+50000) + fibs!!(n+50001) == fibs!!(n+50002))
+prop4, prop5, prop6 :: Int -> Property
+prop4 _ = within 1000000 (loop :: Property)
+prop5 _ = within 1000000 (loop :: Test.QuickCheck.Property.Result)
+prop6 _ = within 1000000 (loop :: Bool)
 
 revrev (xs :: [Int]) = within 1000 (reverse (reverse xs) == xs)
 
@@ -28,9 +29,9 @@ undef2 (n :: Int) = undefined :: Property
 undef25 (n :: Int) = return undefined :: Property
 undef21 (n :: Int) = return (MkProp (MkRose undefined [])) :: Property -- note: this example is bad because we construct a rose tree without protecting the result
 undef22 (n :: Int) = undefined :: Test.QuickCheck.Property.Result
-undef3 = undefined :: Property
-undef4 = collect "" (undefined :: Property)
-undef5 = collect (undefined :: String) (undefined :: Property)
+undef3 (n :: Int) = undefined :: Property
+undef4 (n :: Int) = collect "" (undefined :: Property)
+undef5 (n :: Int) = collect (undefined :: String) (undefined :: Property)
 
 data A = A deriving (Eq, Ord, Show)
 instance Arbitrary A where
