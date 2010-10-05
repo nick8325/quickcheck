@@ -157,8 +157,7 @@ main =
      quickCheck prop_ToSortedList
 -}
 
-$(addQuickCheckAll)
-main = quickCheckAll
+main = $(quickCheckAll)
 
 --------------------------------------------------------------------------
 -- the end.
