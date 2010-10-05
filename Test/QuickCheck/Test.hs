@@ -215,12 +215,6 @@ runATest st f =
          do if expect res
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
-            putTemp (terminal st)
-              ( short 26 (P.reason res)
-             ++ " (after "
-             ++ number (numSuccessTests st+1) "test"
-             ++ ")..."
-              )
             numShrinks <- foundFailure st res ts
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
@@ -305,6 +299,20 @@ foundFailure st res ts =
 localMin :: State -> P.Result -> [Rose P.Result] -> IO Int
 localMin st res _ | P.interrupted res = localMinFound st res
 localMin st res ts = do
+  putTemp (terminal st)
+    ( short 26 (P.reason res)
+   ++ " (after " ++ number (numSuccessTests st+1) "test"
+   ++ concat [ " and "
+            ++ show (numSuccessShrinks st)
+            ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
+            ++ " shrink"
+            ++ (if numSuccessShrinks st == 1
+                && numTryShrinks st == 0
+                then "" else "s")
+             | numSuccessShrinks st > 0 || numTryShrinks st > 0
+             ]
+   ++ ")..."
+    )
   r <- tryEvaluate ts
   case r of
     Left err ->
@@ -317,20 +325,6 @@ localMin' st res [] = localMinFound st res
 localMin' st res (t:ts) =
   do -- CALLBACK before_test
     MkRose res' ts' <- protectRose (reduceRose t)
-    putTemp (terminal st)
-      ( short 26 (P.reason res)
-     ++ " (after " ++ number (numSuccessTests st+1) "test"
-     ++ concat [ " and "
-              ++ show (numSuccessShrinks st)
-              ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
-              ++ " shrink"
-              ++ (if numSuccessShrinks st == 1
-                  && numTryShrinks st == 0
-                  then "" else "s")
-               | numSuccessShrinks st > 0 || numTryShrinks st > 0
-               ]
-     ++ ")..."
-      )
     callbackPostTest st res'
     if ok res' == Just False
       then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
