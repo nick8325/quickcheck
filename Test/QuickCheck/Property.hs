@@ -326,8 +326,7 @@ forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
   gen >>= \x ->
-    whenFailPrint (show x) $
-      property (pf x)
+    whenFailPrint (show x) (pf x)
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
@@ -335,8 +334,7 @@ forAllShrink :: (Show a, Testable prop)
 forAllShrink gen shrinker pf =
   gen >>= \x ->
     shrinking shrinker x $ \x' ->
-      whenFailPrint (show x') $
-        property (pf x')
+      whenFailPrint (show x') (pf x')
 
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
@@ -350,7 +348,7 @@ p1 .&&. p2 =
 
 conjoin :: Testable prop => [(String,prop)] -> Property
 conjoin ps = 
-  do roses <- sequence [ do MkProp rose <- property (whenFailPrint s p)
+  do roses <- sequence [ do MkProp rose <- whenFailPrint s p
                             return rose
                        | (s,p) <- ps
                        ]
@@ -370,7 +368,7 @@ p1 .||. p2 = disjoin [("(False .||. _):",property p1), ("(_ .||. False):",proper
 
 disjoin :: Testable prop => [(String,prop)] -> Property
 disjoin ps = 
-  do roses <- sequence [ do MkProp rose <- property (whenFailPrint s p)
+  do roses <- sequence [ do MkProp rose <- whenFailPrint s p
                             return rose
                        | (s,p) <- ps
                        ]
