@@ -74,6 +74,10 @@ module Test.QuickCheck
   , forAll
   , forAllShrink
   , (.&.)
+  , (.&&.)
+  , conjoin
+  , (.||.)
+  , disjoin
     -- *** Handling failure
   , whenFail
   , whenFail'
