@@ -343,15 +343,11 @@ p1 .&. p2 =
       if b then property p1 else property p2
 
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
-p1 .&&. p2 =
-  conjoin [("(False .&&. _)",property p1), ("(_ .&&. False)",property p2)]
+p1 .&&. p2 = conjoin [property p1, property p2]
 
-conjoin :: Testable prop => [(String,prop)] -> Property
+conjoin :: Testable prop => [prop] -> Property
 conjoin ps = 
-  do roses <- sequence [ do MkProp rose <- whenFailPrint s p
-                            return rose
-                       | (s,p) <- ps
-                       ]
+  do roses <- mapM (fmap unProp . property) ps
      return (MkProp (conj roses))
  where
   conj [] =
@@ -364,14 +360,11 @@ conjoin ps =
       else return rose
 
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
-p1 .||. p2 = disjoin [("(False .||. _):",property p1), ("(_ .||. False):",property p2)]
+p1 .||. p2 = disjoin [property p1, property p2]
 
-disjoin :: Testable prop => [(String,prop)] -> Property
+disjoin :: Testable prop => [prop] -> Property
 disjoin ps = 
-  do roses <- sequence [ do MkProp rose <- whenFailPrint s p
-                            return rose
-                       | (s,p) <- ps
-                       ]
+  do roses <- mapM (fmap unProp . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
  where
   disj :: Rose Result -> Rose Result -> Rose Result
@@ -387,7 +380,9 @@ disjoin ps =
     { reason      = if null (reason result2) then reason result1 else reason result2
     , interrupted = interrupted result1 || interrupted result2
     , stamp       = stamp result1 ++ stamp result2
-    , callbacks   = callbacks result1 ++ callbacks result2
+    , callbacks   = callbacks result1 ++
+                    [PostFinalFailure $ \st _res -> putLine (terminal st) ""] ++
+                    callbacks result2
     }
 
 --------------------------------------------------------------------------
