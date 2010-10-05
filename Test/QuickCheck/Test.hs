@@ -194,8 +194,7 @@ runATest st f =
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
-     (mres, ts) <- unpackRose (unProp (f rnd1 size))
-     res <- mres
+     MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
      
      case ok res of
@@ -299,26 +298,25 @@ success st =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
+foundFailure :: State -> P.Result -> [Rose P.Result] -> IO Int
 foundFailure st res ts =
   do localMin st{ numTryShrinks = 0 } res ts
 
-localMin :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
+localMin :: State -> P.Result -> [Rose P.Result] -> IO Int
 localMin st res _ | P.interrupted res = localMinFound st res
 localMin st res ts = do
   r <- tryEvaluate ts
   case r of
     Left err ->
       localMinFound st
-         (exception "Exception while generating shrink-list" err)
+         (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
     Right ts' -> localMin' st res ts'
 
-localMin' :: State -> P.Result -> [Rose (IO P.Result)] -> IO Int
+localMin' :: State -> P.Result -> [Rose P.Result] -> IO Int
 localMin' st res [] = localMinFound st res
 localMin' st res (t:ts) =
   do -- CALLBACK before_test
-    (mres', ts') <- unpackRose t
-    res' <- mres'
+    MkRose res' ts' <- protectRose (reduceRose t)
     putTemp (terminal st)
       ( short 26 (P.reason res)
      ++ " (after " ++ number (numSuccessTests st+1) "test"
