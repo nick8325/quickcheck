@@ -308,16 +308,17 @@ True  ==> p = property p
 -- | Considers a property failed if it does not complete within
 -- the given number of microseconds.
 within :: Testable prop => Int -> prop -> Property
-within n = undefined --mapBottomUp race
- where
-  race m = IORose $ do
-    do x <- timeout n $ do { x <- m; return $! x }
-       case x of
-         Nothing -> return (return (return failed { reason = "Timeout" }))
-         Just (m, rs) -> do
-           y <- fmap (fromMaybe failed { reason = "Timeout" })
-                     (timeout n $ do { x <- m; return $! x })
-           return (MkRose (return y) rs)
+within n = mapRoseResult f
+  -- We rely on the fact that the property will catch the timeout
+  -- exception and turn it into a failed test case.
+  where
+    f rose = ioRose $ do
+      let m `orError` x = fmap (fromMaybe (error x)) m
+      MkRose res roses <- timeout n (reduceRose rose) `orError`
+                          "within: timeout exception not caught in Rose Result"
+      res' <- timeout n (protectResult (return res)) `orError`
+              "within: timeout exception not caught in Result"
+      return (MkRose res' (map f roses))
 
 -- | Explicit universal quantification: uses an explicitly given
 -- test case generator.
