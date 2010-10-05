@@ -376,16 +376,20 @@ disjoin ps =
   disj p q =
     do result1 <- p
        case ok result1 of
+         _ | not (expect result1) -> return expectFailureError
          Just True -> return result1
          Just False -> do
            result2 <- q
-           return (result1 >>> result2)
+           return (if expect result2 then result1 >>> result2 else expectFailureError)
          Nothing -> do
            result2 <- q
-           return (if ok result2 == Just True then result2 else result1)
+           return (case ok result2 of
+                     _ | not (expect result2) -> expectFailureError
+                     Just True -> result2
+                     _ -> result1)
 
-  result1 >>> result2 | not (expect result1 && expect result2) =
-    failed { reason = "expectFailure may not occur inside a conjunction or disjunction" }
+  expectFailureError = failed { reason = "expectFailure may not occur inside a conjunction or disjunction" }
+  result1 >>> result2 | not (expect result1 && expect result2) = expectFailureError
   result1 >>> result2 =
     result2
     { reason      = if null (reason result2) then reason result1 else reason result2
