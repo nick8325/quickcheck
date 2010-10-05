@@ -55,3 +55,6 @@ prop_loop2 (x :: B) = prop_loop2 x :: Bool
 
 prop_forevershrink =
   forAllShrink arbitrary shrink $ \n -> if n == (0 :: Int) then prop_forevershrink else error "fail"
+
+untestable n = (odd n ==> True) .&&. (even n ==> True)
+nearlyUntestable n = (odd n ==> True) .&&. (even n || n `mod` 6 == 1 ==> True)

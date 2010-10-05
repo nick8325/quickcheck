@@ -355,9 +355,14 @@ conjoin ps =
 
   conj (p : ps) = IORose $ do
     rose@(MkRose result _) <- reduceRose p
-    if ok result == Just True
-      then return (conj ps)
-      else return rose
+    case ok result of
+      _ | not (expect result) ->
+        return (return failed { reason = "expectFailure may not occur inside a conjunction or disjunction" })
+      Just True -> return (conj ps)
+      Just False -> return rose
+      Nothing -> do
+        rose2@(MkRose result2 _) <- reduceRose (conj ps)
+        return (if ok result2 == Just False then rose2 else rose)
 
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .||. p2 = disjoin [property p1, property p2]
@@ -370,11 +375,17 @@ disjoin ps =
   disj :: Rose Result -> Rose Result -> Rose Result
   disj p q =
     do result1 <- p
-       if ok result1 == Just True
-          then return result1
-          else do result2 <- q
-                  return (result1 >>> result2)
+       case ok result1 of
+         Just True -> return result1
+         Just False -> do
+           result2 <- q
+           return (result1 >>> result2)
+         Nothing -> do
+           result2 <- q
+           return (if ok result2 == Just True then result2 else result1)
 
+  result1 >>> result2 | not (expect result1 && expect result2) =
+    failed { reason = "expectFailure may not occur inside a conjunction or disjunction" }
   result1 >>> result2 =
     result2
     { reason      = if null (reason result2) then reason result1 else reason result2
