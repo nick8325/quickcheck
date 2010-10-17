@@ -12,7 +12,7 @@ import Test.QuickCheck.Exception
 import Data.IORef
 
 import System.Random
-  ( RandomGen(..)
+  ( split
   , newStdGen
   , StdGen
   )

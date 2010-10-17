@@ -4,9 +4,10 @@ module Test.QuickCheck.Gen where
 -- imports
 
 import System.Random
-  ( RandomGen(..)
-  , Random(..)
+  ( Random
   , StdGen
+  , randomR
+  , split
   , newStdGen
   )
 
