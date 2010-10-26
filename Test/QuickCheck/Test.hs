@@ -199,16 +199,22 @@ runATest st f =
      
      case ok res of
        Just True -> -- successful test
+         let stampRes = stamp res
+             expectRes = expect res in
+         stampRes `seq`
+         expectRes `seq`
          do test st{ numSuccessTests = numSuccessTests st + 1
                    , randomSeed      = rnd2
-                   , collected       = stamp res : collected st
-                   , expectedFailure = expect res
+                   , collected       = stampRes : collected st
+                   , expectedFailure = expectRes
                    } f
        
        Nothing -> -- discarded test
+         let expectRes = expect res in
+         expectRes `seq`
          do test st{ numDiscardedTests = numDiscardedTests st + 1
                    , randomSeed        = rnd2
-                   , expectedFailure   = expect res
+                   , expectedFailure   = expectRes
                    } f
          
        Just False -> -- failed test
