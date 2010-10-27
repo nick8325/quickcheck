@@ -197,27 +197,21 @@ runATest st f =
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
      
-     case ok res of
-       Just True -> -- successful test
-         let stampRes = stamp res
-             expectRes = expect res in
-         stampRes `seq`
-         expectRes `seq`
+     case res of
+       MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
          do test st{ numSuccessTests = numSuccessTests st + 1
                    , randomSeed      = rnd2
-                   , collected       = stampRes : collected st
-                   , expectedFailure = expectRes
+                   , collected       = stamp : collected st
+                   , expectedFailure = expect
                    } f
        
-       Nothing -> -- discarded test
-         let expectRes = expect res in
-         expectRes `seq`
+       MkResult{ok = Nothing, expect = expect} -> -- discarded test
          do test st{ numDiscardedTests = numDiscardedTests st + 1
                    , randomSeed        = rnd2
-                   , expectedFailure   = expectRes
+                   , expectedFailure   = expect
                    } f
          
-       Just False -> -- failed test
+       MkResult{ok = Just False} -> -- failed test
          do if expect res
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
