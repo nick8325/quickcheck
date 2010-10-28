@@ -360,21 +360,26 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps = 
   do roses <- mapM (fmap unProp . property) ps
-     return (MkProp (conj roses))
+     return (MkProp (conj [] roses))
  where
-  conj [] =
-    MkRose succeeded []
+  conj cbs [] =
+    MkRose succeeded{callbacks = cbs} []
 
-  conj (p : ps) = IORose $ do
+  conj cbs (p : ps) = IORose $ do
     rose@(MkRose result _) <- reduceRose p
     case ok result of
       _ | not (expect result) ->
-        return (return failed { reason = "expectFailure may not occur inside a conjunction or disjunction" })
-      Just True -> return (conj ps)
+        return (return failed { reason = "expectFailure may not occur inside a conjunction" })
+      Just True -> return (conj (cbs ++ callbacks result) ps)
       Just False -> return rose
       Nothing -> do
-        rose2@(MkRose result2 _) <- reduceRose (conj ps)
-        return (if ok result2 == Just False then rose2 else rose)
+        rose2@(MkRose result2 _) <- reduceRose (conj (cbs ++ callbacks result) ps)
+        return $
+          -- Nasty work to make sure we use the right callbacks
+          case ok result2 of
+            Just True -> MkRose (result2 { ok = Nothing }) []
+            Just False -> rose2
+            Nothing -> rose2
 
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .||. p2 = disjoin [property p1, property p2]
@@ -392,7 +397,13 @@ disjoin ps =
          Just True -> return result1
          Just False -> do
            result2 <- q
-           return (if expect result2 then result1 >>> result2 else expectFailureError)
+           return $
+             if expect result2 then
+               case ok result2 of
+                 Just True -> result2
+                 Just False -> result1 >>> result2
+                 Nothing -> result2
+             else expectFailureError
          Nothing -> do
            result2 <- q
            return (case ok result2 of
@@ -400,7 +411,7 @@ disjoin ps =
                      Just True -> result2
                      _ -> result1)
 
-  expectFailureError = failed { reason = "expectFailure may not occur inside a conjunction or disjunction" }
+  expectFailureError = failed { reason = "expectFailure may not occur inside a disjunction" }
   result1 >>> result2 | not (expect result1 && expect result2) = expectFailureError
   result1 >>> result2 =
     result2

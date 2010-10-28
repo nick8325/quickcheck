@@ -42,8 +42,8 @@ prop_Error (x,y) =
 main = $(quickCheckAll)
 conj = printTestCase "Simon Thompson" $(mono 'prop_SimonThompson) .&&.
        printTestCase "reverse" $(mono 'prop_Reverse)
-disj = printTestCase "Simon Thompson" $(mono 'prop_SimonThompson) .||.
-       printTestCase "reverse" $(mono 'prop_Reverse)
+disj = printTestCase "reverse" $(mono 'prop_Reverse) .||.
+       printTestCase "Simon Thompson" $(mono 'prop_SimonThompson)
 
 --------------------------------------------------------------------------
 -- the end.
