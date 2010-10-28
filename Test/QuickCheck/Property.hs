@@ -268,6 +268,17 @@ whenFail' m =
       then m
       else return ()
 
+-- | Prints out the generated testcase every time the property is tested,
+-- like 'verboseCheck' from QuickCheck 1.
+verbose :: Testable prop => prop -> Property
+verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ callbacks res })
+  where newCallbacks cbs =
+          PostTest Counterexample (\st res -> putLine (terminal st) (status res ++ ":")):
+          [ PostTest Counterexample f | PostFinalFailure Counterexample f <- cbs ]
+        status MkResult{ok = Just True} = "Passed"
+        status MkResult{ok = Just False} = "Failed"
+        status MkResult{ok = Nothing} = "Skipped (precondition false)"
+
 -- | Modifies a property so that it is expected to fail for some test cases.
 expectFailure :: Testable prop => prop -> Property
 expectFailure = mapTotalResult (\res -> res{ expect = False })

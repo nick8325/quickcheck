@@ -84,6 +84,8 @@ module Test.QuickCheck
   , whenFail'
   , expectFailure
   , within
+    -- *** Controlling verbosity
+  , verbose
     -- *** Test distribution
   , label
   , collect
