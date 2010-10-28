@@ -40,10 +40,10 @@ prop_Error (x,y) =
 -- main
 
 main = $(quickCheckAll)
-conj = whenFailPrint "Simon Thompson" $(mono 'prop_SimonThompson) .&&.
-       whenFailPrint "reverse" $(mono 'prop_Reverse)
-disj = whenFailPrint "Simon Thompson" $(mono 'prop_SimonThompson) .||.
-       whenFailPrint "reverse" $(mono 'prop_Reverse)
+conj = printTestCase "Simon Thompson" $(mono 'prop_SimonThompson) .&&.
+       printTestCase "reverse" $(mono 'prop_Reverse)
+disj = printTestCase "Simon Thompson" $(mono 'prop_SimonThompson) .||.
+       printTestCase "reverse" $(mono 'prop_Reverse)
 
 --------------------------------------------------------------------------
 -- the end.

@@ -348,11 +348,11 @@ localMinFound st res =
 
 callbackPostTest :: State -> P.Result -> IO ()
 callbackPostTest st res =
-  sequence_ [ f st res | PostTest f <- callbacks res ]
+  sequence_ [ f st res | PostTest _ f <- callbacks res ]
 
 callbackPostFinalFailure :: State -> P.Result -> IO ()
 callbackPostFinalFailure st res =
-  sequence_ [ f st res | PostFinalFailure f <- callbacks res ]
+  sequence_ [ f st res | PostFinalFailure _ f <- callbacks res ]
 
 --------------------------------------------------------------------------
 -- the end.

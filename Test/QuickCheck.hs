@@ -80,7 +80,7 @@ module Test.QuickCheck
   , disjoin
     -- *** Handling failure
   , whenFail
-  , whenFailPrint
+  , printTestCase
   , whenFail'
   , expectFailure
   , within

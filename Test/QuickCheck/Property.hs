@@ -157,8 +157,9 @@ protectResults = onRose $ \x rs ->
 
 -- | Different kinds of callbacks
 data Callback
-  = PostTest (State -> Result -> IO ())         -- ^ Called just after a test
-  | PostFinalFailure (State -> Result -> IO ()) -- ^ Called with the final failing test-case
+  = PostTest CallbackKind (State -> Result -> IO ())         -- ^ Called just after a test
+  | PostFinalFailure CallbackKind (State -> Result -> IO ()) -- ^ Called with the final failing test-case
+data CallbackKind = Counterexample | NotCounterexample
 
 -- | The result of a single test.
 data Result
@@ -245,16 +246,16 @@ noShrinking = mapRoseResult (onRose (\res _ -> MkRose res []))
 callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 
--- | Prints a message to the terminal after the last failure of a property.
-whenFailPrint :: Testable prop => String -> prop -> Property
-whenFailPrint s =
-  callback $ PostFinalFailure $ \st _res ->
+-- | Prints a message to the terminal as part of the counterexample.
+printTestCase :: Testable prop => String -> prop -> Property
+printTestCase s =
+  callback $ PostFinalFailure Counterexample $ \st _res ->
     putLine (terminal st) s
 
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
 whenFail m =
-  callback $ PostFinalFailure $ \_st _res ->
+  callback $ PostFinalFailure NotCounterexample $ \_st _res ->
     m
 
 -- | Performs an 'IO' action every time a property fails. Thus,
@@ -262,7 +263,7 @@ whenFail m =
 -- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
 whenFail' m =
-  callback $ PostTest $ \_st res ->
+  callback $ PostTest NotCounterexample $ \_st res ->
     if ok res == Just False
       then m
       else return ()
@@ -326,7 +327,7 @@ forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
   gen >>= \x ->
-    whenFailPrint (show x) (pf x)
+    printTestCase (show x) (pf x)
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
@@ -334,12 +335,12 @@ forAllShrink :: (Show a, Testable prop)
 forAllShrink gen shrinker pf =
   gen >>= \x ->
     shrinking shrinker x $ \x' ->
-      whenFailPrint (show x') (pf x')
+      printTestCase (show x') (pf x')
 
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
   arbitrary >>= \b ->
-    whenFailPrint (if b then "LHS" else "RHS") $
+    printTestCase (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -396,7 +397,7 @@ disjoin ps =
     , interrupted = interrupted result1 || interrupted result2
     , stamp       = stamp result1 ++ stamp result2
     , callbacks   = callbacks result1 ++
-                    [PostFinalFailure $ \st _res -> putLine (terminal st) ""] ++
+                    [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
                     callbacks result2
     }
 
