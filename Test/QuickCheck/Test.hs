@@ -131,9 +131,24 @@ quickCheckWithResult a p =
         n `roundTo` m = (n `div` m) * m
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
--- This is just a convenience function that means the same as 'quickCheck . verbose'.
+-- This is just a convenience function that means the same as 'quickCheck' '.' 'verbose'.
 verboseCheck :: Testable prop => prop -> IO ()
-verboseCheck = quickCheck . verbose
+verboseCheck p = quickCheck (verbose p)
+
+-- | Tests a property, using test arguments, and prints the results and all test cases generated to 'stdout'.
+-- This is just a convenience function that combines 'quickCheckWith' and 'verbose'.
+verboseCheckWith :: Testable prop => Args -> prop -> IO ()
+verboseCheckWith args p = quickCheckWith args (verbose p)
+
+-- | Tests a property, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- This is just a convenience function that combines 'quickCheckResult' and 'verbose'.
+verboseCheckResult :: Testable prop => prop -> IO Result
+verboseCheckResult p = quickCheckResult (verbose p)
+
+-- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- This is just a convenience function that combines 'quickCheckWithResult' and 'verbose'.
+verboseCheckWithResult :: Testable prop => Args -> prop -> IO Result
+verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 
 --------------------------------------------------------------------------
 -- main test loop

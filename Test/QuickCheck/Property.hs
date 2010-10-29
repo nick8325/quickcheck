@@ -270,6 +270,7 @@ whenFail' m =
 
 -- | Prints out the generated testcase every time the property is tested,
 -- like 'verboseCheck' from QuickCheck 1.
+-- Only variables quantified over /inside/ the 'verbose' are printed.
 verbose :: Testable prop => prop -> Property
 verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ callbacks res })
   where newCallbacks cbs =

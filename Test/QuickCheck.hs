@@ -2,12 +2,17 @@ module Test.QuickCheck
   ( 
     -- * Running tests
     quickCheck
-  , verboseCheck
   , Args(..), Result(..)
   , stdArgs
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
+    -- ** Running tests verbosely
+  , verboseCheck
+  , verboseCheckWith
+  , verboseCheckWithResult
+  , verboseCheckResult
+  , verbose
     
     -- * Random generation
   , Gen
@@ -85,8 +90,6 @@ module Test.QuickCheck
   , whenFail'
   , expectFailure
   , within
-    -- *** Controlling verbosity
-  , verbose
     -- *** Test distribution
   , label
   , collect
