@@ -130,6 +130,11 @@ quickCheckWithResult a p =
             (n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10
         n `roundTo` m = (n `div` m) * m
 
+-- | Tests a property and prints the results and all test cases generated to 'stdout'.
+-- This is just a convenience function that means the same as 'quickCheck . verbose'.
+verboseCheck :: Testable prop => prop -> IO ()
+verboseCheck = quickCheck . verbose
+
 --------------------------------------------------------------------------
 -- main test loop
 

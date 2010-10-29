@@ -2,6 +2,7 @@ module Test.QuickCheck
   ( 
     -- * Running tests
     quickCheck
+  , verboseCheck
   , Args(..), Result(..)
   , stdArgs
   , quickCheckWith
