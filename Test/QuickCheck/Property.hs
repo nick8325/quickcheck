@@ -88,13 +88,15 @@ instance Testable Prop where
 instance Testable prop => Testable (Gen prop) where
   property mp = do p <- mp; property p
 
+-- | Do I/O inside a property. This can obviously lead to unrepeatable
+-- testcases, so use with care.
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
 morallyDubiousIOProperty = fmap (MkProp . ioRose . fmap unProp) . promote . fmap property
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
 
--- Exception handling.
+-- ** Exception handling
 protect :: (AnException -> a) -> IO a -> IO a
 protect f x = either f id `fmap` tryEvaluateIO x
 
@@ -159,7 +161,8 @@ protectResults = onRose $ \x rs ->
 data Callback
   = PostTest CallbackKind (State -> Result -> IO ())         -- ^ Called just after a test
   | PostFinalFailure CallbackKind (State -> Result -> IO ()) -- ^ Called with the final failing test-case
-data CallbackKind = Counterexample | NotCounterexample
+data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
+                  | NotCounterexample -- ^ Not affected by the 'verbose' combinator
 
 -- | The result of a single test.
 data Result
