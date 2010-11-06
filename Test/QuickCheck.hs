@@ -79,6 +79,7 @@ module Test.QuickCheck
   , (==>)
   , forAll
   , forAllShrink
+    -- *** Experimental combinators for conjunction and disjunction
   , (.&.)
   , (.&&.)
   , conjoin
