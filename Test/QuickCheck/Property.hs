@@ -10,15 +10,6 @@ import Test.QuickCheck.Text( showErr, putLine )
 import Test.QuickCheck.Exception
 import Test.QuickCheck.State
 
-import Control.Concurrent
-  ( forkIO
-  , threadDelay
-  , killThread
-  , newEmptyMVar
-  , takeMVar
-  , putMVar
-  )
-
 import System.IO
   ( hFlush
   , stdout
