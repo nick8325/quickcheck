@@ -303,7 +303,9 @@ cover :: Testable prop =>
       -> Int    -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover True n s = mapTotalResult $ \res -> res { stamp = (s,n) : stamp res }
+cover True n s = n `seq` s `listSeq` (mapTotalResult $ \res -> res { stamp = (s,n) : stamp res })
+  where [] `listSeq` z = z
+        (x:xs) `listSeq` z = x `seq` xs `listSeq` z
 cover False _ _ = property
 
 -- | Implication for properties: The resulting property holds if
