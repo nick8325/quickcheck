@@ -82,8 +82,12 @@ library
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
     if flag(templateHaskell) && impl(ghc >= 6.12)
-       Build-depends: template-haskell >= 2.4
-       Exposed-Modules: Test.QuickCheck.All
+      Build-depends: template-haskell >= 2.4
+      Exposed-Modules: Test.QuickCheck.All
+    -- GHC < 7.0 doesn't cope with multiple LANGUAGE pragmas in the same
+    -- file, I think...
+    if impl(ghc < 7)
+      Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
   else
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
