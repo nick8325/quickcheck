@@ -1,11 +1,11 @@
 Name: QuickCheck
-Version: 2.4.1
+Version: 2.4.1.1
 Cabal-Version: >= 1.6
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
 Extra-source-files: README
-Copyright: 2000-2011 Koen Claessen, 2006-2008 Björn Bringert, 2009-2001 Nick Smallbone
+Copyright: 2000-2011 Koen Claessen, 2006-2008 Björn Bringert, 2009-2011 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
@@ -34,7 +34,7 @@ source-repository head
 source-repository this
   type:     darcs
   location: http://code.haskell.org/QuickCheck
-  tag:      2.4.1
+  tag:      2.4.1.1
 
 flag base3
   Description: Choose the new smaller, split-up base package.
