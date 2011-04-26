@@ -49,12 +49,12 @@ instance (Show a, Show b) => Show (a:->b) where
 -- only use this on finite functions
 showFunction :: (Show a, Show b) => (a :-> b) -> Maybe b -> String
 showFunction p md =
-  "{" ++ concat (intersperse "," ( [ show x ++ "->" ++ show c
-                                   | (x,c) <- table p
-                                   ]
-                                ++ [ "_->" ++ show d
-                                   | Just d <- [md]
-                                   ] )) ++ "}"
+  "{" ++ concat (intersperse ", " ( [ show x ++ "->" ++ show c
+                                    | (x,c) <- table p
+                                    ]
+                                 ++ [ "_->" ++ show d
+                                    | Just d <- [md]
+                                    ] )) ++ "}"
 
 -- turning a concrete function into an abstract function (with a default result)
 abstract :: (a :-> c) -> c -> (a -> c)
