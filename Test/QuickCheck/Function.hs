@@ -30,11 +30,8 @@ module Test.QuickCheck.Function
 --------------------------------------------------------------------------
 -- imports
 
-import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
-import Test.QuickCheck.Property
 import Test.QuickCheck.Poly
-import Test.QuickCheck.Modifiers
 
 import Data.Char
 import Data.Word

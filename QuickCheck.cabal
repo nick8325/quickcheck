@@ -35,7 +35,6 @@ flag templateHaskell
   Description: Install modules that depend on Template Haskell support.
 
 library
-  Build-depends: mtl
   if flag(extensibleExceptions)
     Build-depends: base >= 4 && < 5, random
   else

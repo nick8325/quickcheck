@@ -9,7 +9,6 @@ import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
 import Test.QuickCheck.Exception
-import Data.IORef
 
 import System.Random
   ( split

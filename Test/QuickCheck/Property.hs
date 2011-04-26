@@ -10,11 +10,6 @@ import Test.QuickCheck.Text( showErr, putLine )
 import Test.QuickCheck.Exception
 import Test.QuickCheck.State
 
-import System.IO
-  ( hFlush
-  , stdout
-  )
-
 import System.Timeout(timeout)
 import Data.Maybe
 

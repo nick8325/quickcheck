@@ -21,12 +21,6 @@ import Control.Applicative
   ( Applicative(..)
   )
 
-import Control.Monad.Reader()
-  -- needed for "instance Monad (a ->)"
-  
-  -- 2005-09-16:
-  -- GHC gives a warning for this. I reported this as a bug. /Koen
-
 --------------------------------------------------------------------------
 -- ** Generator type
 
