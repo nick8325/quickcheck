@@ -5,9 +5,11 @@ Build-type: Simple
 License: BSD3
 License-file: LICENSE
 Extra-source-files: README
-Copyright: Koen Claessen <koen@chalmers.se>
+Copyright: 2000-2011 Koen Claessen, 2006-2008 Björn Bringert, 2009-2001 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
+Bug-reports: mailto:quickcheck@projects.haskell.org
+Tested-with: GHC >=6.8, Hugs
 Homepage: http://code.haskell.org/QuickCheck
 Category:	    Testing
 Synopsis:	    Automatic testing of Haskell programs
@@ -24,6 +26,15 @@ Description:
 	QuickCheck provides combinators to define properties, observe
 	the distribution of test data, and define test
 	data generators.
+
+source-repository head
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck/
+
+source-repository this
+  type:     darcs
+  location: http://code.haskell.org/QuickCheck
+  tag:      2.4.1
 
 flag base3
   Description: Choose the new smaller, split-up base package.
