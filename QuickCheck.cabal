@@ -60,6 +60,13 @@ library
     Test.QuickCheck.Poly,
     Test.QuickCheck.State
   if flag(templateHaskell)
+    if impl(ghc >= 6.7) && impl(ghc < 6.12)
+      -- Hack to work around an apparent bug in Cabal:
+      -- the ghc package depends on template-haskell; if it depends on
+      -- an older version than 2.4 then satisfying templateHaskell is
+      -- obviously impossible, but instead of setting templateHaskell
+      -- to False, Cabal reports an error.
+      Build-depends: impossible-this-package-doesnt-exist-i-hope-monkeys-are-cool
     Build-depends: template-haskell >= 2.4
     Exposed-Modules: Test.QuickCheck.All
   Other-Modules:
