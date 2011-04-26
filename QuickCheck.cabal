@@ -1,6 +1,6 @@
 Name: QuickCheck
 Version: 2.4.1
-Cabal-Version: >= 1.2
+Cabal-Version: >= 1.6
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
