@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Test.QuickCheck
   ( 
     -- * Running tests
@@ -68,7 +69,9 @@ module Test.QuickCheck
   , NonNegative(..)
   , Smart(..)
   , Shrink2(..)
+#ifndef NO_MULTI_PARAM_TYPE_CLASSES
   , Shrinking(..)
+#endif
   , ShrinkState(..)
 
     -- * Properties

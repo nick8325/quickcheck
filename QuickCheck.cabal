@@ -25,31 +25,37 @@ Description:
 	the distribution of test data, and define test
 	data generators.
 
-flag splitBase
+flag base3
   Description: Choose the new smaller, split-up base package.
 
-flag extensibleExceptions
-  Description: Choose the even newer, even smaller, split-up base package.
+flag base4
+  Description: Choose the even newer base package with extensible exceptions.
 
 flag templateHaskell
-  Description: Install modules that depend on Template Haskell support.
+  Description: Build Test.QuickCheck.All, which uses Template Haskell.
 
 library
-  if flag(extensibleExceptions)
+  -- Choose which library versions to use.
+  if flag(base4)
     Build-depends: base >= 4 && < 5, random
   else
-    if flag(splitBase)
+    if flag(base3)
       Build-depends: base >= 3 && < 4, random
     else
       Build-depends: base < 3
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.  
   if impl(ghc >= 6.7) && impl(ghc < 6.13)
       Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
   if impl(ghc >= 6.9)
     Build-depends: extensible-exceptions
+
+  -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
     Test.QuickCheck.Arbitrary,
-    Test.QuickCheck.Function,
     Test.QuickCheck.Gen,
     Test.QuickCheck.Monadic,
     Test.QuickCheck.Modifiers,
@@ -58,9 +64,21 @@ library
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
     Test.QuickCheck.State
-  if flag(templateHaskell) and impl(ghc >= 6.12)
-    Build-depends: template-haskell >= 2.4
-    Exposed-Modules: Test.QuickCheck.All
+
+  -- Choose which optional features to build based on which compiler
+  -- we're using. It would be nice to use flags for this but Cabal's
+  -- dependency resolution isn't good enough.
+  if impl(ghc)
+    Exposed-Modules: Test.QuickCheck.Function
+    if flag(templateHaskell) && impl(ghc >= 6.12)
+       Build-depends: template-haskell >= 2.4
+       Exposed-Modules: Test.QuickCheck.All
+  else
+    -- If your Haskell compiler can cope without some of these, please
+    -- send a message to the QuickCheck mailing list!
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
+    if !impl(hugs)
+      cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
   Other-Modules:
     Test.QuickCheck.Exception
   GHC-options:

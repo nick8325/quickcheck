@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
 module Test.QuickCheck.Property where
 
 --------------------------------------------------------------------------
@@ -10,7 +10,9 @@ import Test.QuickCheck.Text( showErr, putLine )
 import Test.QuickCheck.Exception
 import Test.QuickCheck.State
 
+#ifndef NO_TIMEOUT
 import System.Timeout(timeout)
+#endif
 import Data.Maybe
 
 --------------------------------------------------------------------------
@@ -323,6 +325,9 @@ within n = mapRoseResult f
       res' <- timeout n (protectResult (return res)) `orError`
               "within: timeout exception not caught in Result"
       return (MkRose res' (map f roses))
+#ifdef NO_TIMEOUT
+    timeout _ = fmap Just
+#endif
 
 -- | Explicit universal quantification: uses an explicitly given
 -- test case generator.

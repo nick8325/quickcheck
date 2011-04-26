@@ -255,12 +255,12 @@ instance Arbitrary Char where
            ++ [' ','\n']
    where
     a <. b  = stamp a < stamp b
-    stamp a = ( not (isLower a)
+    stamp a = ( (not (isLower a)
               , not (isUpper a)
-              , not (isDigit a)
-              , not (a==' ')
+              , not (isDigit a))
+              , (not (a==' ')
               , not (isSpace a)
-              , a
+              , a)
               )
     
 instance Arbitrary Float where

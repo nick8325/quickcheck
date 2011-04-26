@@ -1,4 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
+#endif
 -- | Allows testing of monadic values.
 -- See the paper \"Testing Monadic Code with QuickCheck\":
 -- <http://www.cse.chalmers.se/~rjmh/Papers/QuickCheckST.ps>.
@@ -77,11 +80,13 @@ monadic' (MkPropertyM m) = m (const (return (return (property True))))
 monadicIO :: PropertyM IO a -> Property
 monadicIO = monadic morallyDubiousIOProperty
 
+#ifndef NO_ST_MONAD
 monadicST :: (forall s. PropertyM (ST s) a) -> Property
 monadicST m = property (runSTGen (monadic' m))
 
 runSTGen :: (forall s. Gen (ST s a)) -> Gen a
 runSTGen g = MkGen $ \r n -> runST (unGen g r n)
+#endif
 
 --------------------------------------------------------------------------
 -- the end.

@@ -1,4 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_NEWTYPE_DERIVING
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+#endif
 -- | Types to help with testing polymorphic properties.
 --
 -- Types 'A', 'B' and 'C' are @newtype@ wrappers around 'Integer' that
@@ -72,7 +75,11 @@ instance CoArbitrary C where
 -- OrdA
 
 newtype OrdA = OrdA{ unOrdA :: Integer }
-  deriving ( Eq, Ord, Num )
+  deriving ( Eq, Ord
+#ifndef NO_NEWTYPE_DERIVING
+           , Num
+#endif
+           )
 
 instance Show OrdA where
   showsPrec n (OrdA x) = showsPrec n x
@@ -87,7 +94,11 @@ instance CoArbitrary OrdA where
 -- OrdB
 
 newtype OrdB = OrdB{ unOrdB :: Integer }
-  deriving ( Eq, Ord, Num )
+  deriving ( Eq, Ord
+#ifndef NO_NEWTYPE_DERIVING
+           , Num
+#endif
+           )
 
 instance Show OrdB where
   showsPrec n (OrdB x) = showsPrec n x
@@ -102,7 +113,11 @@ instance CoArbitrary OrdB where
 -- OrdC
 
 newtype OrdC = OrdC{ unOrdC :: Integer }
-  deriving ( Eq, Ord, Num )
+  deriving ( Eq, Ord
+#ifndef NO_NEWTYPE_DERIVING
+           , Num
+#endif
+           )
 
 instance Show OrdC where
   showsPrec n (OrdC x) = showsPrec n x

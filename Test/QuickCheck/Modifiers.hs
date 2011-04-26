@@ -1,4 +1,10 @@
-{-# LANGUAGE MultiParamTypeClasses, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP #-}
+#ifndef NO_MULTI_PARAM_TYPE_CLASSES
+{-# LANGUAGE MultiParamTypeClasses #-}
+#endif
+#ifndef NO_NEWTYPE_DERIVING
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+#endif
 -- | Modifiers for test data.
 --
 -- These types do things such as restricting the kind of test data that can be generated.
@@ -59,7 +65,11 @@ import Data.List
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind a
- deriving ( Eq, Ord, Num, Integral, Real, Enum )
+ deriving ( Eq, Ord
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 
 instance Show (Blind a) where
   show _ = "(*)"
@@ -72,7 +82,11 @@ instance Arbitrary a => Arbitrary (Blind a) where
 --------------------------------------------------------------------------
 -- | @Fixed x@: as x, but will not be shrunk.
 newtype Fixed a = Fixed a
- deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 
 instance Arbitrary a => Arbitrary (Fixed a) where
   arbitrary = Fixed `fmap` arbitrary
@@ -110,8 +124,11 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 --------------------------------------------------------------------------
 -- | @Positive x@: guarantees that @x \> 0@.
 newtype Positive a = Positive a
- deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
-
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary =
     (Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))
@@ -125,7 +142,11 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
 --------------------------------------------------------------------------
 -- | @NonZero x@: guarantees that @x \/= 0@.
 newtype NonZero a = NonZero a
- deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
   arbitrary = fmap NonZero $ arbitrary `suchThat` (/= 0)
@@ -135,14 +156,18 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
 --------------------------------------------------------------------------
 -- | @NonNegative x@: guarantees that @x \>= 0@.
 newtype NonNegative a = NonNegative a
- deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
     frequency
       -- why is this distrbution like this?
       [ (5, (NonNegative . abs) `fmap` arbitrary)
-      , (1, return 0)
+      , (1, return (NonNegative 0))
       ]
 
   shrink (NonNegative x) =
@@ -154,7 +179,11 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
 --------------------------------------------------------------------------
 -- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
 newtype Shrink2 a = Shrink2 a
- deriving ( Eq, Ord, Num, Integral, Real, Enum, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
 
 instance Arbitrary a => Arbitrary (Shrink2 a) where
   arbitrary =
@@ -213,6 +242,7 @@ instance Arbitrary a => Arbitrary (Smart a) where
     -- == take k ys ++ drop k ys
     -- == ys
 
+#ifndef NO_MULTI_PARAM_TYPE_CLASSES
 --------------------------------------------------------------------------
 -- | @Shrinking _ x@: allows for maintaining a state during shrinking.
 data Shrinking s a =
@@ -234,6 +264,8 @@ instance (Arbitrary a, ShrinkState s a) => Arbitrary (Shrinking s a) where
     [ Shrinking s' x'
     | (x',s') <- shrinkState x s
     ]
+
+#endif /* NO_MULTI_PARAM_TYPE_CLASSES */
 
 --------------------------------------------------------------------------
 -- the end.
