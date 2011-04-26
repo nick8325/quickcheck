@@ -367,11 +367,21 @@ localMinFound st res =
 
 callbackPostTest :: State -> P.Result -> IO ()
 callbackPostTest st res =
-  sequence_ [ f st res | PostTest _ f <- callbacks res ]
+  sequence_ [ safely st (f st res) | PostTest _ f <- callbacks res ]
 
 callbackPostFinalFailure :: State -> P.Result -> IO ()
 callbackPostFinalFailure st res =
-  sequence_ [ f st res | PostFinalFailure _ f <- callbacks res ]
+  sequence_ [ safely st (f st res) | PostFinalFailure _ f <- callbacks res ]
+
+safely :: State -> IO () -> IO ()
+safely st x = do
+  r <- tryEvaluateIO x
+  case r of
+    Left e ->
+      putLine (terminal st)
+        ("*** Exception in callback: " ++ show e)
+    Right x ->
+      return x
 
 --------------------------------------------------------------------------
 -- the end.
