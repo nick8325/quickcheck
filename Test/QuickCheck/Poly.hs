@@ -1,4 +1,12 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+-- | Types to help with testing polymorphic properties.
+--
+-- Types 'A', 'B' and 'C' are @newtype@ wrappers around 'Integer' that
+-- implement 'Eq', 'Show', 'Arbitrary' and 'CoArbitrary'. Types
+-- 'OrdA', 'OrdB' and 'OrdC' also implement 'Ord' and 'Num'.
+--
+-- See also "Test.QuickCheck.All" for an experimental way of testing
+-- polymorphic properties.
 module Test.QuickCheck.Poly
   ( A(..), B(..), C(..)
   , OrdA(..), OrdB(..), OrdC(..)

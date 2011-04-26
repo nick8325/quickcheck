@@ -1,5 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 -- | Allows testing of monadic values.
+-- See the paper \"Testing Monadic Code with QuickCheck\":
+-- <http://www.cse.chalmers.se/~rjmh/Papers/QuickCheckST.ps>.
 module Test.QuickCheck.Monadic where
 
 --------------------------------------------------------------------------

@@ -1,4 +1,34 @@
 {-# LANGUAGE MultiParamTypeClasses, GeneralizedNewtypeDeriving #-}
+-- | Modifiers for test data.
+--
+-- These types do things such as restricting the kind of test data that can be generated.
+-- They can be pattern-matched on in properties as a stylistic
+-- alternative to using explicit quantification.
+-- 
+-- Examples:
+-- 
+-- @
+-- -- Functions cannot be shown (but see "Test.QuickCheck.Function")
+-- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
+--   takeWhile p xs ++ dropWhile p xs == xs
+-- @
+--
+-- @
+-- prop_TakeDrop ('NonNegative' n) (xs :: ['A']) =
+--   take n xs ++ drop n xs == xs
+-- @
+--
+-- @
+-- -- cycle does not work for empty lists
+-- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['A'])) =
+--   take n (cycle xs) == take n (xs ++ cycle xs)
+-- @
+--
+-- @
+-- -- Instead of 'forAll' 'orderedList'
+-- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
+--   sort xs == xs
+-- @
 module Test.QuickCheck.Modifiers
   (
   -- ** Type-level modifiers for changing generator behavior
@@ -25,29 +55,6 @@ import Test.QuickCheck.Arbitrary
 import Data.List
   ( sort
   )
-
---------------------------------------------------------------------------
--- ** arbitrary modifiers
-
--- These datatypes are mainly here to *pattern match* on in properties.
--- This is a stylistic alternative to using explicit quantification.
--- In other words, they should not be replaced by type synonyms, and their
--- constructors should be exported.
-
--- Examples:
-{-
-prop_TakeDropWhile (Blind p) (xs :: [A]) =           -- because functions cannot be shown
-  takeWhile p xs ++ dropWhile p xs == xs
-
-prop_TakeDrop (NonNegative n) (xs :: [A]) =          -- (BTW, also works for negative n)
-  take n xs ++ drop n xs == xs
-
-prop_Cycle (NonNegative n) (NonEmpty (xs :: [A])) =  -- cycle does not work for empty lists
-  take n (cycle xs) == take n (xs ++ cycle xs)
-
-prop_Sort (Ordered (xs :: [OrdA])) =                 -- instead of "forAll orderedList"
-  sort xs == xs
--}
 
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.

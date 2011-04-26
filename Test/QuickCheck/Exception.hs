@@ -1,3 +1,6 @@
+-- Hide away the nasty implementation-specific ways of catching
+-- exceptions behind a nice API. The main trouble is catching ctrl-C.
+
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Exception where
 

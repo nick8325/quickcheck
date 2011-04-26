@@ -1,5 +1,14 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types #-}
-module Test.QuickCheck.All(forAllProperties, quickCheckAll, mono, polyQuickCheck) where
+-- | Experimental features using Template Haskell.
+-- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
+-- your module for any of these to work.
+module Test.QuickCheck.All(
+  -- ** Testing all properties in a module.
+  quickCheckAll,
+  forAllProperties,
+  -- ** Testing polymorphic properties.
+  polyQuickCheck,
+  mono) where
 
 import Language.Haskell.TH
 import Test.QuickCheck.Property hiding (Result)
@@ -8,11 +17,20 @@ import Data.Char
 import Data.List
 import Control.Monad
 
+-- | Test a polymorphic property, defaulting all type variables to 'Integer'.
+--
+-- Invoke as @$('polyQuickCheck' 'prop)@, where @prop@ is a property.
+-- Note that just evaluating @'quickCheck' prop@ in GHCi will seem to
+-- work, but will silently default all type variables to @()@!
 polyQuickCheck :: Name -> ExpQ
 polyQuickCheck x = [| quickCheck $(mono x) |]
 
 type Error = forall a. String -> a
 
+-- | Monomorphise an arbitrary name by defaulting all type variables to 'Integer'.
+--
+-- For example, if @f@ has type @'Ord' a => [a] -> [a]@
+-- then @$('mono' 'f)@ has type @['Integer'] -> ['Integer']@.
 mono :: Name -> ExpQ
 mono t = do
   ty0 <- fmap infoType (reify t)
@@ -44,6 +62,13 @@ monomorphise err mono (AppT t1 t2) = liftM2 AppT (monomorphise err mono t1) (mon
 monomorphise err mono ty@(ForallT _ _ _) = err $ "Higher-ranked type"
 monomorphise err mono ty = return ty
 
+-- | Test all properties in the current module, using a custom
+-- 'quickCheck' function. The same caveats as with 'quickCheckAll'
+-- apply.
+-- 
+-- @$'forAllProperties'@ has type @('Property' -> 'IO' 'Result') -> 'IO' 'Bool'@.
+-- An example invocation is @$'forAllProperties' 'quickCheckResult'@,
+-- which does the same thing as @$'quickCheckAll'@.
 forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
 forAllProperties = do
   Loc { loc_filename = filename } <- location
@@ -59,6 +84,17 @@ forAllProperties = do
          else return []
   [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
 
+-- | Test all properties in the current module.
+-- The name of the property must begin with @prop_@.
+-- Polymorphic properties will be defaulted to 'Integer'.
+-- Returns 'True' if all tests succeeded, 'False' otherwise.
+--
+-- Using 'quickCheckAll' interactively doesn't work.
+-- Instead, add a definition to your module along the lines of
+-- 
+-- > runTests = $quickCheckAll
+-- 
+-- and then execute @runTests@.
 quickCheckAll :: Q Exp
 quickCheckAll = [| $(forAllProperties) quickCheckResult |]
 

@@ -1,6 +1,6 @@
 module Test.QuickCheck.Arbitrary
   ( 
-  -- * Arbitrary and CoArbitrary classes.
+  -- * Arbitrary and CoArbitrary classes
     Arbitrary(..)
   , CoArbitrary(..)
   

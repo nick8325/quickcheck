@@ -1,3 +1,4 @@
+-- | Test case generation.
 module Test.QuickCheck.Gen where
 
 --------------------------------------------------------------------------
@@ -25,8 +26,6 @@ import Control.Monad.Reader()
   
   -- 2005-09-16:
   -- GHC gives a warning for this. I reported this as a bug. /Koen
-
--- * Test case generation
 
 --------------------------------------------------------------------------
 -- ** Generator type

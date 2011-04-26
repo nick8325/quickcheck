@@ -37,7 +37,7 @@ module Test.QuickCheck
   , sample
   , sample'
 
-    -- * Arbitrary and CoArbitrary classes.
+    -- * Arbitrary and CoArbitrary classes
   , Arbitrary(..)
   , CoArbitrary(..)
   

@@ -7,7 +7,7 @@ import System.Random( StdGen )
 -- State
 
 -- | State represents QuickCheck's internal state while testing a property.
--- | The state is made visible to callback functions.
+-- The state is made visible to callback functions.
 data State
   = MkState
   -- static
