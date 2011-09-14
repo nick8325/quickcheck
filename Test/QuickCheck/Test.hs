@@ -118,6 +118,7 @@ quickCheckWithResult a p =
                  , randomSeed        = rnd
                  , numSuccessShrinks = 0
                  , numTryShrinks     = 0
+                 , numTotTryShrinks  = 0
                  } (unGen (property p))
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
@@ -349,15 +350,17 @@ localMin' st res (t:ts) =
     callbackPostTest st res'
     if ok res' == Just False
       then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
-      else localMin st{ numTryShrinks = numTryShrinks st + 1 } res ts
+      else localMin st{ numTryShrinks    = numTryShrinks st + 1,
+                        numTotTryShrinks = numTotTryShrinks st + 1 } res ts
 
 localMinFound :: State -> P.Result -> IO Int
 localMinFound st res =
   do putLine (terminal st)
        ( oneLine (P.reason res)
       ++ " (after " ++ number (numSuccessTests st+1) "test"
-      ++ concat [ " and " ++ number (numSuccessShrinks st) "shrink"
-                | numSuccessShrinks st > 0
+      ++ concat [ ", " ++ number (numSuccessShrinks st) "shrink" ++
+                  " and " ++ number (numTotTryShrinks st) "shrink attempt"
+                | numSuccessShrinks st > 0 || numTotTryShrinks st > 0
                 ]
       ++ "):  "
        )
