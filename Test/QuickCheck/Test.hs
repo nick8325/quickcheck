@@ -110,7 +110,7 @@ quickCheckWithResult a p =
                  , maxDiscardedTests = maxDiscard a
                  , computeSize       = case replay a of
                                          Nothing    -> computeSize'
-                                         Just (_,s) -> \_ _ -> s
+                                         Just (_,s) -> computeSize' `at0` s
                  , numSuccessTests   = 0
                  , numDiscardedTests = 0
                  , collected         = []
@@ -128,6 +128,8 @@ quickCheckWithResult a p =
           | otherwise =
             (n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10
         n `roundTo` m = (n `div` m) * m
+        at0 f s 0 0 = s
+        at0 f s n d = f n d
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as 'quickCheck' '.' 'verbose'.
