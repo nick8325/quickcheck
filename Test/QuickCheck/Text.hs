@@ -40,7 +40,7 @@ newtype Str = MkStr String
 instance Show Str where
   show (MkStr s) = s
 
-ranges :: Integral a => a -> a -> Str
+ranges :: (Show a, Integral a) => a -> a -> Str
 ranges k n = MkStr (show n' ++ " -- " ++ show (n'+k-1))
  where
   n' = k * (n `div` k)
