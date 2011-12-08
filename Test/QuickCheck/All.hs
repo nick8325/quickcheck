@@ -5,9 +5,11 @@
 module Test.QuickCheck.All(
   -- ** Testing all properties in a module.
   quickCheckAll,
+  verboseCheckAll,
   forAllProperties,
   -- ** Testing polymorphic properties.
   polyQuickCheck,
+  polyVerboseCheck,
   mono) where
 
 import Language.Haskell.TH
@@ -24,6 +26,11 @@ import Control.Monad
 -- work, but will silently default all type variables to @()@!
 polyQuickCheck :: Name -> ExpQ
 polyQuickCheck x = [| quickCheck $(mono x) |]
+
+-- | Test a polymorphic property, defaulting all type variables to 'Integer'.
+-- This is just a convenience function that combines 'polyQuickCheck' and 'verbose'.
+polyVerboseCheck :: Name -> ExpQ
+polyVerboseCheck x = [| verboseCheck $(mono x) |]
 
 type Error = forall a. String -> a
 
@@ -97,6 +104,11 @@ forAllProperties = do
 -- and then execute @runTests@.
 quickCheckAll :: Q Exp
 quickCheckAll = [| $(forAllProperties) quickCheckResult |]
+
+-- | Test all properties in the current module.
+-- This is just a convenience function that combines 'quickCheckAll' and 'verbose'.
+verboseCheckAll :: Q Exp
+verboseCheckAll = [| $(forAllProperties) verboseCheckResult |]
 
 runQuickCheckAll :: [(String, Property)] -> (Property -> IO Result) -> IO Bool
 runQuickCheckAll ps qc =
