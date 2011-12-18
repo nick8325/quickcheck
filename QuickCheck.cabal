@@ -29,12 +29,12 @@ Description:
 
 source-repository head
   type:     darcs
-  location: http://code.haskell.org/QuickCheck/
+  location: http://code.haskell.org/QuickCheck/devel
 
 source-repository this
   type:     darcs
-  location: http://code.haskell.org/QuickCheck
-  tag:      2.4.1.1
+  location: http://code.haskell.org/QuickCheck/stable
+  tag:      2.4.2
 
 flag base3
   Description: Choose the new smaller, split-up base package.
