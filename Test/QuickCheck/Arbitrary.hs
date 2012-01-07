@@ -51,6 +51,11 @@ import Data.Char
   , isSpace
   )
 
+import Data.Fixed
+  ( Fixed
+  , HasResolution
+  )
+
 import Data.Ratio
   ( Ratio
   , (%)
@@ -108,6 +113,12 @@ instance Arbitrary Bool where
   shrink True = [False]
   shrink False = []
 
+instance Arbitrary Ordering where
+  arbitrary = elements [GT, EQ, LT]
+  shrink GT = [EQ, LT]
+  shrink EQ = [LT]
+  shrink LT = []
+
 instance Arbitrary a => Arbitrary (Maybe a) where
   arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
   
@@ -161,6 +172,10 @@ instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
+
+instance HasResolution a => Arbitrary (Fixed a) where
+    arbitrary = arbitrarySizedFractional
+    shrink    = shrinkRealFrac
 
 instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
@@ -413,6 +428,11 @@ instance CoArbitrary Bool where
   coarbitrary False = variant 0
   coarbitrary True  = variant (-1)
 
+instance CoArbitrary Ordering where
+  coarbitrary GT = variant 1
+  coarbitrary EQ = variant 0
+  coarbitrary LT = variant (-1)
+
 instance CoArbitrary a => CoArbitrary (Maybe a) where
   coarbitrary Nothing  = variant 0
   coarbitrary (Just x) = variant (-1) . coarbitrary x
@@ -427,6 +447,9 @@ instance CoArbitrary a => CoArbitrary [a] where
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
+
+instance HasResolution a => CoArbitrary (Fixed a) where
+  coarbitrary = coarbitraryReal
 
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
   coarbitrary (x :+ y) = coarbitrary x >< coarbitrary y
