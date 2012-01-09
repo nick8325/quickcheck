@@ -114,10 +114,10 @@ instance Arbitrary Bool where
   shrink False = []
 
 instance Arbitrary Ordering where
-  arbitrary = elements [GT, EQ, LT]
+  arbitrary = arbitraryBoundedEnum
   shrink GT = [EQ, LT]
-  shrink EQ = [LT]
-  shrink LT = []
+  shrink LT = [EQ]
+  shrink EQ = []
 
 instance Arbitrary a => Arbitrary (Maybe a) where
   arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
