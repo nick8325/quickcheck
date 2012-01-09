@@ -10,6 +10,7 @@ module Test.QuickCheck.Arbitrary
   , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedFractional      -- :: Fractional a => Gen a
   , arbitraryBoundedRandom        -- :: (Bounded a, Random a) => Gen a
+  , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
   -- ** Helper functions for implementing shrink
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
@@ -307,6 +308,14 @@ arbitraryBoundedIntegral =
 -- chosen from the entire range of the type.
 arbitraryBoundedRandom :: (Bounded a, Random a) => Gen a
 arbitraryBoundedRandom = choose (minBound,maxBound)
+
+-- | Generates an element of a bounded enumeration.
+arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a
+arbitraryBoundedEnum =
+  do let mn = minBound
+         mx = maxBound `asTypeOf` mn
+     n <- choose (fromEnum mn, fromEnum mx)
+     return (toEnum n `asTypeOf` mn)
 
 -- | Generates an integral number from a bounded domain. The number is
 -- chosen from the entire range of the type, but small numbers are

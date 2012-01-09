@@ -48,6 +48,7 @@ module Test.QuickCheck
   , arbitrarySizedBoundedIntegral
   , arbitraryBoundedIntegral
   , arbitraryBoundedRandom
+  , arbitraryBoundedEnum
     -- ** Helper functions for implementing shrink
   , shrinkNothing
   , shrinkIntegral
