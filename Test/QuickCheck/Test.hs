@@ -355,15 +355,22 @@ localMin' st res (t:ts) =
 
 localMinFound :: State -> P.Result -> IO Int
 localMinFound st res =
-  do putLine (terminal st)
-       ( oneLine (P.reason res)
-      ++ " (after " ++ number (numSuccessTests st+1) "test"
-      ++ concat [ ", " ++ number (numSuccessShrinks st) "shrink" ++
-                  " and " ++ number (numTotTryShrinks st) "shrink attempt"
-                | numSuccessShrinks st > 0 || numTotTryShrinks st > 0
-                ]
-      ++ "):  "
-       )
+  do let report = concat [
+           "(after " ++ number (numSuccessTests st+1) "test",
+           concat [ ", " ++ number (numSuccessShrinks st) "shrink" ++
+                    " and " ++ number (numTotTryShrinks st) "shrink attempt"
+                  | numSuccessShrinks st > 0 || numTotTryShrinks st > 0
+                  ],
+           "): "
+           ]
+     if isOneLine (P.reason res)
+       then putLine (terminal st) (P.reason res ++ " " ++ report)
+       else do
+         putLine (terminal st) report
+         sequence_
+           [ putLine (terminal st) msg
+           | msg <- lines (P.reason res)
+           ]
      callbackPostFinalFailure st res
      return (numSuccessShrinks st)
 

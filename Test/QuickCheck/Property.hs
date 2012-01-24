@@ -6,7 +6,7 @@ module Test.QuickCheck.Property where
 
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
-import Test.QuickCheck.Text( showErr, putLine )
+import Test.QuickCheck.Text( showErr, isOneLine, putLine )
 import Test.QuickCheck.Exception
 import Test.QuickCheck.State
 
@@ -175,8 +175,10 @@ result =
   }
 
 exception :: String -> AnException -> Result
-exception msg err = failed{ reason = msg ++ ": '" ++ showErr err ++ "'",
+exception msg err = failed{ reason = msg ++ ":" ++ format (show err),
                             interrupted = isInterrupt err }
+  where format xs | isOneLine xs = " '" ++ xs ++ "'"
+                  | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
 protectResult :: IO Result -> IO Result
 protectResult = protect (exception "Exception")

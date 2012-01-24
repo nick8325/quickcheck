@@ -6,6 +6,7 @@ module Test.QuickCheck.Text
   , short
   , showErr
   , oneLine
+  , isOneLine
   , bold
   
   , newTerminal
@@ -65,6 +66,9 @@ showErr = unwords . words . show
 
 oneLine :: String -> String
 oneLine = unwords . words
+
+isOneLine :: String -> Bool
+isOneLine xs = '\n' `notElem` xs
 
 bold :: String -> String
 -- not portable:
