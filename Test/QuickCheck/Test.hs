@@ -357,9 +357,8 @@ localMinFound :: State -> P.Result -> IO Int
 localMinFound st res =
   do let report = concat [
            "(after " ++ number (numSuccessTests st+1) "test",
-           concat [ ", " ++ number (numSuccessShrinks st) "shrink" ++
-                    " and " ++ number (numTotTryShrinks st) "shrink attempt"
-                  | numSuccessShrinks st > 0 || numTotTryShrinks st > 0
+           concat [ " and " ++ number (numSuccessShrinks st) "shrink"
+                  | numSuccessShrinks st > 0
                   ],
            "): "
            ]
