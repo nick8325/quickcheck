@@ -321,7 +321,7 @@ localMin :: State -> P.Result -> [Rose P.Result] -> IO Int
 localMin st res _ | P.interrupted res = localMinFound st res
 localMin st res ts = do
   putTemp (terminal st)
-    ( short 26 (P.reason res)
+    ( short 26 (oneLine (P.reason res))
    ++ " (after " ++ number (numSuccessTests st+1) "test"
    ++ concat [ " and "
             ++ show (numSuccessShrinks st)
@@ -354,7 +354,7 @@ localMin' st res (t:ts) =
 localMinFound :: State -> P.Result -> IO Int
 localMinFound st res =
   do putLine (terminal st)
-       ( P.reason res
+       ( oneLine (P.reason res)
       ++ " (after " ++ number (numSuccessTests st+1) "test"
       ++ concat [ " and " ++ number (numSuccessShrinks st) "shrink"
                 | numSuccessShrinks st > 0

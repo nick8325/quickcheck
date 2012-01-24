@@ -5,6 +5,7 @@ module Test.QuickCheck.Text
   , number
   , short
   , showErr
+  , oneLine
   , bold
   
   , newTerminal
@@ -61,6 +62,9 @@ short n s
 
 showErr :: Show a => a -> String
 showErr = unwords . words . show
+
+oneLine :: String -> String
+oneLine = unwords . words
 
 bold :: String -> String
 -- not portable:
