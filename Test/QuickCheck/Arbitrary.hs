@@ -21,6 +21,7 @@ module Test.QuickCheck.Arbitrary
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
   , coarbitraryShow          -- :: Show a => a -> Gen b -> Gen b
+  , coarbitraryEnum          -- :: Enum a => a -> Gen b -> Gen b
   
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
@@ -541,6 +542,10 @@ coarbitraryReal x = coarbitrary (toRational x)
 -- | 'coarbitrary' helper for lazy people :-).
 coarbitraryShow :: Show a => a -> Gen b -> Gen b
 coarbitraryShow x = coarbitrary (show x)
+
+-- | A 'coarbitrary' implementation for enums.
+coarbitraryEnum :: Enum a => a -> Gen b -> Gen b
+coarbitraryEnum = variant . fromEnum
 
 --------------------------------------------------------------------------
 -- ** arbitrary generators
