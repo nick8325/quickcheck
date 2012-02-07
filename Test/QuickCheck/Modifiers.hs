@@ -131,7 +131,7 @@ newtype Positive a = Positive a
           )
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary =
-    (Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))
+    ((Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))) `suchThat` (>0)
 
   shrink (Positive x) =
     [ Positive x'
@@ -164,11 +164,12 @@ newtype NonNegative a = NonNegative a
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
-    frequency
-      -- why is this distrbution like this?
-      [ (5, (NonNegative . abs) `fmap` arbitrary)
-      , (1, return (NonNegative 0))
-      ]
+    (frequency
+       -- why is this distrbution like this?
+       [ (5, (NonNegative . abs) `fmap` arbitrary)
+       , (1, return (NonNegative 0))
+       ]
+    ) `suchThat` (>=0)
 
   shrink (NonNegative x) =
     [ NonNegative x'
