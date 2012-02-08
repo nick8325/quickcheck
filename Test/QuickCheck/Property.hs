@@ -189,7 +189,10 @@ exception msg err = failed{ reason = msg ++ ":" ++ format (show err),
                   | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
 protectResult :: IO Result -> IO Result
-protectResult = protect (exception "Exception")
+protectResult = protect f
+ where
+  f e | isDiscard e = rejected
+      | otherwise   = exception "Exception" e
 
 succeeded :: Result 
 succeeded = result{ ok = Just True }

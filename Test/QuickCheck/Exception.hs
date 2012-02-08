@@ -19,7 +19,7 @@ module Test.QuickCheck.Exception where
 #if defined(OLD_EXCEPTIONS)
 import Control.Exception(evaluate, try, Exception(..))
 #else
-import Control.Exception.Extensible(evaluate, try, SomeException(SomeException)
+import Control.Exception.Extensible(evaluate, try, SomeException(SomeException), ErrorCall(..)
 #if defined(GHC_INTERRUPT)
   , AsyncException(UserInterrupt)
 #endif
@@ -70,6 +70,17 @@ isInterrupt (SomeException e) = cast e == Just UserInterrupt
 #else /* !defined(GHC_INTERRUPT) */
 isInterrupt _ = False
 #endif
+
+-- A special exception that makes QuickCheck discard the test case.
+-- TODO: add appropriate CPP stuff around this
+discard   :: a
+isDiscard :: AnException -> Bool
+(discard, isDiscard) = (error msg, isd)
+ where
+  msg                   = "QuickCheck, please discard"
+  isd (SomeException e) = case cast e of
+                            Just (ErrorCall msg') -> msg' == msg
+                            _                     -> False
 
 --------------------------------------------------------------------------
 -- the end.
