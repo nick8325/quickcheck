@@ -131,7 +131,8 @@ newtype Positive a = Positive a
           )
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary =
-    ((Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))) `suchThat` (>0)
+    ((Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))) `suchThat` gt0
+    where gt0 (Positive x) = x > 0
 
   shrink (Positive x) =
     [ Positive x'
@@ -169,7 +170,8 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
        [ (5, (NonNegative . abs) `fmap` arbitrary)
        , (1, return (NonNegative 0))
        ]
-    ) `suchThat` (>=0)
+    ) `suchThat` ge0
+    where ge0 (NonNegative x) = x >= 0
 
   shrink (NonNegative x) =
     [ NonNegative x'
