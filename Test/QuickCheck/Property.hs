@@ -60,18 +60,24 @@ type Property = Gen Prop
 -- | The class of things which can be tested, i.e. turned into a property.
 class Testable prop where
   property :: prop -> Property
+  exhaustive :: prop -> Bool
+  exhaustive _ = False
 
 instance Testable () where
   property _ = property rejected
+  exhaustive _ = True
 
 instance Testable Bool where
   property = property . liftBool
+  exhaustive _ = True
 
 instance Testable Result where
   property = return . MkProp . protectResults . return
+  exhaustive _ = True
 
 instance Testable Prop where
   property (MkProp r) = return . MkProp . ioRose . return $ r
+  exhaustive _ = True
 
 instance Testable prop => Testable (Gen prop) where
   property mp = do p <- mp; property p

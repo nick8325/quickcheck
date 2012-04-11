@@ -106,7 +106,7 @@ quickCheckWithResult a p =
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
-                 , maxSuccessTests   = maxSuccess a
+                 , maxSuccessTests   = if exhaustive p then 1 else maxSuccess a
                  , maxDiscardedTests = maxDiscard a
                  , computeSize       = case replay a of
                                          Nothing    -> computeSize'
