@@ -219,7 +219,7 @@ runATest st f =
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
   
-     let continue abort st' | stop res = abort st'
+     let continue break st' | abort res = break st'
                             | otherwise = test st'
      
      case res of
