@@ -183,16 +183,15 @@ result =
   }
 
 exception :: String -> AnException -> Result
-exception msg err = failed{ reason = msg ++ ":" ++ format (show err),
-                            interrupted = isInterrupt err }
+exception msg err
+  | isDiscard err = rejected
+  | otherwise = failed{ reason = msg ++ ":" ++ format (show err),
+                        interrupted = isInterrupt err }
   where format xs | isOneLine xs = " '" ++ xs ++ "'"
                   | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
 protectResult :: IO Result -> IO Result
-protectResult = protect f
- where
-  f e | isDiscard e = rejected
-      | otherwise   = exception "Exception" e
+protectResult = protect (exception "Exception")
 
 succeeded :: Result 
 succeeded = result{ ok = Just True }
@@ -323,7 +322,8 @@ cover True n s = n `seq` s `listSeq` (mapTotalResult $ \res -> res { stamp = (s,
 cover False _ _ = property
 
 -- | Implication for properties: The resulting property holds if
--- the first argument is 'False', or if the given property holds.
+-- the first argument is 'False' (in which case the test case is discarded),
+-- or if the given property holds.
 (==>) :: Testable prop => Bool -> prop -> Property
 False ==> _ = property ()
 True  ==> p = property p

@@ -82,6 +82,7 @@ module Test.QuickCheck
   , mapSize
   , shrinking
   , (==>)
+  , discard
   , forAll
   , forAllShrink
     -- *** Experimental combinators for conjunction and disjunction
@@ -118,6 +119,7 @@ import Test.QuickCheck.Modifiers
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Text
+import Test.QuickCheck.Exception
 
 --------------------------------------------------------------------------
 -- the end.
