@@ -165,6 +165,7 @@ data Result
   , expect      :: Bool           -- ^ indicates what the expected result of the property is
   , reason      :: String         -- ^ a message indicating what went wrong
   , interrupted :: Bool           -- ^ indicates if the test case was cancelled by pressing ^C
+  , stop        :: Bool           -- ^ if True, the test should not be repeated
   , stamp       :: [(String,Int)] -- ^ the collected values for this test case
   , callbacks   :: [Callback]     -- ^ the callbacks for this test case
   }
@@ -176,6 +177,7 @@ result =
   , expect      = True
   , reason      = ""
   , interrupted = False
+  , stop        = False
   , stamp       = []
   , callbacks   = []
   }
@@ -282,6 +284,10 @@ verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ c
 -- | Modifies a property so that it is expected to fail for some test cases.
 expectFailure :: Testable prop => prop -> Property
 expectFailure = mapTotalResult (\res -> res{ expect = False })
+
+-- | Modifies a property so that it only will be tested once.
+once :: Testable prop => prop -> Property
+once = mapTotalResult (\res -> res{ stop = True })
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.

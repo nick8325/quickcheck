@@ -101,6 +101,7 @@ module Test.QuickCheck
   , collect
   , classify
   , cover
+  , once
   
     -- * Text formatting
   , Str(..)

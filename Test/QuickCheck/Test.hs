@@ -218,20 +218,25 @@ runATest st f =
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
+  
+     let continue abort st' | stop res = abort st'
+                            | otherwise = test st'
      
      case res of
        MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
-         do test st{ numSuccessTests = numSuccessTests st + 1
-                   , randomSeed      = rnd2
-                   , collected       = stamp : collected st
-                   , expectedFailure = expect
-                   } f
+         do continue doneTesting
+              st{ numSuccessTests = numSuccessTests st + 1
+                , randomSeed      = rnd2
+                , collected       = stamp : collected st
+                , expectedFailure = expect
+                } f
        
        MkResult{ok = Nothing, expect = expect} -> -- discarded test
-         do test st{ numDiscardedTests = numDiscardedTests st + 1
-                   , randomSeed        = rnd2
-                   , expectedFailure   = expect
-                   } f
+         do continue giveUp 
+              st{ numDiscardedTests = numDiscardedTests st + 1
+                , randomSeed        = rnd2
+                , expectedFailure   = expect
+                } f
          
        MkResult{ok = Just False} -> -- failed test
          do if expect res
