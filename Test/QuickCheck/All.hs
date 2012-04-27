@@ -119,3 +119,4 @@ runQuickCheckAll ps qc =
       Success { } -> True
       Failure { } -> False
       NoExpectedFailure { } -> False
+      GaveUp { } -> False
