@@ -95,7 +95,7 @@ instance Arbitrary a => Arbitrary (Fixed a) where
 
 --------------------------------------------------------------------------
 -- | @Ordered xs@: guarantees that xs is ordered.
-newtype OrderedList a = Ordered [a]
+newtype OrderedList a = Ordered {getOrdered :: [a]}
  deriving ( Eq, Ord, Show, Read )
 
 instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
@@ -109,7 +109,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
 
 --------------------------------------------------------------------------
 -- | @NonEmpty xs@: guarantees that xs is non-empty.
-newtype NonEmptyList a = NonEmpty [a]
+newtype NonEmptyList a = NonEmpty {getNonEmpty :: [a]}
  deriving ( Eq, Ord, Show, Read )
 
 instance Arbitrary a => Arbitrary (NonEmptyList a) where
@@ -123,7 +123,7 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 
 --------------------------------------------------------------------------
 -- | @Positive x@: guarantees that @x \> 0@.
-newtype Positive a = Positive a
+newtype Positive a = Positive {getPositive :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
@@ -142,7 +142,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
 
 --------------------------------------------------------------------------
 -- | @NonZero x@: guarantees that @x \/= 0@.
-newtype NonZero a = NonZero a
+newtype NonZero a = NonZero {getNonZero :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
@@ -156,7 +156,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
 
 --------------------------------------------------------------------------
 -- | @NonNegative x@: guarantees that @x \>= 0@.
-newtype NonNegative a = NonNegative a
+newtype NonNegative a = NonNegative {getNonNegative :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
