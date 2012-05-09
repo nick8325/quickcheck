@@ -185,8 +185,11 @@ result =
 exception :: String -> AnException -> Result
 exception msg err
   | isDiscard err = rejected
-  | otherwise = failed{ reason = msg ++ ":" ++ format (show err),
+  | otherwise = failed{ reason = formatException msg err,
                         interrupted = isInterrupt err }
+
+formatException :: String -> AnException -> String
+formatException msg err = msg ++ ":" ++ format (show err)
   where format xs | isOneLine xs = " '" ++ xs ++ "'"
                   | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
@@ -252,8 +255,13 @@ callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 -- | Prints a message to the terminal as part of the counterexample.
 printTestCase :: Testable prop => String -> prop -> Property
 printTestCase s =
-  callback $ PostFinalFailure Counterexample $ \st _res ->
-    putLine (terminal st) s
+  callback $ PostFinalFailure Counterexample $ \st _res -> do
+    res <- tryEvaluateIO (putLine (terminal st) s)
+    case res of
+      Left err ->
+        putLine (terminal st) (formatException "Exception thrown by generator" err)
+      Right () ->
+        return ()
 
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
