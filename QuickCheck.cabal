@@ -76,6 +76,8 @@ library
     Test.QuickCheck.Poly,
     Test.QuickCheck.State
 
+  Extensions: CPP
+
   -- Choose which optional features to build based on which compiler
   -- we're using. It would be nice to use flags for this but Cabal's
   -- dependency resolution isn't good enough.
