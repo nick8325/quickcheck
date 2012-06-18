@@ -96,4 +96,3 @@ library
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
   Other-Modules:
     Test.QuickCheck.Exception
-  GHC-options:
