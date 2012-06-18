@@ -109,7 +109,7 @@ joinRose (MkRose (IORose rm) rs) = IORose $ do r <- rm; return (joinRose (MkRose
 joinRose (MkRose (MkRose x ts) tts) =
   -- first shrinks outer quantification; makes most sense
   MkRose x (map joinRose tts ++ ts)
-  -- first shrinks inner quantification
+  -- first shrinks inner quantification: terrible
   --MkRose x (ts ++ map joinRose tts)
 
 instance Functor Rose where

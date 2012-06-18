@@ -86,7 +86,7 @@ forAllProperties = do
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
         exists <- return False `recover` (reify (mkName x) >> return True)
-        if exists then sequence [ [| ($(stringE $ x ++ " on " ++ filename ++ ":" ++ show l),
+        if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
                                      property $(mono (mkName x))) |] ]
          else return []
   [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
@@ -115,6 +115,7 @@ runQuickCheckAll ps qc =
   fmap and . forM ps $ \(xs, p) -> do
     putStrLn $ "=== " ++ xs ++ " ==="
     r <- qc p
+    putStrLn ""
     return $ case r of
       Success { } -> True
       Failure { } -> False
