@@ -11,21 +11,21 @@ Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
 Tested-with: GHC >=6.8, Hugs
 Homepage: http://code.haskell.org/QuickCheck
-Category:	    Testing
-Synopsis:	    Automatic testing of Haskell programs
+Category:       Testing
+Synopsis:       Automatic testing of Haskell programs
 Description:
-        QuickCheck is a library for random testing of program properties.
-        .
-	The programmer provides a specification of the program, in
-	the form of properties which functions should satisfy, and
-	QuickCheck then tests that the properties hold in a large number
-	of randomly generated cases.  
-        .
-        Specifications are expressed in
-	Haskell, using combinators defined in the QuickCheck library.
-	QuickCheck provides combinators to define properties, observe
-	the distribution of test data, and define test
-	data generators.
+  QuickCheck is a library for random testing of program properties.
+  .
+  The programmer provides a specification of the program, in
+  the form of properties which functions should satisfy, and
+  QuickCheck then tests that the properties hold in a large number
+  of randomly generated cases.
+  .
+  Specifications are expressed in
+  Haskell, using combinators defined in the QuickCheck library.
+  QuickCheck provides combinators to define properties, observe
+  the distribution of test data, and define test
+  data generators.
 
 source-repository head
   type:     darcs
@@ -55,7 +55,7 @@ library
     else
       Build-depends: base < 3
 
-  -- On old versions of GHC use the ghc package to catch ctrl-C.  
+  -- On old versions of GHC use the ghc package to catch ctrl-C.
   if impl(ghc >= 6.7) && impl(ghc < 6.13)
       Build-depends: ghc
 
