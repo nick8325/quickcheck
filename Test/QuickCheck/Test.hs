@@ -34,11 +34,11 @@ import Data.List
 -- | Args specifies arguments to the QuickCheck driver
 data Args
   = Args
-  { replay     :: Maybe (StdGen,Int) -- ^ should we replay a previous test?
-  , maxSuccess :: Int                -- ^ maximum number of successful tests before succeeding
-  , maxDiscard :: Int                -- ^ maximum number of discarded tests before giving up
-  , maxSize    :: Int                -- ^ size to use for the biggest test cases
-  , chatty     :: Bool               -- ^ whether to print anything
+  { replay          :: Maybe (StdGen,Int) -- ^ should we replay a previous test?
+  , maxSuccess      :: Int                -- ^ maximum number of successful tests before succeeding
+  , maxDiscardRatio :: Int                -- ^ maximum number of discarded tests per successful test before giving up
+  , maxSize         :: Int                -- ^ size to use for the biggest test cases
+  , chatty          :: Bool               -- ^ whether to print anything
   }
  deriving ( Show, Read )
 
@@ -78,11 +78,11 @@ isSuccess _         = False
 -- | stdArgs are the default test arguments used
 stdArgs :: Args
 stdArgs = Args
-  { replay     = Nothing
-  , maxSuccess = 100
-  , maxDiscard = 500
-  , maxSize    = 100
-  , chatty     = True
+  { replay          = Nothing
+  , maxSuccess      = 100
+  , maxDiscardRatio = 10
+  , maxSize         = 100
+  , chatty          = True
 -- noShrinking flag?
   }
 
@@ -107,7 +107,7 @@ quickCheckWithResult a p =
               Just (rnd,_) -> return rnd
      test MkState{ terminal          = tm
                  , maxSuccessTests   = if exhaustive p then 1 else maxSuccess a
-                 , maxDiscardedTests = maxDiscard a
+                 , maxDiscardedTests = if exhaustive p then maxDiscardRatio a else maxDiscardRatio a * maxSuccess a
                  , computeSize       = case replay a of
                                          Nothing    -> computeSize'
                                          Just (_,s) -> computeSize' `at0` s
