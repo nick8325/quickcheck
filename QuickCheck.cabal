@@ -5,7 +5,7 @@ Build-type: Simple
 License: BSD3
 License-file: LICENSE
 Extra-source-files: README
-Copyright: 2000-2011 Koen Claessen, 2006-2008 Björn Bringert, 2009-2011 Nick Smallbone
+Copyright: 2000-2012 Koen Claessen, 2006-2008 Björn Bringert, 2009-2012 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
