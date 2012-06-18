@@ -3,13 +3,13 @@
 -- Not really documented at the moment!
 --
 -- Example of use:
--- 
+--
 -- >>> :{
 -- >>> let prop :: Fun String Integer -> Bool
 -- >>>     prop (Fun _ f) = f "monkey" == f "banana" || f "banana" == f "elephant"
 -- >>> :}
 -- >>> quickCheck prop
--- *** Failed! Falsifiable (after 3 tests and 134 shrinks):     
+-- *** Failed! Falsifiable (after 3 tests and 134 shrinks):
 -- {"elephant"->1, "monkey"->1, _->0}
 --
 -- To generate random values of type @'Fun' a b@,
@@ -132,7 +132,7 @@ class Function a where
   function :: (a->b) -> (a:->b)
 
 -- basic instances
-  
+
 instance Function () where
   function f = Unit (f ())
 
@@ -176,7 +176,7 @@ instance Function Bool where
    where
     g False = Left ()
     g True  = Right ()
-    
+
     h (Left _)  = False
     h (Right _) = True
 
@@ -185,13 +185,13 @@ instance Function Integer where
    where
     gInteger n | n < 0     = Left (gNatural (abs n - 1))
                | otherwise = Right (gNatural n)
-    
+
     hInteger (Left ws)  = -(hNatural ws + 1)
     hInteger (Right ws) = hNatural ws
-    
+
     gNatural 0 = []
     gNatural n = (fromIntegral (n `mod` 256) :: Word8) : gNatural (n `div` 256)
-    
+
     hNatural []     = 0
     hNatural (w:ws) = fromIntegral w + 256 * hNatural ws
 
@@ -249,7 +249,7 @@ shrinkFun shr (p :+: q) =
   isNil :: (a :-> b) -> Bool
   isNil Nil = True
   isNil _   = False
- 
+
   Nil .+. Nil = Nil
   p   .+. q   = p :+: q
 
@@ -261,7 +261,7 @@ shrinkFun shr (Table xys) =
   [ table xys' | xys' <- shrinkList shrXy xys ]
  where
   shrXy (x,y) = [(x,y') | y' <- shr y]
-  
+
   table []  = Nil
   table xys = Table xys
 

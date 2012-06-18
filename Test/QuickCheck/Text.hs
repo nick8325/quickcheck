@@ -1,14 +1,14 @@
 module Test.QuickCheck.Text
   ( Str(..)
   , ranges
-  
+
   , number
   , short
   , showErr
   , oneLine
   , isOneLine
   , bold
-  
+
   , newTerminal
   , newStdioTerminal
   , newNullTerminal
@@ -137,7 +137,7 @@ putPart, putTemp, putLine :: Terminal -> String -> IO ()
 putPart tm@(MkTerminal _ out _) s =
   do flush tm
      put out s
-     
+
 putTemp tm@(MkTerminal _ _ err) s =
   do flush tm
      put err s
@@ -146,7 +146,7 @@ putTemp tm@(MkTerminal _ _ err) s =
        put err ( [ ' ' | _ <- s ]
               ++ [ '\b' | _ <- s ]
                )
-     
+
 putLine tm@(MkTerminal _ out _) s =
   do flush tm
      put out s

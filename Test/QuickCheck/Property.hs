@@ -192,7 +192,7 @@ formatException msg err = msg ++ ":" ++ format (show err)
 protectResult :: IO Result -> IO Result
 protectResult = protect (exception "Exception")
 
-succeeded :: Result 
+succeeded :: Result
 succeeded = result{ ok = Just True }
 
 failed :: Result
@@ -266,7 +266,7 @@ whenFail m =
     m
 
 -- | Performs an 'IO' action every time a property fails. Thus,
--- if shrinking is done, this can be used to keep track of the 
+-- if shrinking is done, this can be used to keep track of the
 -- failures along the way.
 whenFail' :: Testable prop => IO () -> prop -> Property
 whenFail' m =
@@ -307,7 +307,7 @@ collect :: (Show a, Testable prop) => a -> prop -> Property
 collect x = label (show x)
 
 -- | Conditionally labels test case.
-classify :: Testable prop => 
+classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
@@ -315,7 +315,7 @@ classify b s = cover b 0 s
 
 -- | Checks that at least the given proportion of the test cases belong
 -- to the given class.
-cover :: Testable prop => 
+cover :: Testable prop =>
          Bool   -- ^ @True@ if the test case belongs to the class.
       -> Int    -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
@@ -381,7 +381,7 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
-conjoin ps = 
+conjoin ps =
   do roses <- mapM (fmap unProp . property) ps
      return (MkProp (conj [] roses))
  where
@@ -410,7 +410,7 @@ p1 .||. p2 = disjoin [property p1, property p2]
 
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
-disjoin ps = 
+disjoin ps =
   do roses <- mapM (fmap unProp . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
  where

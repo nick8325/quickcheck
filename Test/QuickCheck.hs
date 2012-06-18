@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck
-  ( 
+  (
     -- * Running tests
     quickCheck
   , Args(..), Result(..)
@@ -14,7 +14,7 @@ module Test.QuickCheck
   , verboseCheckWithResult
   , verboseCheckResult
   , verbose
-    
+
     -- * Random generation
   , Gen
     -- ** Generator combinators
@@ -41,7 +41,7 @@ module Test.QuickCheck
     -- * Arbitrary and CoArbitrary classes
   , Arbitrary(..)
   , CoArbitrary(..)
-  
+
     -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral
   , arbitrarySizedFractional
@@ -103,7 +103,7 @@ module Test.QuickCheck
   , classify
   , cover
   , once
-  
+
     -- * Text formatting
   , Str(..)
   , ranges

@@ -16,14 +16,14 @@ data State
   , maxDiscardedTests :: Int        -- ^ maximum number of tests that can be discarded
   , computeSize       :: Int -> Int -> Int -- ^ how to compute the size of test cases from
                                     -- #tests and #discarded tests
-  
+
   -- dynamic
   , numSuccessTests   :: Int        -- ^ the current number of tests that have succeeded
   , numDiscardedTests :: Int        -- ^ the current number of discarded tests
   , collected         :: [[(String,Int)]] -- ^ all labels that have been collected so far
   , expectedFailure   :: Bool       -- ^ indicates if the property is expected to fail
   , randomSeed        :: StdGen     -- ^ the current random seed
-  
+
   -- shrinking
   , numSuccessShrinks :: Int        -- ^ number of successful shrinking steps so far
   , numTryShrinks     :: Int        -- ^ number of failed shrinking steps since the last successful shrink

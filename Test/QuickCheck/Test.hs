@@ -187,7 +187,7 @@ doneTesting st _f =
        return NoExpectedFailure{ labels = summary st,
                                  numTests = numSuccessTests st,
                                  output = theOutput }
-  
+
 giveUp :: State -> (StdGen -> Int -> Prop) -> IO Result
 giveUp st _f =
   do -- CALLBACK gave_up?
@@ -218,10 +218,10 @@ runATest st f =
      let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
-  
+
      let continue break st' | abort res = break st'
                             | otherwise = test st'
-     
+
      case res of
        MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
          do continue doneTesting
@@ -230,14 +230,14 @@ runATest st f =
                 , collected       = stamp : collected st
                 , expectedFailure = expect
                 } f
-       
+
        MkResult{ok = Nothing, expect = expect} -> -- discarded test
-         do continue giveUp 
+         do continue giveUp
               st{ numDiscardedTests = numDiscardedTests st + 1
                 , randomSeed        = rnd2
                 , expectedFailure   = expect
                 } f
-         
+
        MkResult{ok = Just False} -> -- failed test
          do if expect res
               then putPart (terminal st) (bold "*** Failed! ")
@@ -294,7 +294,7 @@ success st =
               , let s' = [ t | (t,0) <- s ]
               , not (null s')
               ]
-  
+
   covers = [ ("only " ++ show occurP ++ "% " ++ fst (head lps) ++ "; not " ++ show reqP ++ "%")
            | lps <- groupBy first
                   . sort
@@ -307,8 +307,8 @@ success st =
                  reqP   = maximum (map snd lps)
            , occurP < reqP
            ]
-  
-  (x,_) `first` (y,_) = x == y 
+
+  (x,_) `first` (y,_) = x == y
 
   maxi = map (\lps -> (fst (head lps), maximum (map snd lps)))
        . groupBy first

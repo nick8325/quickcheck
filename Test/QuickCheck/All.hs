@@ -72,7 +72,7 @@ monomorphise err mono ty = return ty
 -- | Test all properties in the current module, using a custom
 -- 'quickCheck' function. The same caveats as with 'quickCheckAll'
 -- apply.
--- 
+--
 -- @$'forAllProperties'@ has type @('Property' -> 'IO' 'Result') -> 'IO' 'Bool'@.
 -- An example invocation is @$'forAllProperties' 'quickCheckResult'@,
 -- which does the same thing as @$'quickCheckAll'@.
@@ -98,9 +98,9 @@ forAllProperties = do
 --
 -- Using 'quickCheckAll' interactively doesn't work.
 -- Instead, add a definition to your module along the lines of
--- 
+--
 -- > runTests = $quickCheckAll
--- 
+--
 -- and then execute @runTests@.
 quickCheckAll :: Q Exp
 quickCheckAll = [| $(forAllProperties) quickCheckResult |]

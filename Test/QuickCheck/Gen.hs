@@ -37,7 +37,7 @@ instance Applicative Gen where
 instance Monad Gen where
   return x =
     MkGen (\_ _ -> x)
-  
+
   MkGen m >>= k =
     MkGen (\r n ->
       let (r1,r2)  = split r
@@ -84,7 +84,7 @@ sample' (MkGen m) =
 
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
-sample g = 
+sample g =
   do cases <- sample' g
      sequence_ (map print cases)
 
@@ -101,7 +101,7 @@ gen `suchThat` p =
 
 -- | Tries to generate a value that satisfies a predicate.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)
-gen `suchThatMaybe` p = sized (try 0 . max 1) 
+gen `suchThatMaybe` p = sized (try 0 . max 1)
  where
   try _ 0 = return Nothing
   try k n = do x <- resize (2*k+n) gen
@@ -144,7 +144,7 @@ growingElements xs = sized $ \n -> elements (take (1 `max` size n) xs)
    log'   = round . log . fromIntegral
    size n = (log' n + 1) * k `div` log' mx
 
-{- WAS:                                                                              
+{- WAS:
 growingElements xs = sized $ \n -> elements (take (1 `max` (n * k `div` 100)) xs)
  where
   k = length xs
@@ -157,7 +157,7 @@ listOf gen = sized $ \n ->
   do k <- choose (0,n)
      vectorOf k gen
 
--- | Generates a non-empty list of random length. The maximum length 
+-- | Generates a non-empty list of random length. The maximum length
 -- depends on the size parameter.
 listOf1 :: Gen a -> Gen [a]
 listOf1 gen = sized $ \n ->

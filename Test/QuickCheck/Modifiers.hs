@@ -10,9 +10,9 @@
 -- These types do things such as restricting the kind of test data that can be generated.
 -- They can be pattern-matched on in properties as a stylistic
 -- alternative to using explicit quantification.
--- 
+--
 -- Examples:
--- 
+--
 -- @
 -- -- Functions cannot be shown (but see "Test.QuickCheck.Function")
 -- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
@@ -90,7 +90,7 @@ newtype Fixed a = Fixed a
 
 instance Arbitrary a => Arbitrary (Fixed a) where
   arbitrary = Fixed `fmap` arbitrary
-  
+
   -- no shrink function
 
 --------------------------------------------------------------------------
@@ -222,14 +222,14 @@ instance Arbitrary a => Arbitrary (Smart a) where
     []     `ilv` bs     = bs
     as     `ilv` []     = as
     (a:as) `ilv` (b:bs) = a : b : (as `ilv` bs)
-    
+
 {-
   shrink (Smart i x) = part0 ++ part2 ++ part1
    where
     ys = [ Smart i y | (i,y) <- [0..] `zip` shrink x ]
     i' = 0 `max` (i-2)
     k  = i `div` 10
-    
+
     part0 = take k ys
     part1 = take (i'-k) (drop k ys)
     part2 = drop i' ys
@@ -238,7 +238,7 @@ instance Arbitrary a => Arbitrary (Smart a) where
     -- drop a (drop b xs) == drop (a+b) xs           | a,b >= 0
     -- take a (take b xs) == take (a `min` b) xs
     -- take a xs ++ drop a xs == xs
-    
+
     --    take k ys ++ take (i'-k) (drop k ys) ++ drop i' ys
     -- == take k ys ++ take (i'-k) (drop k ys) ++ drop (i'-k) (drop k ys)
     -- == take k ys ++ take (i'-k) (drop k ys) ++ drop (i'-k) (drop k ys)

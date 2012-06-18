@@ -1,9 +1,9 @@
 module Test.QuickCheck.Arbitrary
-  ( 
+  (
   -- * Arbitrary and CoArbitrary classes
     Arbitrary(..)
   , CoArbitrary(..)
-  
+
   -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral        -- :: Num a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
@@ -22,7 +22,7 @@ module Test.QuickCheck.Arbitrary
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
   , coarbitraryShow          -- :: Show a => a -> Gen b -> Gen b
   , coarbitraryEnum          -- :: Enum a => a -> Gen b -> Gen b
-  
+
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
   , orderedList -- :: (Ord a, Arbitrary a) => Gen [a]
@@ -95,7 +95,7 @@ class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
   arbitrary = error "no default generator"
-  
+
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value.
   shrink :: a -> [a]
@@ -122,16 +122,16 @@ instance Arbitrary Ordering where
 
 instance Arbitrary a => Arbitrary (Maybe a) where
   arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
-  
+
   shrink (Just x) = Nothing : [ Just x' | x' <- shrink x ]
   shrink _        = []
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (Either a b) where
   arbitrary = oneof [liftM Left arbitrary, liftM Right arbitrary]
-  
+
   shrink (Left x)  = [ Left  x' | x' <- shrink x ]
   shrink (Right y) = [ Right y' | y' <- shrink y ]
-  
+
 instance Arbitrary a => Arbitrary [a] where
   arbitrary = sized $ \n ->
     do k <- choose (0,n)
@@ -147,7 +147,7 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 
   shrinkOne []     = []
   shrinkOne (x:xs) = [ x':xs | x'  <- shr x ]
-                  ++ [ x:xs' | xs' <- shrinkOne xs ] 
+                  ++ [ x:xs' | xs' <- shrinkOne xs ]
 
   removes k n xs
     | k > n     = []
@@ -182,40 +182,40 @@ instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
  where
   arbitrary = liftM2 (,) arbitrary arbitrary
-  
+
   shrink (x,y) = [ (x',y) | x' <- shrink x ]
               ++ [ (x,y') | y' <- shrink y ]
-              
+
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
       => Arbitrary (a,b,c)
  where
   arbitrary = liftM3 (,,) arbitrary arbitrary arbitrary
-  
+
   shrink (x,y,z) = [ (x',y,z) | x' <- shrink x ]
                 ++ [ (x,y',z) | y' <- shrink y ]
                 ++ [ (x,y,z') | z' <- shrink z ]
-              
+
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
       => Arbitrary (a,b,c,d)
  where
   arbitrary = liftM4 (,,,) arbitrary arbitrary arbitrary arbitrary
-  
+
   shrink (w,x,y,z) = [ (w',x,y,z) | w' <- shrink w ]
                   ++ [ (w,x',y,z) | x' <- shrink x ]
                   ++ [ (w,x,y',z) | y' <- shrink y ]
                   ++ [ (w,x,y,z') | z' <- shrink z ]
-              
+
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e)
       => Arbitrary (a,b,c,d,e)
  where
   arbitrary = liftM5 (,,,,) arbitrary arbitrary arbitrary arbitrary arbitrary
-  
+
   shrink (v,w,x,y,z) = [ (v',w,x,y,z) | v' <- shrink v ]
                     ++ [ (v,w',x,y,z) | w' <- shrink w ]
                     ++ [ (v,w,x',y,z) | x' <- shrink x ]
                     ++ [ (v,w,x,y',z) | y' <- shrink y ]
                     ++ [ (v,w,x,y,z') | z' <- shrink z ]
-              
+
 -- typical instance for primitive (numerical) types
 
 instance Arbitrary Integer where
@@ -279,7 +279,7 @@ instance Arbitrary Char where
               , not (isSpace a)
               , a)
               )
-    
+
 instance Arbitrary Float where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
@@ -350,13 +350,13 @@ arbitrarySizedBoundedIntegral =
 
 -- ** Helper functions for implementing shrink
 
--- | Returns no shrinking alternatives. 
+-- | Returns no shrinking alternatives.
 shrinkNothing :: a -> [a]
 shrinkNothing _ = []
 
 -- | Shrink an integral number.
 shrinkIntegral :: Integral a => a -> [a]
-shrinkIntegral x = 
+shrinkIntegral x =
   nub $
   [ -x
   | x < 0, -x > x
@@ -393,9 +393,9 @@ shrinkRealFrac x =
 class CoArbitrary a where
   -- | Used to generate a function of type @a -> c@. The implementation
   -- should use the first argument to perturb the random generator
-  -- given as the second argument. the returned generator 
+  -- given as the second argument. the returned generator
   -- is then used to generate the function result.
-  -- You can often use 'variant' and '><' to implement 
+  -- You can often use 'variant' and '><' to implement
   -- 'coarbitrary'.
   coarbitrary :: a -> Gen c -> Gen c
 
@@ -407,12 +407,12 @@ class CoArbitrary a where
   coarbitrary{| a :+: b |} (Inr y)   = variant (-1) . coarbitrary y
 -}
 
--- | Combine two generator perturbing functions, for example the 
+-- | Combine two generator perturbing functions, for example the
 -- results of calls to 'variant' or 'coarbitrary'.
-(><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a) 
+(><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a)
 (><) f g gen =
   do n <- arbitrary
-     (g . variant (n :: Int) . f) gen 
+     (g . variant (n :: Int) . f) gen
 
 -- for the sake of non-GHC compilers, I have added definitions
 -- for coarbitrary here.
@@ -421,7 +421,7 @@ instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b) where
   coarbitrary f gen =
     do xs <- arbitrary
        coarbitrary (map f xs) gen
-  
+
 instance CoArbitrary () where
   coarbitrary _ = id
 
@@ -441,7 +441,7 @@ instance CoArbitrary a => CoArbitrary (Maybe a) where
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Either a b) where
   coarbitrary (Left x)  = variant 0    . coarbitrary x
   coarbitrary (Right y) = variant (-1) . coarbitrary y
-  
+
 instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant (-1) . coarbitrary (x,xs)
@@ -460,14 +460,14 @@ instance (CoArbitrary a, CoArbitrary b)
  where
   coarbitrary (x,y) = coarbitrary x
                    >< coarbitrary y
-              
+
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c)
       => CoArbitrary (a,b,c)
  where
   coarbitrary (x,y,z) = coarbitrary x
                      >< coarbitrary y
                      >< coarbitrary z
-              
+
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d)
       => CoArbitrary (a,b,c,d)
  where
@@ -475,7 +475,7 @@ instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d)
                        >< coarbitrary y
                        >< coarbitrary z
                        >< coarbitrary v
-              
+
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrary e)
       => CoArbitrary (a,b,c,d,e)
  where
@@ -484,7 +484,7 @@ instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrar
                          >< coarbitrary z
                          >< coarbitrary v
                          >< coarbitrary w
-              
+
 -- typical instance for primitive (numerical) types
 
 instance CoArbitrary Integer where
