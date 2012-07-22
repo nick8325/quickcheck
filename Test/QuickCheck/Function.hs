@@ -32,6 +32,7 @@ module Test.QuickCheck.Function
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
+import Test.QuickCheck.Exception(discard)
 
 import Data.Char
 import Data.Word
@@ -89,41 +90,6 @@ table (Unit c)    = [ ((), c) ]
 table Nil         = []
 table (Table xys) = xys
 table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
-
--- finding a default result
-
--- breadth-first search (can't use depth-first search!)
-data Steps a = Step (Steps a) | Fail | Result a
-
-(#) :: Steps a -> Steps a -> Steps a
-Result x # t        = Result x
-s        # Result y = Result y
-Fail     # t        = t
-s        # Fail     = s
-Step s   # Step t   = Step (s # t)
-
-instance Monad Steps where
-  Step s   >>= k = Step (s >>= k)
-  Result x >>= k = k x
-  Fail     >>= k = Fail
-
-  return x = Result x
-
-run :: Steps a -> Maybe a
-run (Step s)   = run s
-run (Result x) = Just x
-run Fail       = Nothing
-
-defaultSteps :: (a :-> c) -> Steps c
-defaultSteps (Pair p)          = defaultSteps p >>= defaultSteps
-defaultSteps (p :+: q)         = Step (defaultSteps p # defaultSteps q)
-defaultSteps (Unit c)          = Result c
-defaultSteps (Table ((_,y):_)) = Result y
-defaultSteps (Map _ _ p)       = defaultSteps p
-defaultSteps _                 = Fail
-
-defaultResult :: (a :-> c) -> Maybe c
-defaultResult = run . defaultSteps
 
 --------------------------------------------------------------------------
 -- Function
@@ -241,8 +207,8 @@ shrinkFun shr (Pair p) =
   pair p   = Pair p
 
 shrinkFun shr (p :+: q) =
-  [ p .+. Nil | not (isNil q) ] ++
-  [ Nil .+. q | not (isNil p) ] ++
+  [ p .+. Nil `whenever` not (isNil q) ] ++
+  [ Nil .+. q `whenever` not (isNil p) ] ++
   [ p  .+. q' | q' <- shrinkFun shr q ] ++
   [ p' .+. q  | p' <- shrinkFun shr p ]
  where
@@ -252,6 +218,9 @@ shrinkFun shr (p :+: q) =
 
   Nil .+. Nil = Nil
   p   .+. q   = p :+: q
+
+  p `whenever` True = p
+  p `whenever` False = discard
 
 shrinkFun shr (Unit c) =
   [ Nil ] ++
@@ -291,12 +260,12 @@ instance (Show a, Show b) => Show (Fun a b) where
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
   arbitrary =
     do p <- arbitrary
-       return (mkFun p (fromJust (defaultResult p)))
+       d <- arbitrary
+       return (mkFun p d)
 
   shrink (Fun (p,d) _) =
-       [ mkFun p' d' | p' <- shrink p, Just d' <- [defaultResult p'] ]
-    ++ [ mkFun p' d  | p' <- shrink p ]
-    ++ [ mkFun p d'  | d' <- shrink d ]
+       [ mkFun p' d | p' <- shrink p ]
+    ++ [ mkFun p d' | d' <- shrink d ]
 
 --------------------------------------------------------------------------
 -- the end.
