@@ -126,9 +126,9 @@ quickCheckWithResult a p =
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
           | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
             n >= maxSuccess a ||
-            maxSuccess a `mod` maxSize a == 0 = n `mod` maxSize a + d `div` 10
+            maxSuccess a `mod` maxSize a == 0 = (n `mod` maxSize a + d `div` 10) `min` maxSize a
           | otherwise =
-            (n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10
+            ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10) `min` maxSize a
         n `roundTo` m = (n `div` m) * m
         at0 f s 0 0 = s
         at0 f s n d = f n d
