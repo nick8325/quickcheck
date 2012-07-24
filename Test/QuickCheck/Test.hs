@@ -105,20 +105,21 @@ quickCheckWithResult a p =
      rnd <- case replay a of
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd
-     test MkState{ terminal          = tm
-                 , maxSuccessTests   = if exhaustive p then 1 else maxSuccess a
-                 , maxDiscardedTests = if exhaustive p then maxDiscardRatio a else maxDiscardRatio a * maxSuccess a
-                 , computeSize       = case replay a of
-                                         Nothing    -> computeSize'
-                                         Just (_,s) -> computeSize' `at0` s
-                 , numSuccessTests   = 0
-                 , numDiscardedTests = 0
-                 , collected         = []
-                 , expectedFailure   = False
-                 , randomSeed        = rnd
-                 , numSuccessShrinks = 0
-                 , numTryShrinks     = 0
-                 , numTotTryShrinks  = 0
+     test MkState{ terminal                  = tm
+                 , maxSuccessTests           = if exhaustive p then 1 else maxSuccess a
+                 , maxDiscardedTests         = if exhaustive p then maxDiscardRatio a else maxDiscardRatio a * maxSuccess a
+                 , computeSize               = case replay a of
+                                                 Nothing    -> computeSize'
+                                                 Just (_,s) -> computeSize' `at0` s
+                 , numSuccessTests           = 0
+                 , numDiscardedTests         = 0
+                 , numRecentlyDiscardedTests = 0
+                 , collected                 = []
+                 , expectedFailure           = False
+                 , randomSeed                = rnd
+                 , numSuccessShrinks         = 0
+                 , numTryShrinks             = 0
+                 , numTotTryShrinks          = 0
                  } (unGen (property p))
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
@@ -215,7 +216,7 @@ runATest st f =
                  ]
        ++ ")"
         )
-     let size = computeSize st (numSuccessTests st) (numDiscardedTests st)
+     let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
 
@@ -225,17 +226,19 @@ runATest st f =
      case res of
        MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
          do continue doneTesting
-              st{ numSuccessTests = numSuccessTests st + 1
-                , randomSeed      = rnd2
-                , collected       = stamp : collected st
-                , expectedFailure = expect
+              st{ numSuccessTests           = numSuccessTests st + 1
+                , numRecentlyDiscardedTests = 0
+                , randomSeed                = rnd2
+                , collected                 = stamp : collected st
+                , expectedFailure           = expect
                 } f
 
        MkResult{ok = Nothing, expect = expect} -> -- discarded test
          do continue giveUp
-              st{ numDiscardedTests = numDiscardedTests st + 1
-                , randomSeed        = rnd2
-                , expectedFailure   = expect
+              st{ numDiscardedTests         = numDiscardedTests st + 1
+                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
+                , randomSeed                = rnd2
+                , expectedFailure           = expect
                 } f
 
        MkResult{ok = Just False} -> -- failed test
