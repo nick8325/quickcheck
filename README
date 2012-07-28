@@ -16,6 +16,9 @@ If you get errors about Template Haskell, try
 
 $ cabal install -f-templateHaskell
 
+but please report this as a bug, letting us know about your GHC
+installation.
+
 === Bugs ===
 
 Please report bugs to the QuickCheck mailing list at
