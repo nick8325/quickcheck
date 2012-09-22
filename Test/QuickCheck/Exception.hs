@@ -14,12 +14,21 @@ module Test.QuickCheck.Exception where
 #if __GLASGOW_HASKELL__ < 613
 #define GHCI_INTERRUPTED_EXCEPTION
 #endif
+
+#if __GLASGOW_HASKELL__ > 700
+#define NO_BASE_3
+#endif
 #endif
 
 #if defined(OLD_EXCEPTIONS)
 import Control.Exception(evaluate, try, Exception(..), throw)
 #else
-import Control.Exception.Extensible(evaluate, try, SomeException(SomeException), ErrorCall(..), throw
+#if defined(NO_BASE_3)
+import Control.Exception
+#else
+import Control.Exception.Extensible
+#endif
+  (evaluate, try, SomeException(SomeException), ErrorCall(..), throw
 #if defined(GHC_INTERRUPT)
   , AsyncException(UserInterrupt)
 #endif
