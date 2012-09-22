@@ -15,7 +15,7 @@ module Test.QuickCheck.Exception where
 #define GHCI_INTERRUPTED_EXCEPTION
 #endif
 
-#if __GLASGOW_HASKELL__ > 700
+#if __GLASGOW_HASKELL__ >= 700
 #define NO_BASE_3
 #endif
 #endif
