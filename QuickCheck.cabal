@@ -28,13 +28,13 @@ Description:
   data generators.
 
 source-repository head
-  type:     darcs
-  location: http://code.haskell.org/QuickCheck/devel
+  type:     git
+  location: git://github.com/nick8325/quickcheck
 
 source-repository this
-  type:     darcs
-  location: http://code.haskell.org/QuickCheck/stable
-  tag:      2.4.2
+  type:     git
+  location: git://github.com/nick8325/quickcheck
+  tag:      2.5.1.1
 
 flag base3
   Description: Choose the new smaller, split-up base package.
