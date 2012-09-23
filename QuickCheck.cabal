@@ -29,11 +29,11 @@ Description:
 
 source-repository head
   type:     git
-  location: git://github.com/nick8325/quickcheck
+  location: https://github.com/nick8325/quickcheck
 
 source-repository this
   type:     git
-  location: git://github.com/nick8325/quickcheck
+  location: https://github.com/nick8325/quickcheck
   tag:      2.5.1.1
 
 flag base3
