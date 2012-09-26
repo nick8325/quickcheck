@@ -1,0 +1,62 @@
+#!/bin/zsh
+
+set -e
+
+sudo true
+
+last-word() {
+    last=
+    for i in $*; do
+        last=$i
+    done
+    print $last
+}
+
+install-ghc() {
+    ver=${1/ghc-/}
+    print "===> GHC v$ver"
+    sudo stow -d /opt -t /usr/local $1
+    rehash
+    if [[ $(last-word $(ghc --version)) != $ver ]]; then
+        print 'Version mismatch!'
+        exit 1
+    fi
+}
+
+remove-ghc() {
+    sudo stow -d /opt -t /usr/local -D $1
+    rehash
+    print
+}
+
+find-package() {
+    last-word $(sed '/using$/{N;s/\n/ /}' log|grep "using $1")
+}
+
+run-cabal() {
+    rm -rf dist
+    if cabal install -v --reinstall --force-reinstalls $* >& log; then
+        print "OK, $(find-package base) $(find-package extensible-exceptions)"
+    else
+        print 'Failed!'
+    fi
+}
+
+build-quickcheck() {
+    print -n "Base-4: "
+    run-cabal -fbase4
+    print -n "Base-3: "
+    run-cabal -f-base4
+    print -n "No options: "
+    run-cabal
+}
+
+for i in /opt/ghc-*; do
+    ghc=$(basename $i)
+    install-ghc $ghc
+    build-quickcheck
+    remove-ghc $ghc
+done
+
+print "===> System GHC: v$(last-word $(ghc --version))"
+build-quickcheck
