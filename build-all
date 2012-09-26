@@ -35,7 +35,7 @@ find-package() {
 
 run-cabal() {
     rm -rf dist
-    if cabal install -v --reinstall --force-reinstalls $* >& log; then
+    if cabal install -v --reinstall --force-reinstalls --disable-library-profiling $* >& log; then
         print "OK, $(find-package base) $(find-package extensible-exceptions)"
     else
         print 'Failed!'
