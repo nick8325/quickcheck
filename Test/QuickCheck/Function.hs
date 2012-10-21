@@ -32,7 +32,6 @@ module Test.QuickCheck.Function
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
-import Test.QuickCheck.Exception(discard)
 
 import Data.Char
 import Data.Word
@@ -207,8 +206,8 @@ shrinkFun shr (Pair p) =
   pair p   = Pair p
 
 shrinkFun shr (p :+: q) =
-  [ p .+. Nil `whenever` not (isNil q) ] ++
-  [ Nil .+. q `whenever` not (isNil p) ] ++
+  [ p .+. Nil | not (isNil q) ] ++
+  [ Nil .+. q | not (isNil p) ] ++
   [ p  .+. q' | q' <- shrinkFun shr q ] ++
   [ p' .+. q  | p' <- shrinkFun shr p ]
  where
@@ -218,9 +217,6 @@ shrinkFun shr (p :+: q) =
 
   Nil .+. Nil = Nil
   p   .+. q   = p :+: q
-
-  p `whenever` True = p
-  p `whenever` False = discard
 
 shrinkFun shr (Unit c) =
   [ Nil ] ++
