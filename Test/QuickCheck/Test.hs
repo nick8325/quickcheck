@@ -101,8 +101,7 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult a p =
-  do tm <- if chatty a then newStdioTerminal else newNullTerminal
+quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
      rnd <- case replay a of
               Nothing      -> newStdGen
               Just (rnd,_) -> return rnd

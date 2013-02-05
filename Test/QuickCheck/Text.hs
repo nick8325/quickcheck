@@ -10,8 +10,8 @@ module Test.QuickCheck.Text
   , bold
 
   , newTerminal
-  , newStdioTerminal
-  , newNullTerminal
+  , withStdioTerminal
+  , withNullTerminal
   , terminalOutput
   , handle
   , Terminal
@@ -24,15 +24,20 @@ module Test.QuickCheck.Text
 --------------------------------------------------------------------------
 -- imports
 
+import Control.Applicative
 import System.IO
   ( hFlush
   , hPutStr
   , stdout
   , stderr
   , Handle
+  , BufferMode (..)
+  , hGetBuffering
+  , hSetBuffering
   )
 
 import Data.IORef
+import Test.QuickCheck.Exception
 
 --------------------------------------------------------------------------
 -- literal string
@@ -89,17 +94,25 @@ newTerminal out err =
   do ref <- newIORef (return ())
      return (MkTerminal ref out err)
 
-newStdioTerminal :: IO Terminal
-newStdioTerminal = do
+withBuffering :: IO a -> IO a
+withBuffering action = do
+  mode <- hGetBuffering stderr
+  -- By default stderr is unbuffered.  This is very slow, hence we explicitly
+  -- enable line buffering.
+  hSetBuffering stderr LineBuffering
+  action `finally` hSetBuffering stderr mode
+
+withStdioTerminal :: (Terminal -> IO a) -> IO a
+withStdioTerminal action = do
   out <- output (handle stdout)
   err <- output (handle stderr)
-  newTerminal out err
+  withBuffering (newTerminal out err >>= action)
 
-newNullTerminal :: IO Terminal
-newNullTerminal = do
+withNullTerminal :: (Terminal -> IO a) -> IO a
+withNullTerminal action = do
   out <- output (const (return ()))
   err <- output (const (return ()))
-  newTerminal out err
+  newTerminal out err >>= action
 
 terminalOutput :: Terminal -> IO String
 terminalOutput (MkTerminal _ out _) = get out
