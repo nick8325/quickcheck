@@ -153,8 +153,7 @@ putPart tm@(MkTerminal _ out _) s =
 
 putTemp tm@(MkTerminal _ _ err) s =
   do flush tm
-     put err s
-     put err [ '\b' | _ <- s ]
+     put err (s ++ [ '\b' | _ <- s ])
      postpone tm $
        put err ( [ ' ' | _ <- s ]
               ++ [ '\b' | _ <- s ]
@@ -162,8 +161,7 @@ putTemp tm@(MkTerminal _ _ err) s =
 
 putLine tm@(MkTerminal _ out _) s =
   do flush tm
-     put out s
-     put out "\n"
+     put out (s ++ "\n")
 
 --------------------------------------------------------------------------
 -- the end.
