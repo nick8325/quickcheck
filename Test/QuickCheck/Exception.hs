@@ -20,19 +20,10 @@ module Test.QuickCheck.Exception where
 #endif
 #endif
 
-#if defined(OLD_EXCEPTIONS)
-import Control.Exception(evaluate, try, Exception(..), throw)
+#if defined(OLD_EXCEPTIONS) || defined(NO_BASE_3)
+import qualified Control.Exception as E
 #else
-#if defined(NO_BASE_3)
-import Control.Exception
-#else
-import Control.Exception.Extensible
-#endif
-  (evaluate, try, SomeException(SomeException), ErrorCall(..), throw
-#if defined(GHC_INTERRUPT)
-  , AsyncException(UserInterrupt)
-#endif
-  )
+import qualified Control.Exception.Extensible as E
 #endif
 
 #if defined(GHC_INTERRUPT)
@@ -46,9 +37,9 @@ import Data.Dynamic
 #endif
 
 #if defined(OLD_EXCEPTIONS)
-type AnException = Control.Exception.Exception
+type AnException = E.Exception
 #else
-type AnException = SomeException
+type AnException = E.SomeException
 #endif
 
 --------------------------------------------------------------------------
@@ -58,7 +49,7 @@ tryEvaluate :: a -> IO (Either AnException a)
 tryEvaluate x = tryEvaluateIO (return x)
 
 tryEvaluateIO :: IO a -> IO (Either AnException a)
-tryEvaluateIO m = try (m >>= evaluate)
+tryEvaluateIO m = E.try (m >>= E.evaluate)
 --tryEvaluateIO m = Right `fmap` m
 
 -- Test if an exception was a ^C.
@@ -67,13 +58,13 @@ isInterrupt :: AnException -> Bool
 
 #if defined(GHC_INTERRUPT)
 #if defined(OLD_EXCEPTIONS)
-isInterrupt (DynException e) = fromDynamic e == Just Interrupted
+isInterrupt (E.DynException e) = fromDynamic e == Just Interrupted
 isInterrupt _ = False
 #elif defined(GHCI_INTERRUPTED_EXCEPTION)
-isInterrupt (SomeException e) =
-  cast e == Just Interrupted || cast e == Just UserInterrupt
+isInterrupt (E.SomeException e) =
+  cast e == Just Interrupted || cast e == Just E.UserInterrupt
 #else
-isInterrupt (SomeException e) = cast e == Just UserInterrupt
+isInterrupt (E.SomeException e) = cast e == Just E.UserInterrupt
 #endif
 
 #else /* !defined(GHC_INTERRUPT) */
@@ -87,20 +78,22 @@ isInterrupt _ = False
 discard :: a
 
 isDiscard :: AnException -> Bool
-(discard, isDiscard) = (throw (ErrorCall msg), isDiscard)
+(discard, isDiscard) = (E.throw (E.ErrorCall msg), isDiscard)
  where
   msg = "DISCARD. " ++
         "You should not see this exception, it is internal to QuickCheck."
 #if defined(OLD_EXCEPTIONS)
-  isDiscard (ErrorCall msg') = msg' == msg
+  isDiscard (E.ErrorCall msg') = msg' == msg
   isDiscard _ = False
 #else
-  isDiscard (SomeException e) =
+  isDiscard (E.SomeException e) =
     case cast e of
-      Just (ErrorCall msg') -> msg' == msg
+      Just (E.ErrorCall msg') -> msg' == msg
       _ -> False
 #endif
 
+finally :: IO a -> IO b -> IO a
+finally = E.finally
 
 --------------------------------------------------------------------------
 -- the end.
