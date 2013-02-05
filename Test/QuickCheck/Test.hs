@@ -60,6 +60,7 @@ data Result
     , usedSeed       :: StdGen         -- ^ what seed was used
     , usedSize       :: Int            -- ^ what was the test size
     , reason         :: String         -- ^ what was the reason
+    , interrupted    :: Bool           -- ^ did the user press ctrl-C?
     , labels         :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
     , output         :: String         -- ^ printed output
     }
@@ -258,6 +259,7 @@ runATest st f =
                             , numShrinks  = numShrinks
                             , output      = theOutput
                             , reason      = P.reason res
+                            , interrupted = P.interrupted res
                             , labels      = summary st
                             }
  where
