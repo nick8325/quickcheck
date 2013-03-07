@@ -110,6 +110,23 @@ instance (Function a, Function b) => Function (a,b) where
 instance (Function a, Function b) => Function (Either a b) where
   function f = function (f . Left) :+: function (f . Right)
 
+-- tuple convenience instances
+
+instance (Function a, Function b, Function c) => Function (a,b,c) where
+  function = functionMap (\(a,b,c) -> (a,(b,c))) (\(a,(b,c)) -> (a,b,c))
+
+instance (Function a, Function b, Function c, Function d) => Function (a,b,c,d) where
+  function = functionMap (\(a,b,c,d) -> (a,(b,c,d))) (\(a,(b,c,d)) -> (a,b,c,d))
+
+instance (Function a, Function b, Function c, Function d, Function e) => Function (a,b,c,d,e) where
+  function = functionMap (\(a,b,c,d,e) -> (a,(b,c,d,e))) (\(a,(b,c,d,e)) -> (a,b,c,d,e))
+
+instance (Function a, Function b, Function c, Function d, Function e, Function f) => Function (a,b,c,d,e,f) where
+  function = functionMap (\(a,b,c,d,e,f) -> (a,(b,c,d,e,f))) (\(a,(b,c,d,e,f)) -> (a,b,c,d,e,f))
+
+instance (Function a, Function b, Function c, Function d, Function e, Function f, Function g) => Function (a,b,c,d,e,f,g) where
+  function = functionMap (\(a,b,c,d,e,f,g) -> (a,(b,c,d,e,f,g))) (\(a,(b,c,d,e,f,g)) -> (a,b,c,d,e,f,g))
+
 -- other instances
 
 functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
