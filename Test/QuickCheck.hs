@@ -79,6 +79,7 @@ module Test.QuickCheck
     -- * Properties
   , Property, Prop, Testable(..)
     -- ** Property combinators
+  , Discard(..)
   , mapSize
   , shrinking
   , (==>)

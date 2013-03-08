@@ -63,6 +63,12 @@ class Testable prop where
   exhaustive :: prop -> Bool
   exhaustive _ = False
 
+data Discard = Discard
+
+instance Testable Discard where
+  property _ = property rejected
+  exhaustive _ = True
+
 instance Testable Bool where
   property = property . liftBool
   exhaustive _ = True
@@ -329,7 +335,7 @@ cover False _ _ = property
 -- the first argument is 'False' (in which case the test case is discarded),
 -- or if the given property holds.
 (==>) :: Testable prop => Bool -> prop -> Property
-False ==> _ = property rejected
+False ==> _ = property Discard
 True  ==> p = property p
 
 -- | Considers a property failed if it does not complete within
