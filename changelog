@@ -3,13 +3,15 @@ QuickCheck (unreleased)
 
 	* Add Discard data type and a Testable instance for discarding test cases.
 
-QuickCheck (2.6)
+QuickCheck (2.6) 2013-03-07
 
 	* Add convenience Function instances for up to 7-tuples
 	* Make stderr unbuffered to reduce console I/O.
 	* Return a flag to say whether the test case was interrupted.
 
-QuickCheck (2.5)
+QuickCheck (2.5) 2012-06-18
+
+	Changes since QuickCheck 2.4.1
 
 	* Replace maxDiscard with maxDiscardRatio
 	* Remove Testable () instance.
