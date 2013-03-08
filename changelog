@@ -1,0 +1,5 @@
+QuickCheck (unreleased)
+
+  Changes since QuickCheck 2.6
+
+  * Add Discard data type and a Testable instance for discarding test cases.
