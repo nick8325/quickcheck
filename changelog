@@ -1,27 +1,26 @@
+
 QuickCheck (unreleased)
 
-  Changes since QuickCheck 2.6
+	* Add Discard data type and a Testable instance for discarding test cases.
 
-  * Add Discard data type and a Testable instance for discarding test cases.
+QuickCheck (2.6)
 
-  Changes since QuickCheck 2.5
+	* Add convenience Function instances for up to 7-tuples
+	* Make stderr unbuffered to reduce console I/O.
+	* Return a flag to say whether the test case was interrupted.
 
-  * Add convenience Function instances for up to 7-tuples
-  * Make stderr unbuffered to reduce console I/O.
-  * Return a flag to say whether the test case was interrupted.
+QuickCheck (2.5)
 
-  Changes since QuickCheck 2.4.1
-
-  * Replace maxDiscard with maxDiscardRatio
-  * Remove Testable () instance.
-  * Added a 'discard' exception that discards the current test case
-  * Add accessors for modifiers (where it makes sense)
-  * Rename 'stop' to 'abort' to avoid a name clash
-  * Added a 'once' combinator
-  * If a property is of type Bool, only run it once
-  * Add coarbitraryEnum to Test.QuickCheck module.
-  * Add 'coarbitrary' helper for Enums.
-  * Rejiggled the formatting code to support multi-line error messages
-  * Add instances for Ordering and Fixed.
-  * Added arbitraryBoundedEnum generator.
-  * Add verboseCheckAll and polyverboseCheck function for usability.
+	* Replace maxDiscard with maxDiscardRatio
+	* Remove Testable () instance.
+	* Added a 'discard' exception that discards the current test case
+	* Add accessors for modifiers (where it makes sense)
+	* Rename 'stop' to 'abort' to avoid a name clash
+	* Added a 'once' combinator
+	* If a property is of type Bool, only run it once
+	* Add coarbitraryEnum to Test.QuickCheck module.
+	* Add 'coarbitrary' helper for Enums.
+	* Rejiggled the formatting code to support multi-line error messages
+	* Add instances for Ordering and Fixed.
+	* Added arbitraryBoundedEnum generator (thanks to Antoine Latter).
+	* Add verboseCheckAll and polyverboseCheck function for usability.
