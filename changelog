@@ -7,35 +7,21 @@ QuickCheck (unreleased)
   Changes since QuickCheck 2.5
 
   * Add convenience Function instances for up to 7-tuples
-  * Make stderr unbuffered.
-  * Return whether the test case was interrupted.
-  * Fix a bug with showable functions.
-  * Fix bounds in extensible-exceptions.
-  * Don't use Control.Exception.Extensible if only base-4 is present.
-  * Limit test size to maxSize.
-  * Don't permanently increase the size when a test is discarded
+  * Make stderr unbuffered to reduce console I/O.
+  * Return a flag to say whether the test case was interrupted.
 
   Changes since QuickCheck 2.4.1
 
   * Replace maxDiscard with maxDiscardRatio
   * Remove Testable () instance.
-  * Don't die if a generator throws an exception
-  * added a 'discard' exception that discards the current test case
+  * Added a 'discard' exception that discards the current test case
   * Add accessors for modifiers (where it makes sense)
-  * Added missing case in runQuickCheckAll.
   * Rename 'stop' to 'abort' to avoid a name clash
-  * Fixes for hugs
   * Added a 'once' combinator
   * If a property is of type Bool, only run it once
-  * Make Positive and NonNegatve live up to their names
   * Add coarbitraryEnum to Test.QuickCheck module.
   * Add 'coarbitrary' helper for Enums.
-  * Don't print number of shrink attempts
   * Rejiggled the formatting code to support multi-line error messages
-  * Add printing of number of unsuccessful shrinking attempts at the end of testing
-  * Put error messages on one line even when using failure{} directly.
   * Add instances for Ordering and Fixed.
-  * Added arbitraryBoundedEnum generator (thanks to Antoine Latter).
+  * Added arbitraryBoundedEnum generator.
   * Add verboseCheckAll and polyverboseCheck function for usability.
-  * Fix build with GHC 7.3+
-  * Don't always use the same size when replaying if the test passes
