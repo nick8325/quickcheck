@@ -4,7 +4,7 @@ This is QuickCheck 2, a library for random testing of program properties.
 
 Installation is done with Cabal:
 
-$ cabal install
+$ cabal install quickcheck
 
 or, if you're missing the cabal command,
 
