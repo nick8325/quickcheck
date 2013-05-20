@@ -6,7 +6,7 @@ QuickCheck (unreleased)
 QuickCheck (2.6) 2013-03-07
 
 	* Add convenience Function instances for up to 7-tuples
-	* Make stderr unbuffered to reduce console I/O.
+	* Make stderr line buffered to reduce console I/O.
 	* Return a flag to say whether the test case was interrupted.
 
 QuickCheck (2.5) 2012-06-18
