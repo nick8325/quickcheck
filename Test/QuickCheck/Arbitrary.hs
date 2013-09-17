@@ -223,7 +223,7 @@ instance Arbitrary Integer where
   shrink    = shrinkIntegral
 
 instance Arbitrary Int where
-  arbitrary = arbitrarySizedBoundedIntegral
+  arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
 instance Arbitrary Int8 where

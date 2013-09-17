@@ -45,6 +45,8 @@ module Test.QuickCheck.Modifiers
   , Positive(..)
   , NonZero(..)
   , NonNegative(..)
+  , Large(..)
+  , Small(..)
   , Smart(..)
   , Shrink2(..)
   , Shrinking(..)
@@ -178,6 +180,33 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     | x' <- shrink x
     , x' >= 0
     ]
+
+--------------------------------------------------------------------------
+-- | @Large x@: generates values of @x@ drawn from the entire range
+-- instead of just small ones.
+newtype Large a = Large {getLarge :: a}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
+
+instance (Integral a, Bounded a) => Arbitrary (Large a) where
+  arbitrary = fmap Large arbitrarySizedBoundedIntegral
+  shrink (Large x) = fmap Large (shrinkIntegral x)
+
+--------------------------------------------------------------------------
+-- | @Small x@: generates only small values of @x@.
+newtype Small a = Small {getSmall :: a}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum
+#endif
+          )
+
+instance (Integral a, Bounded a) => Arbitrary (Small a) where
+  arbitrary = fmap Small arbitraryBoundedIntegral
+  shrink (Small x) = map Small (shrinkIntegral x)
 
 --------------------------------------------------------------------------
 -- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
