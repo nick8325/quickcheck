@@ -1,9 +1,24 @@
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Random where
 
+#ifdef USE_TF_RANDOM
+import System.Random
+import System.Random.TF hiding (split, next)
+
+type TheGen = TFGen
+
+newTheGen :: IO TFGen
+newTheGen = fmap seedTFGen mkSeedTime
+#else
 import System.Random
 
-newtype QCGen = QCGen StdGen deriving (Read, Show)
+type TheGen = StdGen
+
+newTheGen :: IO StdGen
+newTheGen = newStdGen
+#endif
+
+newtype QCGen = QCGen TheGen deriving (Read, Show)
 
 instance RandomGen QCGen where
   split (QCGen g) = (QCGen g1, QCGen g2)
@@ -15,4 +30,4 @@ instance RandomGen QCGen where
       (x, g') = next g
 
 newQCGen :: IO QCGen
-newQCGen = fmap QCGen newStdGen
+newQCGen = fmap QCGen newTheGen

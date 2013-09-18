@@ -45,6 +45,10 @@ flag base4
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
 
+flag tf-random
+  Description: Use the tf-random package for random number generation.
+  Default: False
+
 library
   -- Choose which library versions to use.
   if flag(base4)
@@ -54,6 +58,10 @@ library
       Build-depends: base >= 3 && < 4, random
     else
       Build-depends: base < 3
+
+  if flag(tf-random)
+    Build-depends: tf-random
+    cpp-options: -DUSE_TF_RANDOM
 
   -- On old versions of GHC use the ghc package to catch ctrl-C.
   if impl(ghc >= 6.7) && impl(ghc < 6.13)
