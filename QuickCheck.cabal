@@ -74,7 +74,8 @@ library
     Test.QuickCheck.Test,
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
-    Test.QuickCheck.State
+    Test.QuickCheck.State,
+    Test.QuickCheck.Random
 
   Extensions: CPP
 

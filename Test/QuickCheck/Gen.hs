@@ -21,10 +21,12 @@ import Control.Applicative
   ( Applicative(..)
   )
 
+import Test.QuickCheck.Random
+
 --------------------------------------------------------------------------
 -- ** Generator type
 
-newtype Gen a = MkGen{ unGen :: StdGen -> Int -> a }
+newtype Gen a = MkGen{ unGen :: QCGen -> Int -> a }
 
 instance Functor Gen where
   fmap f (MkGen h) =
@@ -78,7 +80,7 @@ promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' (MkGen m) =
-  do rnd0 <- newStdGen
+  do rnd0 <- newQCGen
      let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
      return [(m r n) | (r,n) <- rnds rnd0 `zip` [0,2..20] ]
 

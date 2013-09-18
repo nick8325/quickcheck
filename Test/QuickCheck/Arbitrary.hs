@@ -32,6 +32,7 @@ module Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
+import System.Random(Random)
 import Test.QuickCheck.Gen
 
 {-
@@ -66,10 +67,6 @@ import Data.Ratio
 
 import Data.Complex
   ( Complex((:+)) )
-
-import System.Random
-  ( Random
-  )
 
 import Data.List
   ( sort

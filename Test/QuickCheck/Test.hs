@@ -9,12 +9,8 @@ import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
 import Test.QuickCheck.Exception
-
-import System.Random
-  ( split
-  , newStdGen
-  , StdGen
-  )
+import Test.QuickCheck.Random
+import System.Random(split)
 
 import Data.Char
   ( isSpace
@@ -34,11 +30,11 @@ import Data.List
 -- | Args specifies arguments to the QuickCheck driver
 data Args
   = Args
-  { replay          :: Maybe (StdGen,Int) -- ^ should we replay a previous test?
-  , maxSuccess      :: Int                -- ^ maximum number of successful tests before succeeding
-  , maxDiscardRatio :: Int                -- ^ maximum number of discarded tests per successful test before giving up
-  , maxSize         :: Int                -- ^ size to use for the biggest test cases
-  , chatty          :: Bool               -- ^ whether to print anything
+  { replay          :: Maybe (QCGen,Int) -- ^ should we replay a previous test?
+  , maxSuccess      :: Int               -- ^ maximum number of successful tests before succeeding
+  , maxDiscardRatio :: Int               -- ^ maximum number of discarded tests per successful test before giving up
+  , maxSize         :: Int               -- ^ size to use for the biggest test cases
+  , chatty          :: Bool              -- ^ whether to print anything
   }
  deriving ( Show, Read )
 
@@ -57,7 +53,7 @@ data Result
   | Failure                            -- failed test run
     { numTests       :: Int            -- ^ number of tests performed
     , numShrinks     :: Int            -- ^ number of successful shrinking steps performed
-    , usedSeed       :: StdGen         -- ^ what seed was used
+    , usedSeed       :: QCGen         -- ^ what seed was used
     , usedSize       :: Int            -- ^ what was the test size
     , reason         :: String         -- ^ what was the reason
     , interrupted    :: Bool           -- ^ did the user press ctrl-C?
@@ -103,7 +99,7 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
      rnd <- case replay a of
-              Nothing      -> newStdGen
+              Nothing      -> newQCGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal                  = tm
                  , maxSuccessTests           = if exhaustive p then 1 else maxSuccess a
@@ -156,13 +152,13 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 --------------------------------------------------------------------------
 -- main test loop
 
-test :: State -> (StdGen -> Int -> Prop) -> IO Result
+test :: State -> (QCGen -> Int -> Prop) -> IO Result
 test st f
   | numSuccessTests st   >= maxSuccessTests st   = doneTesting st f
   | numDiscardedTests st >= maxDiscardedTests st = giveUp st f
   | otherwise                                    = runATest st f
 
-doneTesting :: State -> (StdGen -> Int -> Prop) -> IO Result
+doneTesting :: State -> (QCGen -> Int -> Prop) -> IO Result
 doneTesting st _f =
   do -- CALLBACK done_testing?
      if expectedFailure st then
@@ -189,7 +185,7 @@ doneTesting st _f =
                                  numTests = numSuccessTests st,
                                  output = theOutput }
 
-giveUp :: State -> (StdGen -> Int -> Prop) -> IO Result
+giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
 giveUp st _f =
   do -- CALLBACK gave_up?
      putPart (terminal st)
@@ -205,7 +201,7 @@ giveUp st _f =
                   , output   = theOutput
                   }
 
-runATest :: State -> (StdGen -> Int -> Prop) -> IO Result
+runATest :: State -> (QCGen -> Int -> Prop) -> IO Result
 runATest st f =
   do -- CALLBACK before_test
      putTemp (terminal st)

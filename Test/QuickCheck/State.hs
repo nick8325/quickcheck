@@ -1,7 +1,7 @@
 module Test.QuickCheck.State where
 
 import Test.QuickCheck.Text
-import System.Random( StdGen )
+import Test.QuickCheck.Random
 
 --------------------------------------------------------------------------
 -- State
@@ -23,7 +23,7 @@ data State
   , numRecentlyDiscardedTests :: Int               -- ^ the number of discarded tests since the last successful test
   , collected                 :: [[(String,Int)]]  -- ^ all labels that have been collected so far
   , expectedFailure           :: Bool              -- ^ indicates if the property is expected to fail
-  , randomSeed                :: StdGen            -- ^ the current random seed
+  , randomSeed                :: QCGen             -- ^ the current random seed
 
                                                    -- shrinking
   , numSuccessShrinks         :: Int               -- ^ number of successful shrinking steps so far
