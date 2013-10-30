@@ -1,7 +1,12 @@
-
 QuickCheck (unreleased)
 
 	* Add Discard data type and a Testable instance for discarding test cases.
+	* Make Int generator generate only fairly small numbers.
+	* Add modifiers Small and Large for controlling the distribution
+	  of integers.
+	* Define an abstract type QCGen which is used instead of StdGen.
+	* Add cabal flag -ftf-random to use the tf-random package for
+	  better distribution of random numbers.
 
 QuickCheck (2.6) 2013-03-07
 
