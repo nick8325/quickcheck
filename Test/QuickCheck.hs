@@ -54,6 +54,7 @@ module Test.QuickCheck
   , shrinkNothing
   , shrinkIntegral
   , shrinkRealFrac
+  , shrinkRealFracToInteger
     -- ** Helper functions for implementing coarbitrary
   , variant
   , (><)
