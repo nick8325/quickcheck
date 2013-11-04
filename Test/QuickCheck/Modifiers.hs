@@ -73,6 +73,9 @@ newtype Blind a = Blind a
 #endif
           )
 
+instance Functor Blind where
+  fmap f (Blind x) = Blind (f x)
+
 instance Show (Blind a) where
   show _ = "(*)"
 
@@ -90,6 +93,9 @@ newtype Fixed a = Fixed a
 #endif
           )
 
+instance Functor Fixed where
+  fmap f (Fixed x) = Fixed (f x)
+
 instance Arbitrary a => Arbitrary (Fixed a) where
   arbitrary = Fixed `fmap` arbitrary
 
@@ -99,6 +105,9 @@ instance Arbitrary a => Arbitrary (Fixed a) where
 -- | @Ordered xs@: guarantees that xs is ordered.
 newtype OrderedList a = Ordered {getOrdered :: [a]}
  deriving ( Eq, Ord, Show, Read )
+
+instance Functor OrderedList where
+  fmap f (Ordered x) = Ordered (map f x)
 
 instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
   arbitrary = Ordered `fmap` orderedList
@@ -113,6 +122,9 @@ instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
 -- | @NonEmpty xs@: guarantees that xs is non-empty.
 newtype NonEmptyList a = NonEmpty {getNonEmpty :: [a]}
  deriving ( Eq, Ord, Show, Read )
+
+instance Functor NonEmptyList where
+  fmap f (NonEmpty x) = NonEmpty (map f x)
 
 instance Arbitrary a => Arbitrary (NonEmptyList a) where
   arbitrary = NonEmpty `fmap` (arbitrary `suchThat` (not . null))
@@ -131,6 +143,10 @@ newtype Positive a = Positive {getPositive :: a}
           , Num, Integral, Real, Enum
 #endif
           )
+
+instance Functor Positive where
+  fmap f (Positive x) = Positive (f x)
+
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary =
     ((Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))) `suchThat` gt0
@@ -151,6 +167,9 @@ newtype NonZero a = NonZero {getNonZero :: a}
 #endif
           )
 
+instance Functor NonZero where
+  fmap f (NonZero x) = NonZero (f x)
+
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
   arbitrary = fmap NonZero $ arbitrary `suchThat` (/= 0)
 
@@ -164,6 +183,9 @@ newtype NonNegative a = NonNegative {getNonNegative :: a}
           , Num, Integral, Real, Enum
 #endif
           )
+
+instance Functor NonNegative where
+  fmap f (NonNegative x) = NonNegative (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
@@ -191,6 +213,9 @@ newtype Large a = Large {getLarge :: a}
 #endif
           )
 
+instance Functor Large where
+  fmap f (Large x) = Large (f x)
+
 instance (Integral a, Bounded a) => Arbitrary (Large a) where
   arbitrary = fmap Large arbitrarySizedBoundedIntegral
   shrink (Large x) = fmap Large (shrinkIntegral x)
@@ -204,6 +229,9 @@ newtype Small a = Small {getSmall :: a}
 #endif
           )
 
+instance Functor Small where
+  fmap f (Small x) = Small (f x)
+
 instance (Integral a, Bounded a) => Arbitrary (Small a) where
   arbitrary = fmap Small arbitraryBoundedIntegral
   shrink (Small x) = map Small (shrinkIntegral x)
@@ -216,6 +244,9 @@ newtype Shrink2 a = Shrink2 a
           , Num, Integral, Real, Enum
 #endif
           )
+
+instance Functor Shrink2 where
+  fmap f (Shrink2 x) = Shrink2 (f x)
 
 instance Arbitrary a => Arbitrary (Shrink2 a) where
   arbitrary =
@@ -234,6 +265,9 @@ instance Arbitrary a => Arbitrary (Shrink2 a) where
 -- | @Smart _ x@: tries a different order when shrinking.
 data Smart a =
   Smart Int a
+
+instance Functor Smart where
+  fmap f (Smart n x) = Smart n (f x)
 
 instance Show a => Show (Smart a) where
   showsPrec n (Smart _ x) = showsPrec n x
@@ -283,6 +317,9 @@ data Shrinking s a =
 class ShrinkState s a where
   shrinkInit  :: a -> s
   shrinkState :: a -> s -> [(a,s)]
+
+instance Functor (Shrinking s) where
+  fmap f (Shrinking s x) = Shrinking s (f x)
 
 instance Show a => Show (Shrinking s a) where
   showsPrec n (Shrinking _ x) = showsPrec n x
