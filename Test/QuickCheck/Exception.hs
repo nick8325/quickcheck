@@ -64,7 +64,7 @@ isInterrupt _ = False
 isInterrupt (E.SomeException e) =
   cast e == Just Interrupted || cast e == Just E.UserInterrupt
 #else
-isInterrupt (E.SomeException e) = cast e == Just E.UserInterrupt
+isInterrupt e = E.fromException e == Just E.UserInterrupt
 #endif
 
 #else /* !defined(GHC_INTERRUPT) */
