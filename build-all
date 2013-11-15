@@ -16,8 +16,8 @@ install-ghc() {
     ver=${1/ghc-/}
     print "===> GHC $ver"
     sudo stow -d /opt -t /usr/local $1
-    if [[ $ver == 6.8.3 ]]; then
-        export runhaskell=/opt/ghc-6.10.4/bin/runhaskell
+    if [[ $ver == 6.8.3 ]] || [[ $ver == 6.10.4 ]]; then
+        export runhaskell=/opt/ghc-6.12.3/bin/runhaskell
     else
         export runhaskell=/usr/local/bin/runhaskell
     fi
