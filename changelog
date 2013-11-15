@@ -7,6 +7,9 @@ QuickCheck (unreleased)
 	* Define an abstract type QCGen which is used instead of StdGen.
 	* Add cabal flag -ftf-random to use the tf-random package for
 	  better distribution of random numbers.
+	* Add Functor instances for modifiers.
+	* Improve shrinking of floating-point numbers.
+	* Add number of failed shrink attempts to the result type.
 
 QuickCheck (2.6) 2013-03-07
 
