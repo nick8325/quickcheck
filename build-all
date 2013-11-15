@@ -14,17 +14,25 @@ last-word() {
 
 install-ghc() {
     ver=${1/ghc-/}
-    print "===> GHC v$ver"
+    print "===> GHC $ver"
     sudo stow -d /opt -t /usr/local $1
+    if [[ $ver == 6.8.3 ]]; then
+        export runhaskell=/opt/ghc-6.10.4/bin/runhaskell
+    else
+        export runhaskell=/usr/local/bin/runhaskell
+    fi
     rehash
-    if [[ $(last-word $(ghc --version)) != $ver ]]; then
+    cabal install random extensible-exceptions >& /dev/null || true
+    if [[ $(last-word $(ghc --version)) != $ver ]] && [[ $ver != head ]]; then
         print 'Version mismatch!'
+        remove-ghc
         exit 1
     fi
 }
 
 remove-ghc() {
     sudo stow -d /opt -t /usr/local -D $1
+    export runhaskell=runhaskell
     rehash
     print
 }
@@ -35,7 +43,8 @@ find-package() {
 
 run-cabal() {
     rm -rf dist
-    if cabal install -v --reinstall --force-reinstalls --disable-library-profiling $* >& log; then
+    if $runhaskell Setup.lhs configure $* --user -v 2>&1 | grep Flags >&2 &&
+       $runhaskell Setup.lhs build >&2; then
         print "OK, $(find-package base) $(find-package extensible-exceptions)"
     else
         print 'Failed!'
@@ -51,12 +60,13 @@ build-quickcheck() {
     run-cabal
 }
 
+rm -f log
 for i in /opt/ghc-*; do
     ghc=$(basename $i)
     install-ghc $ghc
-    build-quickcheck
+    build-quickcheck 2>>log
     remove-ghc $ghc
 done
 
 print "===> System GHC: v$(last-word $(ghc --version))"
-build-quickcheck
+build-quickcheck 2>>log
