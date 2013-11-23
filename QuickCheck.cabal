@@ -83,7 +83,8 @@ library
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
     Test.QuickCheck.State,
-    Test.QuickCheck.Random
+    Test.QuickCheck.Random,
+    Test.QuickCheck.Exception
 
   Extensions: CPP
 
@@ -105,8 +106,6 @@ library
     cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
     if !impl(hugs)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
-  Other-Modules:
-    Test.QuickCheck.Exception
 
 Test-Suite test-quickcheck
     type: exitcode-stdio-1.0

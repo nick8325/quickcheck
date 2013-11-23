@@ -163,32 +163,32 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok          :: Maybe Bool     -- ^ result of the test case; Nothing = discard
-  , expect      :: Bool           -- ^ indicates what the expected result of the property is
-  , reason      :: String         -- ^ a message indicating what went wrong
-  , interrupted :: Bool           -- ^ indicates if the test case was cancelled by pressing ^C
-  , abort       :: Bool           -- ^ if True, the test should not be repeated
-  , stamp       :: [(String,Int)] -- ^ the collected values for this test case
-  , callbacks   :: [Callback]     -- ^ the callbacks for this test case
+  { ok           :: Maybe Bool        -- ^ result of the test case; Nothing = discard
+  , expect       :: Bool              -- ^ indicates what the expected result of the property is
+  , reason       :: String            -- ^ a message indicating what went wrong
+  , theException :: Maybe AnException -- ^ the exception thrown, if any
+  , abort        :: Bool              -- ^ if True, the test should not be repeated
+  , stamp        :: [(String,Int)]    -- ^ the collected values for this test case
+  , callbacks    :: [Callback]        -- ^ the callbacks for this test case
   }
 
 result :: Result
 result =
   MkResult
-  { ok          = undefined
-  , expect      = True
-  , reason      = ""
-  , interrupted = False
-  , abort       = False
-  , stamp       = []
-  , callbacks   = []
+  { ok           = undefined
+  , expect       = True
+  , reason       = ""
+  , theException = Nothing
+  , abort        = False
+  , stamp        = []
+  , callbacks    = []
   }
 
 exception :: String -> AnException -> Result
 exception msg err
   | isDiscard err = rejected
   | otherwise = failed{ reason = formatException msg err,
-                        interrupted = isInterrupt err }
+                        theException = Just err }
 
 formatException :: String -> AnException -> String
 formatException msg err = msg ++ ":" ++ format (show err)
@@ -446,10 +446,10 @@ disjoin ps =
   result1 >>> result2 | not (expect result1 && expect result2) = expectFailureError
   result1 >>> result2 =
     result2
-    { reason      = if null (reason result2) then reason result1 else reason result2
-    , interrupted = interrupted result1 || interrupted result2
-    , stamp       = stamp result1 ++ stamp result2
-    , callbacks   = callbacks result1 ++
+    { reason       = if null (reason result2) then reason result1 else reason result2
+    , theException = if null (reason result2) then theException result1 else theException result2
+    , stamp        = stamp result1 ++ stamp result2
+    , callbacks    = callbacks result1 ++
                     [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
                     callbacks result2
     }

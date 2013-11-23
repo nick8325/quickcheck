@@ -4,7 +4,7 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, interrupted ) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State
@@ -40,34 +40,34 @@ data Args
 
 -- | Result represents the test result
 data Result
-  = Success                            -- a successful test run
-    { numTests       :: Int            -- ^ number of successful tests performed
-    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all tests
-    , output         :: String         -- ^ printed output
+  = Success                               -- a successful test run
+    { numTests       :: Int               -- ^ number of successful tests performed
+    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+    , output         :: String            -- ^ printed output
     }
-  | GaveUp                             -- given up
-    { numTests       :: Int            -- ^ number of successful tests performed
-    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all tests
-    , output         :: String         -- ^ printed output
+  | GaveUp                                -- given up
+    { numTests       :: Int               -- ^ number of successful tests performed
+    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all tests
+    , output         :: String            -- ^ printed output
     }
-  | Failure                            -- failed test run
-    { numTests       :: Int            -- ^ number of tests performed
-    , numShrinks     :: Int            -- ^ number of successful shrinking steps performed
-    , numShrinkTries :: Int            -- ^ number of unsuccessful shrinking steps performed
-    , numShrinkFinal :: Int            -- ^ number of final unsuccessful shrinking steps performed
-    , usedSeed       :: QCGen         -- ^ what seed was used
-    , usedSize       :: Int            -- ^ what was the test size
-    , reason         :: String         -- ^ what was the reason
-    , interrupted    :: Bool           -- ^ did the user press ctrl-C?
-    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
-    , output         :: String         -- ^ printed output
+  | Failure                               -- failed test run
+    { numTests       :: Int               -- ^ number of tests performed
+    , numShrinks     :: Int               -- ^ number of successful shrinking steps performed
+    , numShrinkTries :: Int               -- ^ number of unsuccessful shrinking steps performed
+    , numShrinkFinal :: Int               -- ^ number of final unsuccessful shrinking steps performed
+    , usedSeed       :: QCGen             -- ^ what seed was used
+    , usedSize       :: Int               -- ^ what was the test size
+    , reason         :: String            -- ^ what was the reason
+    , theException   :: Maybe AnException -- ^ the exception the property threw, if any
+    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+    , output         :: String            -- ^ printed output
     }
-  | NoExpectedFailure                  -- the expected failure did not happen
-    { numTests       :: Int            -- ^ number of tests performed
-    , labels         :: [(String,Int)] -- ^ labels and frequencies found during all successful tests
-    , output         :: String         -- ^ printed output
+  | NoExpectedFailure                     -- the expected failure did not happen
+    { numTests       :: Int               -- ^ number of tests performed
+    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
+    , output         :: String            -- ^ printed output
     }
- deriving ( Show, Read )
+ deriving ( Show )
 
 -- | isSuccess checks if the test run result was a success
 isSuccess :: Result -> Bool
@@ -250,16 +250,16 @@ runATest st f =
                               numTests = numSuccessTests st+1,
                               output = theOutput }
              else
-              return Failure{ usedSeed    = randomSeed st -- correct! (this will be split first)
-                            , usedSize    = size
-                            , numTests    = numSuccessTests st+1
-                            , numShrinks  = numShrinks
+              return Failure{ usedSeed       = randomSeed st -- correct! (this will be split first)
+                            , usedSize       = size
+                            , numTests       = numSuccessTests st+1
+                            , numShrinks     = numShrinks
                             , numShrinkTries = totFailed
                             , numShrinkFinal = lastFailed
-                            , output      = theOutput
-                            , reason      = P.reason res
-                            , interrupted = P.interrupted res
-                            , labels      = summary st
+                            , output         = theOutput
+                            , reason         = P.reason res
+                            , theException   = P.theException res
+                            , labels         = summary st
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
@@ -328,7 +328,8 @@ foundFailure st res ts =
   do localMin st{ numTryShrinks = 0 } res ts
 
 localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-localMin st res _ | P.interrupted res = localMinFound st res
+localMin st res@MkResult{P.theException = Just e} _
+  | isInterrupt e = localMinFound st res
 localMin st res ts = do
   putTemp (terminal st)
     ( short 26 (oneLine (P.reason res))
