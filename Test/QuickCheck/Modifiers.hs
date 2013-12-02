@@ -66,7 +66,7 @@ import Data.List
 
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
-newtype Blind a = Blind a
+newtype Blind a = Blind {getBlind :: a}
  deriving ( Eq, Ord
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
@@ -86,7 +86,7 @@ instance Arbitrary a => Arbitrary (Blind a) where
 
 --------------------------------------------------------------------------
 -- | @Fixed x@: as x, but will not be shrunk.
-newtype Fixed a = Fixed a
+newtype Fixed a = Fixed {getFixed :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
@@ -238,7 +238,7 @@ instance (Integral a, Bounded a) => Arbitrary (Small a) where
 
 --------------------------------------------------------------------------
 -- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
-newtype Shrink2 a = Shrink2 a
+newtype Shrink2 a = Shrink2 {getShrink2 :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
