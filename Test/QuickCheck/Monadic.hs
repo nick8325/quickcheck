@@ -85,7 +85,9 @@ monadicST :: (forall s. PropertyM (ST s) a) -> Property
 monadicST m = property (runSTGen (monadic' m))
 
 runSTGen :: (forall s. Gen (ST s a)) -> Gen a
-runSTGen g = MkGen $ \r n -> runST (unGen g r n)
+runSTGen g = do
+  Delay f <- delay'
+  return (runST (f g))
 #endif
 
 --------------------------------------------------------------------------

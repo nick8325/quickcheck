@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_ST_MONAD
+{-# LANGUAGE Rank2Types #-}
+#endif
 -- | Test case generation.
 module Test.QuickCheck.Gen where
 
@@ -77,6 +81,14 @@ choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 -- Unsafe: careless use may break the monad laws!
 delay :: Gen (Gen a -> a)
 delay = MkGen (\r n g -> unGen g r n)
+
+#ifndef NO_ST_MONAD
+-- | A variant of 'delay' that returns a rank-2 type.
+delay' :: Gen Delay
+delay' = MkGen (\r n -> Delay (\g -> unGen g r n))
+
+newtype Delay = Delay (forall a. Gen a -> a)
+#endif
 
 -- | Promotes a monadic generator to a generator of monadic values.
 -- Unsafe: careless use may break the monad laws!
