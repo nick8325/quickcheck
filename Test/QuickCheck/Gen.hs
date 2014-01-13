@@ -73,9 +73,17 @@ resize n (MkGen m) = MkGen (\r _ -> m r n)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
+-- | Allows you to re-use the same seed several times.
+-- Unsafe: careless use may break the monad laws!
+delay :: Gen (Gen a -> a)
+delay = MkGen (\r n g -> unGen g r n)
+
 -- | Promotes a monadic generator to a generator of monadic values.
+-- Unsafe: careless use may break the monad laws!
 promote :: Monad m => m (Gen a) -> Gen (m a)
-promote m = MkGen (\r n -> liftM (\(MkGen m') -> m' r n) m)
+promote m = do
+  f <- delay
+  return (liftM f m)
 
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
