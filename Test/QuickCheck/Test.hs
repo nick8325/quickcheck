@@ -118,7 +118,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numSuccessShrinks         = 0
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
-                 } (unGen (property p))
+                 } (unGen (unProperty (property p)))
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.

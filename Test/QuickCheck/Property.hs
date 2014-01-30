@@ -55,7 +55,7 @@ infixr 1 .||.
 --------------------------------------------------------------------------
 -- * Property and Testable types
 
-type Property = Gen Prop
+newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of things which can be tested, i.e. turned into a property.
 class Testable prop where
@@ -74,20 +74,23 @@ instance Testable Bool where
   exhaustive _ = True
 
 instance Testable Result where
-  property = return . MkProp . protectResults . return
+  property = MkProperty . return . MkProp . protectResults . return
   exhaustive _ = True
 
 instance Testable Prop where
-  property (MkProp r) = return . MkProp . ioRose . return $ r
+  property (MkProp r) = MkProperty . return . MkProp . ioRose . return $ r
   exhaustive _ = True
 
 instance Testable prop => Testable (Gen prop) where
-  property mp = do p <- mp; property p
+  property mp = MkProperty $ do p <- mp; unProperty (property p)
+
+instance Testable Property where
+  property = id
 
 -- | Do I/O inside a property. This can obviously lead to unrepeatable
 -- testcases, so use with care.
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
-morallyDubiousIOProperty = fmap (MkProp . ioRose . fmap unProp) . promote . fmap property
+morallyDubiousIOProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
@@ -225,14 +228,14 @@ mapRoseResult :: Testable prop => (Rose Result -> Rose Result) -> prop -> Proper
 mapRoseResult f = mapProp (\(MkProp t) -> MkProp (f t))
 
 mapProp :: Testable prop => (Prop -> Prop) -> prop -> Property
-mapProp f = fmap f . property
+mapProp f = MkProperty . fmap f . unProperty . property
 
 --------------------------------------------------------------------------
 -- ** Property combinators
 
 -- | Changes the maximum test case size for a property.
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
-mapSize f p = sized ((`resize` property p) . f)
+mapSize f p = MkProperty (sized ((`resize` unProperty (property p)) . f))
 
 -- | Shrinks the argument to property if it fails. Shrinking is done
 -- automatically for most types. This is only needed when you want to
@@ -241,10 +244,10 @@ shrinking :: Testable prop =>
              (a -> [a])  -- ^ 'shrink'-like function.
           -> a           -- ^ The original argument
           -> (a -> prop) -> Property
-shrinking shrinker x0 pf = fmap (MkProp . joinRose . fmap unProp) (promote (props x0))
+shrinking shrinker x0 pf = MkProperty (fmap (MkProp . joinRose . fmap unProp) (promote (props x0)))
  where
   props x =
-    MkRose (property (pf x)) [ props x' | x' <- shrinker x ]
+    MkRose (unProperty (property (pf x))) [ props x' | x' <- shrinker x ]
 
 -- | Disables shrinking for a property altogether.
 noShrinking :: Testable prop => prop -> Property
@@ -361,14 +364,17 @@ within n = mapRoseResult f
 forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
+  MkProperty $
   gen >>= \x ->
-    printTestCase (show x) (pf x)
+    unProperty (printTestCase (show x) (pf x))
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
 forAllShrink gen shrinker pf =
+  MkProperty $
   gen >>= \x ->
+    unProperty $
     shrinking shrinker x $ \x' ->
       printTestCase (show x') (pf x')
 
@@ -377,7 +383,9 @@ forAllShrink gen shrinker pf =
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
+  MkProperty $
   arbitrary >>= \b ->
+    unProperty $
     printTestCase (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
@@ -388,7 +396,8 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
-  do roses <- mapM (fmap unProp . property) ps
+  MkProperty $
+  do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (conj [] roses))
  where
   conj cbs [] =
@@ -417,7 +426,8 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
-  do roses <- mapM (fmap unProp . property) ps
+  MkProperty $
+  do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
  where
   disj :: Rose Result -> Rose Result -> Rose Result
