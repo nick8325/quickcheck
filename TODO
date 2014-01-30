@@ -28,3 +28,4 @@ More recently:
   Property.Result in Test.Result.
 * Perhaps make Gen (Rose a) a first-class thing (maybe for internal
   use only).
+* Make Property into an abstract type.
