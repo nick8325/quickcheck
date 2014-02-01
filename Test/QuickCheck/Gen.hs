@@ -97,6 +97,13 @@ promote m = do
   f <- delay
   return (liftM f m)
 
+-- | Generates some number of example values.
+sampleOf :: Int -> Gen a -> IO [a]
+sampleOf num (MkGen m) =
+  do rnd0 <- newQCGen
+     let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
+     return [(m r n) | (r,n) <- rnds rnd0 `zip` [0,2..num*2-1] ]
+
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' (MkGen m) =
