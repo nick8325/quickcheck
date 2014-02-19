@@ -1,6 +1,5 @@
 To do before next release:
 * Think of better names for delay and delay'.
-* Maybe add default shrink using generics?
 * Clean up changelog.
 
 To make a release:
