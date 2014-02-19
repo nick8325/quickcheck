@@ -1,3 +1,8 @@
+To do before next release:
+* Think of better names for delay and delay'.
+* Maybe add default shrink using generics?
+* Clean up changelog.
+
 To make a release:
 * Run build-all script.
 * Bump version number in cabal file and in source-repository link.
@@ -19,12 +24,10 @@ More recently:
 * Make the testing loop more modular, and provide combinators for
   controlling when to stop testing, how to vary size, etc.
 * Some general way of recording information inside a property.
-* Replace 'promote' with 'delay :: Gen (Gen a -> a)'.
 * Add the 'infinite' combinator and use it to experiment with e.g.
   partial generators, sized-based generators.
 * Reformat things---some lines are 120 characters long!!!
-* Add exception field to Test.Result. Maybe split Property.Result
-  into two parts, environment and result, so that we can include
-  Property.Result in Test.Result.
+* Maybe split Property.Result into two parts, environment and result,
+  so that we can include Property.Result in Test.Result.
 * Perhaps make Gen (Rose a) a first-class thing (maybe for internal
   use only).

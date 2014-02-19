@@ -7,9 +7,11 @@ QuickCheck (unreleased)
 	* Define an abstract type QCGen which is used instead of StdGen.
 	* Add cabal flag -ftf-random to use the tf-random package for
 	  better distribution of random numbers.
-	* Add Functor instances for modifiers.
+	* Add Functor instances and accessor functions for modifiers.
 	* Improve shrinking of floating-point numbers.
-	* Add number of failed shrink attempts to the result type.
+	* Add thrown exception and number of failed shrink attempts to the result type.
+	* Change Property into a newtype rather than Gen Prop as it was before.
+	* Add delay and delay' which can be used (unsafely!) to reuse the random number seed.
 
 QuickCheck (2.6) 2013-03-07
 
