@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_GENERICS
+{-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
+#endif
 module Test.QuickCheck.Arbitrary
   (
   -- * Arbitrary and CoArbitrary classes
@@ -27,6 +31,9 @@ module Test.QuickCheck.Arbitrary
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
   , orderedList -- :: (Ord a, Arbitrary a) => Gen [a]
+#ifndef NO_GENERICS
+  , genericShrink -- :: (Generic a, GenericShrink (Rep a)) => a -> [a]
+#endif
   )
  where
 
@@ -85,6 +92,10 @@ import Control.Monad
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 
+#ifndef NO_GENERICS
+import GHC.Generics
+#endif
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
@@ -98,6 +109,34 @@ class Arbitrary a where
   -- immediate shrinks of the given value.
   shrink :: a -> [a]
   shrink _ = []
+
+#ifndef NO_GENERICS
+-- | Shrink a value using GHC's generics mechanism.
+-- May be useful in defining 'shrink'.
+genericShrink :: (Generic a, GenericShrink (Rep a)) => a -> [a]
+genericShrink = map to . shrinkRep . from
+
+class GenericShrink f where
+  shrinkRep :: f a -> [f a]
+
+instance (GenericShrink f, GenericShrink g) => GenericShrink (f :*: g) where
+  shrinkRep (x :*: y) =
+    [x' :*: y | x' <- shrinkRep x] ++
+    [x :*: y' | y' <- shrinkRep y]
+
+instance (GenericShrink f, GenericShrink g) => GenericShrink (f :+: g) where
+  shrinkRep (L1 x) = map L1 (shrinkRep x)
+  shrinkRep (R1 x) = map R1 (shrinkRep x)
+
+instance GenericShrink f => GenericShrink (M1 i c f) where
+  shrinkRep (M1 x) = map M1 (shrinkRep x)
+
+instance Arbitrary a => GenericShrink (K1 i a) where
+  shrinkRep (K1 x) = map K1 (shrink x)
+
+instance GenericShrink U1 where
+  shrinkRep U1 = []
+#endif
 
 -- instances
 

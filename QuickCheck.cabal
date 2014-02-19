@@ -103,7 +103,7 @@ library
   else
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
-    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
     if !impl(hugs)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 
