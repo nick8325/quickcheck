@@ -436,24 +436,24 @@ class CoArbitrary a where
   -- should use the first argument to perturb the random generator
   -- given as the second argument. the returned generator
   -- is then used to generate the function result.
-  -- You can often use 'variant' and '><' to implement
+  -- You can often use 'variant' and '.' to implement
   -- 'coarbitrary'.
   coarbitrary :: a -> Gen c -> Gen c
 
 {-
   -- GHC definition:
   coarbitrary{| Unit |}    Unit      = id
-  coarbitrary{| a :*: b |} (x :*: y) = coarbitrary x >< coarbitrary y
-  coarbitrary{| a :+: b |} (Inl x)   = variant 0    . coarbitrary x
-  coarbitrary{| a :+: b |} (Inr y)   = variant (-1) . coarbitrary y
+  coarbitrary{| a :*: b |} (x :*: y) = coarbitrary x . coarbitrary y
+  coarbitrary{| a :+: b |} (Inl x)   = variant 0     . coarbitrary x
+  coarbitrary{| a :+: b |} (Inr y)   = variant (-1)  . coarbitrary y
 -}
 
+{-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
 -- results of calls to 'variant' or 'coarbitrary'.
+-- Deprecated: just use (.) instead.
 (><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a)
-(><) f g gen =
-  do n <- arbitrary
-     (g . variant (n :: Int) . f) gen
+(><) = (.)
 
 -- for the sake of non-GHC compilers, I have added definitions
 -- for coarbitrary here.
@@ -494,37 +494,37 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
-  coarbitrary (x :+ y) = coarbitrary x >< coarbitrary y
+  coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
       => CoArbitrary (a,b)
  where
   coarbitrary (x,y) = coarbitrary x
-                   >< coarbitrary y
+                    . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c)
       => CoArbitrary (a,b,c)
  where
   coarbitrary (x,y,z) = coarbitrary x
-                     >< coarbitrary y
-                     >< coarbitrary z
+                      . coarbitrary y
+                      . coarbitrary z
 
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d)
       => CoArbitrary (a,b,c,d)
  where
   coarbitrary (x,y,z,v) = coarbitrary x
-                       >< coarbitrary y
-                       >< coarbitrary z
-                       >< coarbitrary v
+                        . coarbitrary y
+                        . coarbitrary z
+                        . coarbitrary v
 
 instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrary e)
       => CoArbitrary (a,b,c,d,e)
  where
   coarbitrary (x,y,z,v,w) = coarbitrary x
-                         >< coarbitrary y
-                         >< coarbitrary z
-                         >< coarbitrary v
-                         >< coarbitrary w
+                          . coarbitrary y
+                          . coarbitrary z
+                          . coarbitrary v
+                          . coarbitrary w
 
 -- typical instance for primitive (numerical) types
 
