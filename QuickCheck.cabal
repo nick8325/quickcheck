@@ -100,6 +100,8 @@ library
     -- file, I think...
     if impl(ghc < 7)
       Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+    if impl(ghc < 7.2)
+      cpp-options: -DNO_GENERICS
   else
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
