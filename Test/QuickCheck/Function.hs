@@ -277,7 +277,7 @@ instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
        return (mkFun p d)
 
   shrink (Fun (p,d) _) =
-    [ mkFun p' d' | (p', d') <- shrink p ]
+    [ mkFun p' d' | (p', d') <- shrink (p, d) ]
 
 --------------------------------------------------------------------------
 -- the end.
