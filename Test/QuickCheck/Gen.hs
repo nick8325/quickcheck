@@ -56,13 +56,7 @@ instance Monad Gen where
 
 -- | Modifies a generator using an integer seed.
 variant :: Integral n => n -> Gen a -> Gen a
-variant k0 (MkGen m) = MkGen (\r n -> m (var k0 r) n)
- where
-  var k = (if k == k' then id  else var k')
-        . (if even k  then fst else snd)
-        . split
-   where
-    k' = k `div` 2
+variant k (MkGen g) = MkGen (\r n -> g (variantQCGen k r) n)
 
 -- | Used to construct generators that depend on the size parameter.
 sized :: (Int -> Gen a) -> Gen a
