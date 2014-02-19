@@ -212,46 +212,44 @@ instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
                     [ x :+ y' | y' <- shrink y ]
 
 instance HasResolution a => Arbitrary (Fixed a) where
-    arbitrary = arbitrarySizedFractional
-    shrink    = shrinkRealFrac
+  arbitrary = arbitrarySizedFractional
+  shrink    = shrinkRealFrac
 
 instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
  where
   arbitrary = liftM2 (,) arbitrary arbitrary
 
-  shrink (x,y) = [ (x',y) | x' <- shrink x ]
-              ++ [ (x,y') | y' <- shrink y ]
+  shrink (x, y) =
+       [ (x', y) | x' <- shrink x ]
+    ++ [ (x, y') | y' <- shrink y ]
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
       => Arbitrary (a,b,c)
  where
   arbitrary = liftM3 (,,) arbitrary arbitrary arbitrary
 
-  shrink (x,y,z) = [ (x',y,z) | x' <- shrink x ]
-                ++ [ (x,y',z) | y' <- shrink y ]
-                ++ [ (x,y,z') | z' <- shrink z ]
+  shrink (x, y, z) =
+    [ (x', y', z')
+    | (x', (y', z')) <- shrink (x, (y, z)) ]
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
       => Arbitrary (a,b,c,d)
  where
   arbitrary = liftM4 (,,,) arbitrary arbitrary arbitrary arbitrary
 
-  shrink (w,x,y,z) = [ (w',x,y,z) | w' <- shrink w ]
-                  ++ [ (w,x',y,z) | x' <- shrink x ]
-                  ++ [ (w,x,y',z) | y' <- shrink y ]
-                  ++ [ (w,x,y,z') | z' <- shrink z ]
+  shrink (w, x, y, z) =
+    [ (w', x', y', z')
+    | (w', (x', (y', z'))) <- shrink (w, (x, (y, z))) ]
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e)
       => Arbitrary (a,b,c,d,e)
  where
   arbitrary = liftM5 (,,,,) arbitrary arbitrary arbitrary arbitrary arbitrary
 
-  shrink (v,w,x,y,z) = [ (v',w,x,y,z) | v' <- shrink v ]
-                    ++ [ (v,w',x,y,z) | w' <- shrink w ]
-                    ++ [ (v,w,x',y,z) | x' <- shrink x ]
-                    ++ [ (v,w,x,y',z) | y' <- shrink y ]
-                    ++ [ (v,w,x,y,z') | z' <- shrink z ]
+  shrink (v, w, x, y, z) =
+    [ (v', w', x', y', z')
+    | (v', (w', (x', (y', z')))) <- shrink (v, (w, (x, (y, z)))) ]
 
 -- typical instance for primitive (numerical) types
 
