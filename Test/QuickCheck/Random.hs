@@ -12,16 +12,21 @@ type TheGen = TFGen
 newTheGen :: IO TFGen
 newTheGen = fmap seedTFGen mkSeedTime
 
+bits, mask, doneBit :: Integral a => a
+bits = 14
+mask = 0x3fff
+doneBit = 0x4000
+
 chip :: Bool -> Word32 -> TFGen -> TFGen
-chip done n g = splitn g 16 (if done then m .|. 0x8000 else m)
+chip done n g = splitn g (bits+1) (if done then m .|. doneBit else m)
   where
-    m = n .&. 0x7fff
+    m = n .&. mask
 
 chop :: Integer -> Integer
-chop n = n `shiftR` 15
+chop n = n `shiftR` bits
 
 stop :: Integral a => a -> Bool
-stop n = n <= 0x7fff
+stop n = n <= mask
 
 #else
 import System.Random
@@ -58,7 +63,7 @@ newQCGen = fmap QCGen newTheGen
 bigNatVariant :: Integer -> TheGen -> TheGen
 bigNatVariant n g
   | g `seq` stop n = chip True (fromInteger n) g
-  | otherwise      = bigNatVariant (chop n) $! chip False (fromInteger n) g
+  | otherwise      = (bigNatVariant $! chop n) $! chip False (fromInteger n) g
 
 {-# INLINE natVariant #-}
 natVariant :: Integral a => a -> TheGen -> TheGen
