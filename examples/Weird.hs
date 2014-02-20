@@ -26,8 +26,8 @@ revrev (xs :: [Int]) = within 1000 (reverse (reverse xs) == xs)
 
 undef (n :: Int) = undefined :: Bool
 undef2 (n :: Int) = undefined :: Property
-undef25 (n :: Int) = return undefined :: Property
-undef21 (n :: Int) = return (MkProp (MkRose undefined [])) :: Property -- note: this example is bad because we construct a rose tree without protecting the result
+undef25 (n :: Int) = MkProperty (return undefined) :: Property
+undef21 (n :: Int) = MkProperty (return (MkProp (MkRose undefined []))) :: Property -- note: this example is bad because we construct a rose tree without protecting the result
 undef22 (n :: Int) = undefined :: Test.QuickCheck.Property.Result
 undef3 (n :: Int) = undefined :: Property
 undef4 (n :: Int) = collect "" (undefined :: Property)
