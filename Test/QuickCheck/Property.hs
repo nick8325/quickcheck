@@ -62,7 +62,10 @@ newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of things which can be tested, i.e. turned into a property.
 class Testable prop where
+  -- | Convert the thing to a property.
   property :: prop -> Property
+  -- | If true, the property will only be tested once.
+  -- However, if used inside a quantifier, it will be tested normally.
   exhaustive :: prop -> Bool
   exhaustive _ = False
 
