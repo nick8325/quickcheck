@@ -21,7 +21,6 @@ module Test.QuickCheck
   , sized
   , resize
   , choose
-  , promote
   , suchThat
   , suchThatMaybe
   , oneof

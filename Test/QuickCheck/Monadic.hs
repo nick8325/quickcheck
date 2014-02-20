@@ -11,6 +11,7 @@ module Test.QuickCheck.Monadic where
 -- imports
 
 import Test.QuickCheck.Gen
+import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Property
 
 import Control.Monad
@@ -85,9 +86,9 @@ monadicST :: (forall s. PropertyM (ST s) a) -> Property
 monadicST m = property (runSTGen (monadic' m))
 
 runSTGen :: (forall s. Gen (ST s a)) -> Gen a
-runSTGen g = do
-  Delay f <- delay'
-  return (runST (f g))
+runSTGen f = do
+  Capture eval <- capture
+  return (runST (eval f))
 #endif
 
 --------------------------------------------------------------------------

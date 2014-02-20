@@ -6,6 +6,7 @@ module Test.QuickCheck.Property where
 -- imports
 
 import Test.QuickCheck.Gen
+import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( showErr, isOneLine, putLine )
 import Test.QuickCheck.Exception

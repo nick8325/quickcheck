@@ -43,6 +43,7 @@ module Test.QuickCheck.Arbitrary
 
 import System.Random(Random)
 import Test.QuickCheck.Gen
+import Test.QuickCheck.Gen.Unsafe
 
 {-
 import Data.Generics
