@@ -13,7 +13,7 @@ QuickCheck (unreleased)
 	* Change Property into a newtype rather than Gen Prop as it was before.
 	* Add delay and delay' which can be used (unsafely!) to reuse the random number seed.
 	* Add generic shrinking for GHC.
-	* Use a prefix code for coarbitrary.
+	* Use a prefix code for coarbitrary - deprecates ><.
 
 QuickCheck (2.6) 2013-03-07
 
