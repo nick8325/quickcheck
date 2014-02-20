@@ -47,7 +47,7 @@ flag templateHaskell
 
 flag tf-random
   Description: Use the tf-random package for random number generation.
-  Default: False
+  Default: True
 
 library
   -- Choose which library versions to use.
