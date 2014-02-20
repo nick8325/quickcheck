@@ -7,7 +7,7 @@ import System.Random.TF hiding (split, next)
 import Data.Word
 import Data.Bits
 
-type TheGen = TFGen
+#define TheGen TFGen
 
 newTheGen :: IO TFGen
 newTheGen = fmap seedTFGen mkSeedTime
@@ -31,7 +31,7 @@ stop n = n <= mask
 #else
 import System.Random
 
-type TheGen = StdGen
+#define TheGen StdGen
 
 newTheGen :: IO StdGen
 newTheGen = newStdGen
@@ -46,6 +46,9 @@ stop :: Integral a => a -> Bool
 stop n = n <= 1
 #endif
 
+-- | The "standard" QuickCheck random number generator.
+-- A wrapper around either 'TFGen' on GHC, or 'StdGen'
+-- on other Haskell systems.
 newtype QCGen = QCGen TheGen deriving (Read, Show)
 
 instance RandomGen QCGen where
