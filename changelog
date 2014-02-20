@@ -2,6 +2,9 @@ QuickCheck (unreleased)
 
 	* New features:
 		* New genericShrink function provides generic shrinking with GHC.
+		* New combinator x === y: fails if x /= y, but also prints their values
+		* Several combinators added to the main Test.QuickCheck module which
+		  were previously languishing in other modules
 		* New combinators delay and capture which can be used (unsafely!)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.
@@ -27,6 +30,8 @@ QuickCheck (unreleased)
 		  of failed shrink attempts.
 		* Property is now a newtype rather than Gen Prop as it was before.
 		* promote is moved into the new module Test.QuickCheck.Gen.Unsafe.
+I		* 'printTestCase' is deprecated - its new name is 'counterexample'
+		* 'exhaustive' is removed
 
 QuickCheck (2.6) 2013-03-07
 
