@@ -94,8 +94,14 @@ instance Testable Property where
 
 -- | Do I/O inside a property. This can obviously lead to unrepeatable
 -- testcases, so use with care.
+{-# DEPRECATED morallyDubiousIOProperty "Use ioProperty instead" #-}
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
-morallyDubiousIOProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
+morallyDubiousIOProperty = ioProperty -- Silly names aren't all they're cracked up to be :)
+
+-- | Do I/O inside a property. This can obviously lead to unrepeatable
+-- testcases, so use with care.
+ioProperty :: Testable prop => IO prop -> Property
+ioProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f

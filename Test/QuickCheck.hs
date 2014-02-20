@@ -99,6 +99,7 @@ module Test.QuickCheck
   , shrinking
   , (==>)
   , (===)
+  , ioProperty
     -- *** Controlling property execution
   , verbose
   , once
