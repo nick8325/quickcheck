@@ -50,7 +50,12 @@ stop n = n <= 1
 -- | The "standard" QuickCheck random number generator.
 -- A wrapper around either 'TFGen' on GHC, or 'StdGen'
 -- on other Haskell systems.
-newtype QCGen = QCGen TheGen deriving (Read, Show)
+newtype QCGen = QCGen TheGen
+
+instance Show QCGen where
+  showsPrec n (QCGen g) = showsPrec n g
+instance Read QCGen where
+  readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
 instance RandomGen QCGen where
   split (QCGen g) = (QCGen g1, QCGen g2)
