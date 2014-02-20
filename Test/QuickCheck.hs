@@ -13,6 +13,16 @@ module Test.QuickCheck
   , verboseCheckWith
   , verboseCheckWithResult
   , verboseCheckResult
+#ifndef NO_TEMPLATE_HASKELL
+    -- ** Testing all properties in a module
+  , quickCheckAll
+  , verboseCheckAll
+  , forAllProperties
+    -- ** Testing polymorphic properties
+  , polyQuickCheck
+  , polyVerboseCheck
+  , monomorphic
+#endif
 
     -- * Random generation
   , Gen
@@ -128,6 +138,9 @@ import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Text
 import Test.QuickCheck.Exception
+#ifndef NO_TEMPLATE_HASKELL
+import Test.QuickCheck.All
+#endif
 
 --------------------------------------------------------------------------
 -- the end.

@@ -10,7 +10,7 @@ module Test.QuickCheck.All(
   -- ** Testing polymorphic properties
   polyQuickCheck,
   polyVerboseCheck,
-  mono) where
+  monomorphic) where
 
 import Language.Haskell.TH
 import Test.QuickCheck.Property hiding (Result)
@@ -24,22 +24,27 @@ import Control.Monad
 -- Invoke as @$('polyQuickCheck' 'prop)@, where @prop@ is a property.
 -- Note that just evaluating @'quickCheck' prop@ in GHCi will seem to
 -- work, but will silently default all type variables to @()@!
+--
+-- @$('polyQuickCheck' \'prop)@ means the same as
+-- @'quickCheck' $('monomorphic' \'prop)@.
+-- If you want to supply custom arguments to 'polyQuickCheck',
+-- you will have to combine 'quickCheckWith' and 'monomorphic' yourself.
 polyQuickCheck :: Name -> ExpQ
-polyQuickCheck x = [| quickCheck $(mono x) |]
+polyQuickCheck x = [| quickCheck $(monomorphic x) |]
 
 -- | Test a polymorphic property, defaulting all type variables to 'Integer'.
--- This is just a convenience function that combines 'polyQuickCheck' and 'verbose'.
+-- This is just a convenience function that combines 'verboseCheck' and 'monomorphic'.
 polyVerboseCheck :: Name -> ExpQ
-polyVerboseCheck x = [| verboseCheck $(mono x) |]
+polyVerboseCheck x = [| verboseCheck $(monomorphic x) |]
 
 type Error = forall a. String -> a
 
--- | Monomorphise an arbitrary name by defaulting all type variables to 'Integer'.
+-- | Monomorphise an arbitrary property by defaulting all type variables to 'Integer'.
 --
 -- For example, if @f@ has type @'Ord' a => [a] -> [a]@
--- then @$('mono' 'f)@ has type @['Integer'] -> ['Integer']@.
-mono :: Name -> ExpQ
-mono t = do
+-- then @$('monomorphic' 'f)@ has type @['Integer'] -> ['Integer']@.
+monomorphic :: Name -> ExpQ
+monomorphic t = do
   ty0 <- fmap infoType (reify t)
   let err msg = error $ msg ++ ": " ++ pprint ty0
   (polys, ctx, ty) <- deconstructType err ty0
@@ -47,7 +52,7 @@ mono t = do
     [] -> return (VarE t)
     _ -> do
       integer <- [t| Integer |]
-      ty' <- monomorphise err integer ty
+      ty' <- monomorphiseType err integer ty
       return (SigE (VarE t) ty')
 
 infoType :: Info -> Type
@@ -63,11 +68,11 @@ deconstructType err ty0@(ForallT xs ctx ty) = do
   return (map (\(PlainTV x) -> x) xs, ctx, ty)
 deconstructType _ ty = return ([], [], ty)
 
-monomorphise :: Error -> Type -> Type -> TypeQ
-monomorphise err mono ty@(VarT n) = return mono
-monomorphise err mono (AppT t1 t2) = liftM2 AppT (monomorphise err mono t1) (monomorphise err mono t2)
-monomorphise err mono ty@(ForallT _ _ _) = err $ "Higher-ranked type"
-monomorphise err mono ty = return ty
+monomorphiseType :: Error -> Type -> Type -> TypeQ
+monomorphiseType err mono ty@(VarT n) = return mono
+monomorphiseType err mono (AppT t1 t2) = liftM2 AppT (monomorphiseType err mono t1) (monomorphiseType err mono t2)
+monomorphiseType err mono ty@(ForallT _ _ _) = err $ "Higher-ranked type"
+monomorphiseType err mono ty = return ty
 
 -- | Test all properties in the current module, using a custom
 -- 'quickCheck' function. The same caveats as with 'quickCheckAll'
@@ -87,7 +92,7 @@ forAllProperties = do
       quickCheckOne (l, x) = do
         exists <- return False `recover` (reify (mkName x) >> return True)
         if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
-                                     property $(mono (mkName x))) |] ]
+                                     property $(monomorphic (mkName x))) |] ]
          else return []
   [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
 
