@@ -103,6 +103,9 @@ morallyDubiousIOProperty = ioProperty -- Silly names aren't all they're cracked 
 
 -- | Do I/O inside a property. This can obviously lead to unrepeatable
 -- testcases, so use with care.
+--
+-- For more advanced monadic testing you may want to look at
+-- "Test.QuickCheck.Monadic".
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
 

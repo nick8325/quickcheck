@@ -79,7 +79,7 @@ monadic' :: Monad m => PropertyM m a -> Gen (m Property)
 monadic' (MkPropertyM m) = m (const (return (return (property True))))
 
 monadicIO :: PropertyM IO a -> Property
-monadicIO = monadic morallyDubiousIOProperty
+monadicIO = monadic ioProperty
 
 #ifndef NO_ST_MONAD
 monadicST :: (forall s. PropertyM (ST s) a) -> Property
