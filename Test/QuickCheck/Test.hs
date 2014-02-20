@@ -109,8 +109,8 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
               Nothing      -> newQCGen
               Just (rnd,_) -> return rnd
      test MkState{ terminal                  = tm
-                 , maxSuccessTests           = if exhaustive p then 1 else maxSuccess a
-                 , maxDiscardedTests         = if exhaustive p then maxDiscardRatio a else maxDiscardRatio a * maxSuccess a
+                 , maxSuccessTests           = maxSuccess a
+                 , maxDiscardedTests         = maxDiscardRatio a * maxSuccess a
                  , computeSize               = case replay a of
                                                  Nothing    -> computeSize'
                                                  Just (_,s) -> computeSize' `at0` s
