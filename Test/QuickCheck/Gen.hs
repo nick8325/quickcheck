@@ -30,6 +30,7 @@ import Test.QuickCheck.Random
 --------------------------------------------------------------------------
 -- ** Generator type
 
+-- | A generator for values of type @a@.
 newtype Gen a = MkGen{ unGen :: QCGen -> Int -> a }
 
 instance Functor Gen where

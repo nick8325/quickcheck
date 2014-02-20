@@ -204,8 +204,8 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     ]
 
 --------------------------------------------------------------------------
--- | @Large x@: generates values of @x@ drawn from the entire range
--- instead of just small ones.
+-- | @Large x@: by default, QuickCheck generates 'Int's drawn from a small
+-- range. @Large Int@ gives you values drawn from the entire range instead.
 newtype Large a = Large {getLarge :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
@@ -221,7 +221,8 @@ instance (Integral a, Bounded a) => Arbitrary (Large a) where
   shrink (Large x) = fmap Large (shrinkIntegral x)
 
 --------------------------------------------------------------------------
--- | @Small x@: generates only small values of @x@.
+-- | @Small x@: generates values of @x@ drawn from a small range.
+-- The opposite of 'Large'.
 newtype Small a = Small {getSmall :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING

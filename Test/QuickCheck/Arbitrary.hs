@@ -108,12 +108,13 @@ class Arbitrary a where
   arbitrary = error "no default generator"
 
   -- | Produces a (possibly) empty list of all the possible
-  -- immediate shrinks of the given value.
+  -- immediate shrinks of the given value. 'genericShrink'
+  -- is a reasonable default implementation to try.
   shrink :: a -> [a]
   shrink _ = []
 
 #ifndef NO_GENERICS
--- | Shrink a value generically. A helper function for defining 'shrink'.
+-- | Shrink a value generically.
 genericShrink :: (Generic a, GenericShrink (Rep a)) => a -> [a]
 genericShrink = map to . shrinkRep . from
 
@@ -434,30 +435,25 @@ shrinkRealFrac x =
 
 -- | Used for random generation of functions.
 class CoArbitrary a where
-  -- | Used to generate a function of type @a -> c@. The implementation
-  -- should use the first argument to perturb the random generator
-  -- given as the second argument. the returned generator
-  -- is then used to generate the function result.
-  -- You can often use 'variant' and '.' to implement
-  -- 'coarbitrary'.
-  coarbitrary :: a -> Gen c -> Gen c
+  -- | Used to generate a function of type @a -> b@.
+  -- The first argument is a value, the second a generator.
+  -- You should use 'variant' to perturb the random generator;
+  -- the goal is that different values for the first argument will
+  -- lead to different calls to 'variant'. An example will help:
+  --
+  -- @
+  -- instance CoArbitrary a => CoArbitrary [a] where
+  --   coarbitrary []     = 'variant' 0
+  --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
+  -- @
 
-{-
-  -- GHC definition:
-  coarbitrary{| Unit |}    Unit      = id
-  coarbitrary{| a :*: b |} (x :*: y) = coarbitrary x . coarbitrary y
-  coarbitrary{| a :+: b |} (Inl x)   = variant 0     . coarbitrary x
-  coarbitrary{| a :+: b |} (Inr y)   = variant (-1)  . coarbitrary y
--}
+  coarbitrary :: a -> Gen b -> Gen b
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
 -- results of calls to 'variant' or 'coarbitrary'.
 (><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a)
 (><) = (.)
-
--- for the sake of non-GHC compilers, I have added definitions
--- for coarbitrary here.
 
 instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b) where
   coarbitrary f gen =

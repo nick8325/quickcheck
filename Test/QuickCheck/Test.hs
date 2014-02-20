@@ -31,51 +31,55 @@ import Data.List
 -- | Args specifies arguments to the QuickCheck driver
 data Args
   = Args
-  { replay          :: Maybe (QCGen,Int) -- ^ should we replay a previous test?
-  , maxSuccess      :: Int               -- ^ maximum number of successful tests before succeeding
-  , maxDiscardRatio :: Int               -- ^ maximum number of discarded tests per successful test before giving up
-  , maxSize         :: Int               -- ^ size to use for the biggest test cases
-  , chatty          :: Bool              -- ^ whether to print anything
+  { replay          :: Maybe (QCGen,Int) -- ^ Should we replay a previous test?
+  , maxSuccess      :: Int               -- ^ Maximum number of successful tests before succeeding
+  , maxDiscardRatio :: Int               -- ^ Maximum number of discarded tests per successful test before giving up
+  , maxSize         :: Int               -- ^ Size to use for the biggest test cases
+  , chatty          :: Bool              -- ^ Whether to print anything
   }
  deriving ( Show, Read )
 
 -- | Result represents the test result
 data Result
-  = Success                               -- a successful test run
-    { numTests       :: Int               -- ^ number of successful tests performed
-    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all tests
-    , output         :: String            -- ^ printed output
+  -- | A successful test run
+  = Success
+    { numTests       :: Int               -- ^ Number of tests performed
+    , labels         :: [(String,Int)]    -- ^ Labels and frequencies found during all successful tests
+    , output         :: String            -- ^ Printed output
     }
-  | GaveUp                                -- given up
-    { numTests       :: Int               -- ^ number of successful tests performed
-    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all tests
-    , output         :: String            -- ^ printed output
+  -- | Given up
+  | GaveUp
+    { numTests       :: Int               --   Number of tests performed
+    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , output         :: String            --   Printed output
     }
-  | Failure                               -- failed test run
-    { numTests       :: Int               -- ^ number of tests performed
-    , numShrinks     :: Int               -- ^ number of successful shrinking steps performed
-    , numShrinkTries :: Int               -- ^ number of unsuccessful shrinking steps performed
-    , numShrinkFinal :: Int               -- ^ number of final unsuccessful shrinking steps performed
-    , usedSeed       :: QCGen             -- ^ what seed was used
-    , usedSize       :: Int               -- ^ what was the test size
-    , reason         :: String            -- ^ what was the reason
-    , theException   :: Maybe AnException -- ^ the exception the property threw, if any
-    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
-    , output         :: String            -- ^ printed output
+  -- | A failed test run
+  | Failure
+    { numTests       :: Int               --   Number of tests performed
+    , numShrinks     :: Int               -- ^ Number of successful shrinking steps performed
+    , numShrinkTries :: Int               -- ^ Number of unsuccessful shrinking steps performed
+    , numShrinkFinal :: Int               -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
+    , usedSeed       :: QCGen             -- ^ What seed was used
+    , usedSize       :: Int               -- ^ What was the test size
+    , reason         :: String            -- ^ Why did the property fail
+    , theException   :: Maybe AnException -- ^ The exception the property threw, if any
+    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , output         :: String            --   Printed output
     }
-  | NoExpectedFailure                     -- the expected failure did not happen
-    { numTests       :: Int               -- ^ number of tests performed
-    , labels         :: [(String,Int)]    -- ^ labels and frequencies found during all successful tests
-    , output         :: String            -- ^ printed output
+  -- | A property that should have failed did not
+  | NoExpectedFailure
+    { numTests       :: Int               --   Number of tests performed
+    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , output         :: String            --   Printed output
     }
  deriving ( Show )
 
--- | isSuccess checks if the test run result was a success
+-- | Check if the test run result was a success
 isSuccess :: Result -> Bool
 isSuccess Success{} = True
 isSuccess _         = False
 
--- | stdArgs are the default test arguments used
+-- | The default test arguments
 stdArgs :: Args
 stdArgs = Args
   { replay          = Nothing
@@ -133,7 +137,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
         at0 f s n d = f n d
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
--- This is just a convenience function that means the same as 'quickCheck' '.' 'verbose'.
+-- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
 verboseCheck :: Testable prop => prop -> IO ()
 verboseCheck p = quickCheck (verbose p)
 

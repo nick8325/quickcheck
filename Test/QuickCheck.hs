@@ -13,20 +13,19 @@ module Test.QuickCheck
   , verboseCheckWith
   , verboseCheckWithResult
   , verboseCheckResult
-  , verbose
 
     -- * Random generation
   , Gen
     -- ** Generator combinators
-  , sized
-  , resize
   , choose
-  , suchThat
-  , suchThatMaybe
   , oneof
   , frequency
   , elements
   , growingElements
+  , sized
+  , resize
+  , suchThat
+  , suchThatMaybe
   , listOf
   , listOf1
   , vectorOf
@@ -48,7 +47,6 @@ module Test.QuickCheck
   , arbitraryBoundedIntegral
   , arbitraryBoundedRandom
   , arbitraryBoundedEnum
-  , coarbitraryEnum
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericShrink
@@ -63,6 +61,7 @@ module Test.QuickCheck
   , coarbitraryIntegral
   , coarbitraryReal
   , coarbitraryShow
+  , coarbitraryEnum
   , (><)
 
     -- ** Type-level modifiers for changing generator behavior
@@ -83,15 +82,16 @@ module Test.QuickCheck
   , ShrinkState(..)
 
     -- * Properties
-  , Property, Prop, Testable(..)
+  , Property, Testable(..)
     -- ** Property combinators
   , forAll
   , forAllShrink
   , shrinking
   , (==>)
-  , Discard(..)
-  , discard
-  , mapSize
+    -- *** Controlling property execution
+  , verbose
+  , once
+  , within
   , noShrinking
     -- *** Conjunction and disjunction
   , (.&.)
@@ -99,22 +99,20 @@ module Test.QuickCheck
   , conjoin
   , (.||.)
   , disjoin
-    -- *** Handling failure
-  , whenFail
+    -- *** What to do on failure
   , printTestCase
+  , whenFail
   , whenFail'
   , expectFailure
-  , within
-    -- *** Test distribution
+    -- *** Analysing test distribution
   , label
   , collect
   , classify
   , cover
-  , once
-
-    -- * Text formatting
-  , Str(..)
-  , ranges
+    -- *** Miscellaneous
+  , Discard(..)
+  , discard
+  , mapSize
   )
  where
 

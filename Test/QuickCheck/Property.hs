@@ -57,6 +57,7 @@ infixr 1 .||.
 --------------------------------------------------------------------------
 -- * Property and Testable types
 
+-- | The type of properties.
 newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of things which can be tested, i.e. turned into a property.
@@ -261,7 +262,7 @@ noShrinking = mapRoseResult (onRose (\res _ -> MkRose res []))
 callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 
--- | Prints a message to the terminal as part of the counterexample.
+-- | Adds the given string to the counterexample.
 printTestCase :: Testable prop => String -> prop -> Property
 printTestCase s =
   callback $ PostFinalFailure Counterexample $ \st _res -> do
@@ -288,8 +289,7 @@ whenFail' m =
       then m
       else return ()
 
--- | Prints out the generated testcase every time the property is tested,
--- like 'verboseCheck' from QuickCheck 1.
+-- | Prints out the generated testcase every time the property is tested.
 -- Only variables quantified over /inside/ the 'verbose' are printed.
 verbose :: Testable prop => prop -> Property
 verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ callbacks res })
@@ -300,7 +300,8 @@ verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ c
         status MkResult{ok = Just False} = "Failed"
         status MkResult{ok = Nothing} = "Skipped (precondition false)"
 
--- | Modifies a property so that it is expected to fail for some test cases.
+-- | Indicates that a property is supposed to fail.
+-- QuickCheck will report an error if it does not fail.
 expectFailure :: Testable prop => prop -> Property
 expectFailure = mapTotalResult (\res -> res{ expect = False })
 
