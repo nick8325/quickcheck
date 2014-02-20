@@ -1,9 +1,3 @@
-To do before next release:
-* Think of better names for delay and delay'.
-* Clean up changelog.
-* Write better comments for Large and Small.
-* Clean up order of exports in main module.
-
 To make a release:
 * Run build-all script.
 * Bump version number in cabal file and in source-repository link.
