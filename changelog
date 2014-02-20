@@ -2,7 +2,7 @@ QuickCheck (unreleased)
 
 	* New features:
 		* New genericShrink function provides generic shrinking with GHC.
-		* New combinators delay and delay' which can be used (unsafely!)
+		* New combinators delay and capture which can be used (unsafely!)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.
 		* A new Discard data type and a Testable instance for discarding test cases.
@@ -26,6 +26,7 @@ QuickCheck (unreleased)
 		* The Result type now returns the thrown exception and number
 		  of failed shrink attempts.
 		* Property is now a newtype rather than Gen Prop as it was before.
+		* promote is moved into the new module Test.QuickCheck.Gen.Unsafe.
 
 QuickCheck (2.6) 2013-03-07
 
