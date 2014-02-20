@@ -1,19 +1,30 @@
 QuickCheck (unreleased)
 
-	* Add Discard data type and a Testable instance for discarding test cases.
-	* Make Int generator generate only fairly small numbers.
-	* Add modifiers Small and Large for controlling the distribution
-	  of integers.
-	* Define an abstract type QCGen which is used instead of StdGen.
-	* Add cabal flag -ftf-random to use the tf-random package for
-	  better distribution of random numbers.
-	* Add Functor instances and accessor functions for modifiers.
-	* Improve shrinking of floating-point numbers.
-	* Add thrown exception and number of failed shrink attempts to the result type.
-	* Change Property into a newtype rather than Gen Prop as it was before.
-	* Add delay and delay' which can be used (unsafely!) to reuse the random number seed.
-	* Add generic shrinking for GHC.
-	* Use a prefix code for coarbitrary - deprecates ><.
+	* New features:
+		* New genericShrink function provides generic shrinking with GHC.
+		* New combinators delay and delay' which can be used (unsafely!)
+		  to reuse the random number seed. Useful for generating
+		  polymorphic (rank-2) values.
+		* A new Discard data type and a Testable instance for discarding test cases.
+		* All modifiers now have Functor instances and accessor functions.
+
+	* Better distribution of test data:
+		* The Int generator now only generates fairly small numbers.
+		* The new Small and Large modifiers control the distribution of integers
+		  (Small generates small numbers, Large from the whole range).
+		* Floating-point numbers shrink better.
+
+	* Improved random number generation:
+		* You can now choose the random number generator:
+		  StdGen (standard) and TFGen (better randomness).
+		  Install with -ftf-random to use TFGen.
+		* >< is now deprecated as 'variant' uses a prefix code.
+
+	* API changes:
+		* The Gen monad now uses an abstract type QCGen rather than StdGen.
+		* The Result type now returns the thrown exception and number
+		  of failed shrink attempts.
+		* Property is now a newtype rather than Gen Prop as it was before.
 
 QuickCheck (2.6) 2013-03-07
 
