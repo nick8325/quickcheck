@@ -1,3 +1,4 @@
+-- | A wrapper around the system random number generator. Internal QuickCheck module.
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Random where
 

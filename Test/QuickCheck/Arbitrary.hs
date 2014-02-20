@@ -1,3 +1,4 @@
+-- | Type classes for random generation of values.
 {-# LANGUAGE CPP #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
@@ -16,6 +17,9 @@ module Test.QuickCheck.Arbitrary
   , arbitraryBoundedRandom        -- :: (Bounded a, Random a) => Gen a
   , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
   -- ** Helper functions for implementing shrink
+#ifndef NO_GENERICS
+  , genericShrink -- :: (Generic a, GenericShrink (Rep a)) => a -> [a]
+#endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
   , shrinkIntegral           -- :: Integral a => a -> [a]
@@ -31,9 +35,6 @@ module Test.QuickCheck.Arbitrary
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
   , orderedList -- :: (Ord a, Arbitrary a) => Gen [a]
-#ifndef NO_GENERICS
-  , genericShrink -- :: (Generic a, GenericShrink (Rep a)) => a -> [a]
-#endif
   )
  where
 
@@ -111,8 +112,7 @@ class Arbitrary a where
   shrink _ = []
 
 #ifndef NO_GENERICS
--- | Shrink a value using GHC's generics mechanism.
--- May be useful in defining 'shrink'.
+-- | Shrink a value generically. A helper function for defining 'shrink'.
 genericShrink :: (Generic a, GenericShrink (Rep a)) => a -> [a]
 genericShrink = map to . shrinkRep . from
 

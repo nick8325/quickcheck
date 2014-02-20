@@ -1,3 +1,5 @@
+-- | Throwing and catching exceptions. Internal QuickCheck module.
+
 -- Hide away the nasty implementation-specific ways of catching
 -- exceptions behind a nice API. The main trouble is catching ctrl-C.
 

@@ -1,3 +1,4 @@
+-- | Terminal control. Internal QuickCheck module.
 module Test.QuickCheck.Text
   ( Str(..)
   , ranges

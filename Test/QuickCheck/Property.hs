@@ -1,3 +1,4 @@
+-- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Property where
 

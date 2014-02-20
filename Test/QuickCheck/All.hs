@@ -1,5 +1,5 @@
 {-# LANGUAGE TemplateHaskell, Rank2Types #-}
--- | Experimental features using Template Haskell.
+-- | Test all properties in the current module, using Template Haskell.
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
 module Test.QuickCheck.All(

@@ -1,3 +1,4 @@
+-- | QuickCheck's internal state. Internal QuickCheck module.
 module Test.QuickCheck.State where
 
 import Test.QuickCheck.Text

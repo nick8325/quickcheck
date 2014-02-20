@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators, GADTs #-}
 -- | Generation of random shrinkable, showable functions.
--- Not really documented at the moment!
+-- See the paper \"Shrinking and showing functions\" by Koen Claessen.
 --
 -- Example of use:
 --

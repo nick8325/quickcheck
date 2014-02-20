@@ -1,3 +1,4 @@
+-- | The main test loop.
 module Test.QuickCheck.Test where
 
 --------------------------------------------------------------------------
