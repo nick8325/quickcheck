@@ -8,7 +8,7 @@
 -- implement 'Eq', 'Show', 'Arbitrary' and 'CoArbitrary'. Types
 -- 'OrdA', 'OrdB' and 'OrdC' also implement 'Ord' and 'Num'.
 --
--- See also "Test.QuickCheck.All" for an experimental way of testing
+-- See also "Test.QuickCheck.All" for an automatic way of testing
 -- polymorphic properties.
 module Test.QuickCheck.Poly
   ( A(..), B(..), C(..)

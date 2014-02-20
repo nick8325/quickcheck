@@ -86,7 +86,7 @@ module Test.QuickCheck
   , discard
   , forAll
   , forAllShrink
-    -- *** Experimental combinators for conjunction and disjunction
+    -- *** Conjunction and disjunction
   , (.&.)
   , (.&&.)
   , conjoin

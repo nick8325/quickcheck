@@ -3,11 +3,11 @@
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
 module Test.QuickCheck.All(
-  -- ** Testing all properties in a module.
+  -- ** Testing all properties in a module
   quickCheckAll,
   verboseCheckAll,
   forAllProperties,
-  -- ** Testing polymorphic properties.
+  -- ** Testing polymorphic properties
   polyQuickCheck,
   polyVerboseCheck,
   mono) where
