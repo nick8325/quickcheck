@@ -15,10 +15,11 @@ QuickCheck (unreleased)
 		* Floating-point numbers shrink better.
 
 	* Improved random number generation:
-		* You can now choose the random number generator:
-		  StdGen (standard) and TFGen (better randomness).
-		  Install with -ftf-random to use TFGen.
-		* >< is now deprecated as 'variant' uses a prefix code.
+		* QuickCheck now uses TFGen rather than StdGen by default,
+		  because it generates better random numbers.
+		  You can switch back to StdGen with the Cabal flag -f-tf-random.
+		* 'variant' now uses a prefix code. This should prevent some
+		  potential bananaskins with coarbitrary.
 
 	* API changes:
 		* The Gen monad now uses an abstract type QCGen rather than StdGen.
