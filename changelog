@@ -1,10 +1,11 @@
-QuickCheck (unreleased)
+QuickCheck HEAD (unreleased)
 
 	* New features:
 		* New genericShrink function provides generic shrinking with GHC.
 		* New combinator x === y: fails if x /= y, but also prints their values
 		* Several combinators added to the main Test.QuickCheck module which
-		  were previously languishing in other modules
+		  were previously languishing in other modules. Of particular interest:
+		  quickCheckAll, ioProperty.
 		* New combinators delay and capture which can be used (unsafely!)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.
@@ -31,17 +32,16 @@ QuickCheck (unreleased)
 		* Property is now a newtype rather than Gen Prop as it was before.
 		* promote is moved into the new module Test.QuickCheck.Gen.Unsafe.
 I		* 'printTestCase' is deprecated - its new name is 'counterexample'
-		* 'exhaustive' is removed
+		* 'morallyDubiousIOProperty' is deprecated - its new name is
+		  'ioProperty', no moral judgement involved :)
 
-QuickCheck (2.6) 2013-03-07
+QuickCheck 2.6, released 2013-03-07
 
 	* Add convenience Function instances for up to 7-tuples
 	* Make stderr line buffered to reduce console I/O.
 	* Return a flag to say whether the test case was interrupted.
 
-QuickCheck (2.5) 2012-06-18
-
-	Changes since QuickCheck 2.4.1
+QuickCheck 2.5, released 2012-06-18
 
 	* Replace maxDiscard with maxDiscardRatio
 	* Remove Testable () instance.
