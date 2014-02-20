@@ -50,16 +50,20 @@ module Test.QuickCheck
   , arbitraryBoundedEnum
   , coarbitraryEnum
     -- ** Helper functions for implementing shrink
+#ifndef NO_GENERICS
+  , genericShrink
+#endif
   , shrinkNothing
+  , shrinkList
   , shrinkIntegral
   , shrinkRealFrac
   , shrinkRealFracToInteger
     -- ** Helper functions for implementing coarbitrary
   , variant
-  , (><)
   , coarbitraryIntegral
   , coarbitraryReal
   , coarbitraryShow
+  , (><)
 
     -- ** Type-level modifiers for changing generator behavior
   , Blind(..)
@@ -69,6 +73,8 @@ module Test.QuickCheck
   , Positive(..)
   , NonZero(..)
   , NonNegative(..)
+  , Large(..)
+  , Small(..)
   , Smart(..)
   , Shrink2(..)
 #ifndef NO_MULTI_PARAM_TYPE_CLASSES
@@ -79,13 +85,14 @@ module Test.QuickCheck
     -- * Properties
   , Property, Prop, Testable(..)
     -- ** Property combinators
-  , Discard(..)
-  , mapSize
-  , shrinking
-  , (==>)
-  , discard
   , forAll
   , forAllShrink
+  , shrinking
+  , (==>)
+  , Discard(..)
+  , discard
+  , mapSize
+  , noShrinking
     -- *** Conjunction and disjunction
   , (.&.)
   , (.&&.)

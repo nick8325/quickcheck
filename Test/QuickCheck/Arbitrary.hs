@@ -26,11 +26,11 @@ module Test.QuickCheck.Arbitrary
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
   , shrinkRealFracToInteger  -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
-  , (><)
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
   , coarbitraryShow          -- :: Show a => a -> Gen b -> Gen b
   , coarbitraryEnum          -- :: Enum a => a -> Gen b -> Gen b
+  , (><)
 
   -- ** Generators which use arbitrary
   , vector      -- :: Arbitrary a => Int -> Gen [a]
@@ -177,6 +177,7 @@ instance Arbitrary a => Arbitrary [a] where
 
   shrink xs = shrinkList shrink xs
 
+-- | Shrink a list of values given a shrinking function for individual values.
 shrinkList :: (a -> [a]) -> [a] -> [[a]]
 shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div`2) n) ]
                  ++ shrinkOne xs
@@ -452,7 +453,6 @@ class CoArbitrary a where
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
 -- results of calls to 'variant' or 'coarbitrary'.
--- Deprecated: just use (.) instead.
 (><) :: (Gen a -> Gen a) -> (Gen a -> Gen a) -> (Gen a -> Gen a)
 (><) = (.)
 

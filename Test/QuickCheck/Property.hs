@@ -65,6 +65,8 @@ class Testable prop where
   exhaustive :: prop -> Bool
   exhaustive _ = False
 
+-- | If a property returns 'Discard', the current test case is discarded,
+-- the same as if a precondition was false.
 data Discard = Discard
 
 instance Testable Discard where
