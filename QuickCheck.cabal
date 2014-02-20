@@ -117,7 +117,7 @@ Test-Suite test-quickcheck
     main-is: Heap.hs
     build-depends:
         base
-        , QuickCheck == 2.6
+        , QuickCheck == 2.7
         , random
         , template-haskell >= 2.4
         , test-framework >= 0.4 && < 0.9
