@@ -123,7 +123,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numSuccessShrinks         = 0
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
-                 } (unGen (unProperty (property p)))
+                 } (unGen (unProperty (property' p)))
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
@@ -135,6 +135,9 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
         n `roundTo` m = (n `div` m) * m
         at0 f s 0 0 = s
         at0 f s n d = f n d
+        property' p
+          | exhaustive p = once (property p)
+          | otherwise = property p
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
