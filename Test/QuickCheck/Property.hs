@@ -263,8 +263,8 @@ callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 
 -- | Adds the given string to the counterexample.
-printTestCase :: Testable prop => String -> prop -> Property
-printTestCase s =
+counterexample :: Testable prop => String -> prop -> Property
+counterexample s =
   callback $ PostFinalFailure Counterexample $ \st _res -> do
     res <- tryEvaluateIO (putLine (terminal st) s)
     case res of
@@ -272,6 +272,11 @@ printTestCase s =
         putLine (terminal st) (formatException "Exception thrown by generator" err)
       Right () ->
         return ()
+
+-- | Adds the given string to the counterexample.
+{-# DEPRECATED printTestCase "Use counterexample instead" #-}
+printTestCase :: Testable prop => String -> prop -> Property
+printTestCase = counterexample
 
 -- | Performs an 'IO' action after the last failure of a property.
 whenFail :: Testable prop => IO () -> prop -> Property
@@ -371,7 +376,7 @@ forAll :: (Show a, Testable prop)
 forAll gen pf =
   MkProperty $
   gen >>= \x ->
-    unProperty (printTestCase (show x) (pf x))
+    unProperty (counterexample (show x) (pf x))
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
@@ -381,7 +386,7 @@ forAllShrink gen shrinker pf =
   gen >>= \x ->
     unProperty $
     shrinking shrinker x $ \x' ->
-      printTestCase (show x') (pf x')
+      counterexample (show x') (pf x')
 
 -- | Nondeterministic choice: 'p1' '.&.' 'p2' picks randomly one of
 -- 'p1' and 'p2' to test. If you test the property 100 times it
@@ -391,7 +396,7 @@ p1 .&. p2 =
   MkProperty $
   arbitrary >>= \b ->
     unProperty $
-    printTestCase (if b then "LHS" else "RHS") $
+    counterexample (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
 -- | Conjunction: 'p1' '.&&.' 'p2' passes if both 'p1' and 'p2' pass.

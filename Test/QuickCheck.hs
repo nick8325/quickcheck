@@ -100,6 +100,7 @@ module Test.QuickCheck
   , (.||.)
   , disjoin
     -- *** What to do on failure
+  , counterexample
   , printTestCase
   , whenFail
   , whenFail'
