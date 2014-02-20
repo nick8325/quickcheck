@@ -474,5 +474,12 @@ disjoin ps =
                     callbacks result2
     }
 
+-- | Like '==', but prints a counterexample when it fails.
+infix 4 ===
+(===) :: (Eq a, Show a) => a -> a -> Property
+x === y =
+  counterexample (show x ++ " /= " ++ show y) (x == y)
+
+
 --------------------------------------------------------------------------
 -- the end.

@@ -88,6 +88,7 @@ module Test.QuickCheck
   , forAllShrink
   , shrinking
   , (==>)
+  , (===)
     -- *** Controlling property execution
   , verbose
   , once
