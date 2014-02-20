@@ -34,7 +34,16 @@ delay = MkGen (\r n g -> unGen g r n)
 
 #ifndef NO_ST_MONAD
 -- | A variant of 'delay' that returns a polymorphic evaluation function.
--- Useful for generating polymorphic (rank-2) values.
+-- Can be used in a pinch to generate polymorphic (rank-2) values:
+--
+-- > genSelector :: Gen (a -> a -> a)
+-- > genSelector = elements [\x y -> x, \x y -> y]
+-- >
+-- > data Selector = Selector (forall a. a -> a -> a)
+-- > genPolySelector :: Gen Selector
+-- > genPolySelector = do
+-- >   Capture eval <- capture
+-- >   return (Selector (eval genSelector))
 capture :: Gen Capture
 capture = MkGen (\r n -> Capture (\g -> unGen g r n))
 
