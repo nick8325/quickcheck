@@ -78,9 +78,9 @@ natVariant n g
 {-# INLINE variantTheGen #-}
 variantTheGen :: Integral a => a -> TheGen -> TheGen
 variantTheGen n g
-  | n >= 0    = natVariant n (boolVariant False g)
-  | n == -1   = natVariant (0 `asTypeOf` n) (boolVariant True g)
-  | otherwise = bigNatVariant (negate (toInteger n)-1) (boolVariant True g)
+  | n >= 1    = natVariant (n-1) (boolVariant False g)
+  | n == 0   = natVariant (0 `asTypeOf` n) (boolVariant True g)
+  | otherwise = bigNatVariant (negate (toInteger n)) (boolVariant True g)
 
 boolVariant :: Bool -> TheGen -> TheGen
 boolVariant False = fst . split

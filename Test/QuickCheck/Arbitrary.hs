@@ -465,24 +465,24 @@ instance CoArbitrary () where
 
 instance CoArbitrary Bool where
   coarbitrary False = variant 0
-  coarbitrary True  = variant (-1)
+  coarbitrary True  = variant 1
 
 instance CoArbitrary Ordering where
-  coarbitrary GT = variant 1
-  coarbitrary EQ = variant 0
-  coarbitrary LT = variant (-1)
+  coarbitrary GT = variant 0
+  coarbitrary EQ = variant 1
+  coarbitrary LT = variant 2
 
 instance CoArbitrary a => CoArbitrary (Maybe a) where
   coarbitrary Nothing  = variant 0
-  coarbitrary (Just x) = variant (-1) . coarbitrary x
+  coarbitrary (Just x) = variant 1 . coarbitrary x
 
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Either a b) where
   coarbitrary (Left x)  = variant 0    . coarbitrary x
-  coarbitrary (Right y) = variant (-1) . coarbitrary y
+  coarbitrary (Right y) = variant 1 . coarbitrary y
 
 instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
-  coarbitrary (x:xs) = variant (-1) . coarbitrary (x,xs)
+  coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
