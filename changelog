@@ -35,7 +35,7 @@ QuickCheck HEAD (unreleased)
 		  of failed shrink attempts.
 		* Property is now a newtype rather than Gen Prop as it was before.
 		* promote is moved into the new module Test.QuickCheck.Gen.Unsafe.
-I		* 'printTestCase' is deprecated - its new name is 'counterexample'
+		* 'printTestCase' is deprecated - its new name is 'counterexample'
 		* 'morallyDubiousIOProperty' is deprecated - its new name is
 		  'ioProperty', no moral judgement involved :)
 
