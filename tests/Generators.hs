@@ -26,6 +26,17 @@ path p (Path xs) = all p xs
 somePath :: (a -> Bool) -> Path a -> Property
 somePath p = expectFailure . path (not . p)
 
+newtype Extremal a = Extremal { getExtremal :: a } deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
+
+instance (Arbitrary a, Bounded a) => Arbitrary (Extremal a) where
+  arbitrary =
+    fmap Extremal $
+    frequency
+      [(1, return minBound),
+       (1, return maxBound),
+       (8, arbitrary)]
+  shrink (Extremal x) = map Extremal (shrink x)
+
 smallProp :: Integral a => Path a -> Bool
 smallProp = path (\x -> x >= -100 && x <= 100)
 
@@ -72,31 +83,31 @@ prop_ordered_list = path (\(Ordered xs) -> sort xs == xs)
 prop_nonempty_list = path (\(NonEmpty xs) -> not (null xs))
 
 pathInt, somePathInt ::
-  (Arbitrary (f Int), Show (f Int),
+  (Arbitrary (f (Extremal Int)), Show (f (Extremal Int)),
    Arbitrary (f Integer), Show (f Integer),
-   Arbitrary (f Int8), Show (f Int8),
-   Arbitrary (f Int16), Show (f Int16),
-   Arbitrary (f Int32), Show (f Int32),
-   Arbitrary (f Int64), Show (f Int64),
-   Arbitrary (f Word), Show (f Word),
-   Arbitrary (f Word8), Show (f Word8),
-   Arbitrary (f Word16), Show (f Word16),
-   Arbitrary (f Word32), Show (f Word32),
-   Arbitrary (f Word64), Show (f Word64)) =>
+   Arbitrary (f (Extremal Int8)), Show (f (Extremal Int8)),
+   Arbitrary (f (Extremal Int16)), Show (f (Extremal Int16)),
+   Arbitrary (f (Extremal Int32)), Show (f (Extremal Int32)),
+   Arbitrary (f (Extremal Int64)), Show (f (Extremal Int64)),
+   Arbitrary (f (Extremal Word)), Show (f (Extremal Word)),
+   Arbitrary (f (Extremal Word8)), Show (f (Extremal Word8)),
+   Arbitrary (f (Extremal Word16)), Show (f (Extremal Word16)),
+   Arbitrary (f (Extremal Word32)), Show (f (Extremal Word32)),
+   Arbitrary (f (Extremal Word64)), Show (f (Extremal Word64))) =>
   (forall a. f a -> a) -> (forall a. Integral a => a -> Bool) -> Property
 pathInt f p =
   conjoin
-    [counterexample "Int" (path ((p :: Int -> Bool) . f)),
+    [counterexample "Int" (path ((p :: Int -> Bool) . getExtremal . f)),
      counterexample "Integer" (path ((p :: Integer -> Bool) . f)),
-     counterexample "Int8" (path ((p :: Int8 -> Bool) . f)),
-     counterexample "Int16" (path ((p :: Int16 -> Bool) . f)),
-     counterexample "Int32" (path ((p :: Int32 -> Bool) . f)),
-     counterexample "Int64" (path ((p :: Int64 -> Bool) . f)),
-     counterexample "Word" (path ((p :: Word -> Bool) . f)),
-     counterexample "Word8" (path ((p :: Word8 -> Bool) . f)),
-     counterexample "Word16" (path ((p :: Word16 -> Bool) . f)),
-     counterexample "Word32" (path ((p :: Word32 -> Bool) . f)),
-     counterexample "Word64" (path ((p :: Word64 -> Bool) . f))]
+     counterexample "Int8" (path ((p :: Int8 -> Bool) . getExtremal . f)),
+     counterexample "Int16" (path ((p :: Int16 -> Bool) . getExtremal . f)),
+     counterexample "Int32" (path ((p :: Int32 -> Bool) . getExtremal . f)),
+     counterexample "Int64" (path ((p :: Int64 -> Bool) . getExtremal . f)),
+     counterexample "Word" (path ((p :: Word -> Bool) . getExtremal . f)),
+     counterexample "Word8" (path ((p :: Word8 -> Bool) . getExtremal . f)),
+     counterexample "Word16" (path ((p :: Word16 -> Bool) . getExtremal . f)),
+     counterexample "Word32" (path ((p :: Word32 -> Bool) . getExtremal . f)),
+     counterexample "Word64" (path ((p :: Word64 -> Bool) . getExtremal . f))]
 somePathInt f p = expectFailure (pathInt f (not . p))
 
 prop_positive = pathInt getPositive (> 0)
