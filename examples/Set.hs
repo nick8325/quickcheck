@@ -206,17 +206,7 @@ prop_FromList' (xs :: [Int]) =
 --------------------------------------------------------------------------
 -- main
 
-main =
-  do quickCheck prop_Invariant
-     quickCheck prop_Empty
-     quickCheck prop_Unit
-     quickCheck prop_Size
-     quickCheck prop_Insert
-     quickCheck prop_Delete
-     quickCheck prop_Union
-     quickCheck prop_Mapp
-     quickCheck prop_FromList
-     quickCheck prop_ToSortedList
+main = $quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.

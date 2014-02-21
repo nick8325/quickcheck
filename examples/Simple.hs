@@ -40,10 +40,10 @@ prop_Error (x,y) =
 -- main
 
 main = $quickCheckAll
-prop_conj = printTestCase "Simon Thompson" $(mono 'prop_SimonThompson) .&&.
-            printTestCase "reverse" $(mono 'prop_Reverse)
-prop_disj = printTestCase "reverse" $(mono 'prop_Reverse) .||.
-            printTestCase "Simon Thompson" $(mono 'prop_SimonThompson)
+prop_conj = counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson) .&&.
+            counterexample "reverse" $(monomorphic 'prop_Reverse)
+prop_disj = counterexample "reverse" $(monomorphic 'prop_Reverse) .||.
+            counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson)
 
 --------------------------------------------------------------------------
 -- the end.
