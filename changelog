@@ -6,6 +6,7 @@ QuickCheck HEAD (unreleased)
 		* Several combinators added to the main Test.QuickCheck module which
 		  were previously languishing in other modules. Of particular interest:
 		  quickCheckAll, ioProperty.
+		* New function generate :: Gen a -> IO a for running a generator.
 		* New combinators delay and capture which can be used (unsafely!)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.
