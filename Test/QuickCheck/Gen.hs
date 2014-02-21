@@ -72,18 +72,22 @@ resize n (MkGen m) = MkGen (\r _ -> m r n)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
+-- | Run a generator.
+generate :: Gen a -> IO a
+generate (MkGen g) =
+  do r <- newQCGen
+     return (g r 30)
+
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
-sample' (MkGen m) =
-  do rnd0 <- newQCGen
-     let rnds rnd = rnd1 : rnds rnd2 where (rnd1,rnd2) = split rnd
-     return [(m r n) | (r,n) <- rnds rnd0 `zip` [0,2..20] ]
+sample' g =
+  generate (sequence [ resize n g | n <- [0,2..20] ])
 
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g =
   do cases <- sample' g
-     sequence_ (map print cases)
+     mapM_ print cases
 
 --------------------------------------------------------------------------
 -- ** Common generator combinators

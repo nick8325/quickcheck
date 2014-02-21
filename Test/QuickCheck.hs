@@ -42,6 +42,8 @@ module Test.QuickCheck
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
+    -- ** Running a generator
+  , generate
     -- ** Generator debugging
   , sample
   , sample'
