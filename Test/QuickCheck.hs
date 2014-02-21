@@ -39,9 +39,11 @@ module Test.QuickCheck
   , listOf
   , listOf1
   , vectorOf
+  , infiniteListOf
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
+  , infiniteList
     -- ** Running a generator
   , generate
     -- ** Generator debugging

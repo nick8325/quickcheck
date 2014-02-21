@@ -3,10 +3,11 @@ QuickCheck HEAD (unreleased)
 	* New features:
 		* New genericShrink function provides generic shrinking with GHC.
 		* New combinator x === y: fails if x /= y, but also prints their values
+		* New function generate :: Gen a -> IO a for running a generator.
+		* New combinators infiniteList and infiniteListOf for generating infinite lists.
 		* Several combinators added to the main Test.QuickCheck module which
 		  were previously languishing in other modules. Of particular interest:
 		  quickCheckAll, ioProperty.
-		* New function generate :: Gen a -> IO a for running a generator.
 		* New combinators delay and capture which can be used (unsafely!)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.

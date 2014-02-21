@@ -33,8 +33,9 @@ module Test.QuickCheck.Arbitrary
   , (><)
 
   -- ** Generators which use arbitrary
-  , vector      -- :: Arbitrary a => Int -> Gen [a]
-  , orderedList -- :: (Ord a, Arbitrary a) => Gen [a]
+  , vector       -- :: Arbitrary a => Int -> Gen [a]
+  , orderedList  -- :: (Ord a, Arbitrary a) => Gen [a]
+  , infiniteList -- :: Arbitrary a => Gen [a]
   )
  where
 
@@ -597,6 +598,10 @@ vector k = vectorOf k arbitrary
 -- | Generates an ordered list of a given length.
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
+
+-- | Generate an infinite list.
+infiniteList :: Arbitrary a => Gen [a]
+infiniteList = infiniteListOf arbitrary
 
 --------------------------------------------------------------------------
 -- the end.

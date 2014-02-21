@@ -169,5 +169,9 @@ listOf1 gen = sized $ \n ->
 vectorOf :: Int -> Gen a -> Gen [a]
 vectorOf k gen = sequence [ gen | _ <- [1..k] ]
 
+-- | Generates an infinite list.
+infiniteListOf :: Gen a -> Gen [a]
+infiniteListOf gen = sequence (repeat gen)
+
 --------------------------------------------------------------------------
 -- the end.
