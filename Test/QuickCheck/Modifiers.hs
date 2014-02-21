@@ -233,8 +233,8 @@ newtype Small a = Small {getSmall :: a}
 instance Functor Small where
   fmap f (Small x) = Small (f x)
 
-instance (Integral a, Bounded a) => Arbitrary (Small a) where
-  arbitrary = fmap Small arbitraryBoundedIntegral
+instance Integral a => Arbitrary (Small a) where
+  arbitrary = fmap Small arbitrarySizedIntegral
   shrink (Small x) = map Small (shrinkIntegral x)
 
 --------------------------------------------------------------------------
