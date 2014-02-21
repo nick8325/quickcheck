@@ -12,6 +12,8 @@ QuickCheck HEAD (unreleased)
 		  to reuse the random number seed. Useful for generating
 		  polymorphic (rank-2) values.
 		* A new Discard data type and a Testable instance for discarding test cases.
+		* A special value discard :: a, which if evaluated causes the
+		  test case to be discarded.
 		* All modifiers now have Functor instances and accessor functions.
 
 	* Better distribution of test data:
