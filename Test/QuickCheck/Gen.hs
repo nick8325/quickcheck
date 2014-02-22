@@ -31,7 +31,10 @@ import Test.QuickCheck.Random
 -- ** Generator type
 
 -- | A generator for values of type @a@.
-newtype Gen a = MkGen{ unGen :: QCGen -> Int -> a }
+newtype Gen a = MkGen{
+  unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed.
+                             -- If you just want to get a random value out, consider using 'generate'.
+  }
 
 instance Functor Gen where
   fmap f (MkGen h) =
