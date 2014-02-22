@@ -353,15 +353,19 @@ arbitrarySizedFractional =
  where
   precision = 9999999999999 :: Integer
 
+-- Useful for getting at minBound and maxBound without having to
+-- fiddle around with asTypeOf.
+bounds :: Bounded a => (a -> a -> Gen a) -> Gen a
+bounds k = k minBound maxBound
+
 -- | Generates an integral number. The number is chosen uniformly from
 -- the entire range of the type. You may want to use
 -- 'arbitrarySizedBoundedIntegral' instead.
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral =
-  do let mn = minBound
-         mx = maxBound `asTypeOf` mn
-     n <- choose (toInteger mn, toInteger mx)
-     return (fromInteger n `asTypeOf` mn)
+  bounds $ \mn mx ->
+  do n <- choose (toInteger mn, toInteger mx)
+     return (fromInteger n)
 
 -- | Generates an element of a bounded type. The element is
 -- chosen from the entire range of the type.
@@ -371,10 +375,9 @@ arbitraryBoundedRandom = choose (minBound,maxBound)
 -- | Generates an element of a bounded enumeration.
 arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a
 arbitraryBoundedEnum =
-  do let mn = minBound
-         mx = maxBound `asTypeOf` mn
-     n <- choose (fromEnum mn, fromEnum mx)
-     return (toEnum n `asTypeOf` mn)
+  bounds $ \mn mx ->
+  do n <- choose (fromEnum mn, fromEnum mx)
+     return (toEnum n)
 
 -- | Generates an integral number from a bounded domain. The number is
 -- chosen from the entire range of the type, but small numbers are
@@ -382,14 +385,13 @@ arbitraryBoundedEnum =
 -- Phil Wadler.
 arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
+  bounds $ \mn mx ->
   sized $ \s ->
-    do let mn = minBound
-           mx = maxBound `asTypeOf` mn
-           bits n | n `quot` 2 == 0 = 0
+    do let bits n | n `quot` 2 == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
            k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
-       return (fromInteger n `asTypeOf` mn)
+       return (fromInteger n)
 
 -- ** Helper functions for implementing shrink
 
