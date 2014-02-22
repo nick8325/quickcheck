@@ -64,10 +64,12 @@ import Data.Char
   , isSpace
   )
 
+#ifndef NO_FIXED
 import Data.Fixed
   ( Fixed
   , HasResolution
   )
+#endif
 
 import Data.Ratio
   ( Ratio
@@ -155,7 +157,7 @@ instance Arbitrary Bool where
   shrink False = []
 
 instance Arbitrary Ordering where
-  arbitrary = arbitraryBoundedEnum
+  arbitrary = elements [LT, EQ, GT]
   shrink GT = [EQ, LT]
   shrink LT = [EQ]
   shrink EQ = []
@@ -215,9 +217,11 @@ instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
 
+#ifndef NO_FIXED
 instance HasResolution a => Arbitrary (Fixed a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
+#endif
 
 instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
@@ -488,8 +492,10 @@ instance CoArbitrary a => CoArbitrary [a] where
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
 
+#ifndef NO_FIXED
 instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
+#endif
 
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y

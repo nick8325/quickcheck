@@ -92,8 +92,8 @@ module Test.QuickCheck
   , Shrink2(..)
 #ifndef NO_MULTI_PARAM_TYPE_CLASSES
   , Shrinking(..)
-#endif
   , ShrinkState(..)
+#endif
 
     -- * Properties
   , Property, Testable(..)

@@ -22,7 +22,8 @@ module Test.QuickCheck.Exception where
 #endif
 #endif
 
-#if defined(OLD_EXCEPTIONS) || defined(NO_BASE_3)
+#if defined(NO_EXCEPTIONS)
+#elif defined(OLD_EXCEPTIONS) || defined(NO_BASE_3)
 import qualified Control.Exception as E
 #else
 import qualified Control.Exception.Extensible as E
@@ -38,12 +39,37 @@ import Data.Dynamic
 #endif
 #endif
 
-#if defined(OLD_EXCEPTIONS)
+#if defined(NO_EXCEPTIONS)
+type AnException = ()
+#elif defined(OLD_EXCEPTIONS)
 type AnException = E.Exception
 #else
 type AnException = E.SomeException
 #endif
 
+#ifdef NO_EXCEPTIONS
+tryEvaluate :: a -> IO (Either AnException a)
+tryEvaluate x = return (Right x)
+
+tryEvaluateIO :: IO a -> IO (Either AnException a)
+tryEvaluateIO m = fmap Right m
+
+isInterrupt :: AnException -> Bool
+isInterrupt _ = False
+
+discard :: a
+discard = error "'discard' not supported, since your Haskell system can't catch exceptions"
+
+isDiscard :: AnException -> Bool
+isDiscard _ = False
+
+finally :: IO a -> IO b -> IO a
+finally mx my = do
+  x <- mx
+  my
+  return x
+
+#else
 --------------------------------------------------------------------------
 -- try evaluate
 
@@ -96,6 +122,7 @@ isDiscard :: AnException -> Bool
 
 finally :: IO a -> IO b -> IO a
 finally = E.finally
+#endif
 
 --------------------------------------------------------------------------
 -- the end.

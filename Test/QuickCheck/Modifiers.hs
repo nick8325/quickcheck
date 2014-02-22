@@ -49,8 +49,10 @@ module Test.QuickCheck.Modifiers
   , Small(..)
   , Smart(..)
   , Shrink2(..)
+#ifndef NO_MULTI_PARAM_TYPE_CLASSES
   , Shrinking(..)
   , ShrinkState(..)
+#endif
   )
  where
 

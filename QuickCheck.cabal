@@ -71,6 +71,10 @@ library
   if impl(ghc >= 6.9) && impl (ghc < 7.0)
     Build-depends: extensible-exceptions
 
+  if impl(uhc)
+    Build-depends: old-time, old-locale
+    cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
+
   -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
