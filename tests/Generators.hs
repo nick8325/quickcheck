@@ -120,4 +120,4 @@ prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
 prop_nonnegative = pathInt getNonNegative (>= 0)
 prop_nonnegative_bound = somePathInt getNonNegative (== 0)
 
-main = $quickCheckAll
+main = $quickCheckAll >>= print
