@@ -355,15 +355,15 @@ arbitrarySizedFractional =
 
 -- Useful for getting at minBound and maxBound without having to
 -- fiddle around with asTypeOf.
-bounds :: Bounded a => (a -> a -> Gen a) -> Gen a
-bounds k = k minBound maxBound
+withBounds :: Bounded a => (a -> a -> Gen a) -> Gen a
+withBounds k = k minBound maxBound
 
 -- | Generates an integral number. The number is chosen uniformly from
 -- the entire range of the type. You may want to use
 -- 'arbitrarySizedBoundedIntegral' instead.
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral =
-  bounds $ \mn mx ->
+  withBounds $ \mn mx ->
   do n <- choose (toInteger mn, toInteger mx)
      return (fromInteger n)
 
@@ -375,7 +375,7 @@ arbitraryBoundedRandom = choose (minBound,maxBound)
 -- | Generates an element of a bounded enumeration.
 arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a
 arbitraryBoundedEnum =
-  bounds $ \mn mx ->
+  withBounds $ \mn mx ->
   do n <- choose (fromEnum mn, fromEnum mx)
      return (toEnum n)
 
@@ -385,7 +385,7 @@ arbitraryBoundedEnum =
 -- Phil Wadler.
 arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
-  bounds $ \mn mx ->
+  withBounds $ \mn mx ->
   sized $ \s ->
     do let bits n | n `quot` 2 == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
