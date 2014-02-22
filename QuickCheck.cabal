@@ -45,10 +45,6 @@ flag base4
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
 
-flag tf-random
-  Description: Use the tf-random package for random number generation.
-  Default: True
-
 library
   -- Choose which library versions to use.
   if flag(base4)
@@ -58,22 +54,6 @@ library
       Build-depends: base >= 3 && < 4, random
     else
       Build-depends: base < 3
-
-  if flag(tf-random)
-    Build-depends: tf-random
-    cpp-options: -DUSE_TF_RANDOM
-
-  -- On old versions of GHC use the ghc package to catch ctrl-C.
-  if impl(ghc >= 6.7) && impl(ghc < 6.13)
-      Build-depends: ghc
-
-  -- We want to use extensible-exceptions even if linking against base-3.
-  if impl(ghc >= 6.9) && impl (ghc < 7.0)
-    Build-depends: extensible-exceptions
-
-  if impl(uhc)
-    Build-depends: old-time, old-locale
-    cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
 
   -- Modules that are always built.
   Exposed-Modules:
@@ -91,33 +71,60 @@ library
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception
 
-  Extensions: CPP
-
-  -- Choose which optional features to build based on which compiler
-  -- we're using. It would be nice to use flags for this but Cabal's
-  -- dependency resolution isn't good enough.
+  -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-    if flag(templateHaskell) && impl(ghc >= 6.12)
-      Build-depends: template-haskell >= 2.4
-      Exposed-Modules: Test.QuickCheck.All
-    -- GHC < 7.0 doesn't cope with multiple LANGUAGE pragmas in the same
-    -- file, I think...
-    if impl(ghc < 7)
-      Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
-    if impl(ghc < 7.2)
-      cpp-options: -DNO_GENERICS
-    if impl(ghc >= 7.2) && impl(ghc < 7.6)
-      Build-depends: ghc-prim
+  if impl(ghc >= 6.12) && flag(templateHaskell)
+    Build-depends: template-haskell >= 2.4
+    Exposed-Modules: Test.QuickCheck.All
   else
+    cpp-options: -DNO_TEMPLATE_HASKELL
+
+  -- Compiler-specific tweaks, lots of 'em!
+
+  -- On old versions of GHC use the ghc package to catch ctrl-C.
+  if impl(ghc >= 6.7) && impl(ghc < 6.13)
+      Build-depends: ghc
+
+  -- We want to use extensible-exceptions even if linking against base-3.
+  if impl(ghc >= 6.9) && impl (ghc < 7.0)
+    Build-depends: extensible-exceptions
+
+  -- GHC < 7.0 can't cope with multiple LANGUAGE pragmas in the same file.
+  if impl(ghc < 7)
+    Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
+
+  -- The new generics appeared in GHC 7.2...
+  if impl(ghc < 7.2)
+    cpp-options: -DNO_GENERICS
+  -- ...but in 7.2-7.4 it lives in the ghc-prim package.
+  if impl(ghc >= 7.2) && impl(ghc < 7.6)
+    Build-depends: ghc-prim
+
+  -- Use tf-random on newer GHCs.
+  if impl(ghc >= 7.4)
+    Build-depends: tf-random
+  else
+    cpp-options: -DNO_TF_RANDOM
+
+  -- Switch off most optional features on non-GHC systems.
+  if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
-    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL
     if !impl(hugs)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 
-  if !impl(ghc >= 6.12) || !flag(templateHaskell)
-    cpp-options: -DNO_TEMPLATE_HASKELL
+  -- LANGUAGE pragmas don't have any effect in Hugs.
+  if impl(hugs)
+    Extensions: CPP
+
+  if impl(uhc)
+    -- Cabal under UHC needs pointing out all the dependencies of the
+    -- random package.
+    Build-depends: old-time, old-locale
+    -- Plus some bits of the standard library are missing.
+    cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
 
 Test-Suite test-quickcheck
     type: exitcode-stdio-1.0

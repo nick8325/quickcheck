@@ -2,7 +2,7 @@
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Random where
 
-#ifdef USE_TF_RANDOM
+#ifndef NO_TF_RANDOM
 import System.Random
 import System.Random.TF hiding (split, next)
 import Data.Word
