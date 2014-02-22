@@ -143,10 +143,11 @@ growingElements :: [a] -> Gen a
 growingElements [] = error "QuickCheck.growingElements used with empty list"
 growingElements xs = sized $ \n -> elements (take (1 `max` size n) xs)
   where
-   k      = length xs
-   mx     = 100
-   log'   = round . log . fromIntegral
-   size n = (log' n + 1) * k `div` log' mx
+   k        = length xs
+   mx       = 100
+   log'     = round . log . toDouble
+   size n   = (log' n + 1) * k `div` log' mx
+   toDouble = fromIntegral :: Int -> Double
 
 {- WAS:
 growingElements xs = sized $ \n -> elements (take (1 `max` (n * k `div` 100)) xs)
