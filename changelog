@@ -23,9 +23,8 @@ QuickCheck HEAD (unreleased)
 		* Floating-point numbers shrink better.
 
 	* Improved random number generation:
-		* QuickCheck now uses TFGen rather than StdGen by default,
-		  because it generates better random numbers.
-		  You can switch back to StdGen with the Cabal flag -f-tf-random.
+		* QuickCheck now uses TFGen rather than StdGen on newer versions
+		  of GHC, because StdGen's random numbers aren't always random.
 		* 'variant' now uses a prefix code. This should prevent some
 		  potential bananaskins with coarbitrary.
 
