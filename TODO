@@ -1,8 +1,3 @@
-Before 2.7:
-* Make it so that, if you press ctrl-C while shrinking, you get the
-  last failed counterexample, not the current shrink candidate.
-* Add subtermShrink? Make it more clear how to define good shrinking functions.
-
 To make a release:
 * Run build-all script.
 * Bump version number in cabal file and in source-repository link.
