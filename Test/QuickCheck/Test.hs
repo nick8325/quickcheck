@@ -333,12 +333,12 @@ success st =
 
 foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
 foundFailure st res ts =
-  do localMin st{ numTryShrinks = 0 } res ts
+  do localMin st{ numTryShrinks = 0 } res res ts
 
-localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-localMin st res@MkResult{P.theException = Just e} _
-  | isInterrupt e = localMinFound st res
-localMin st res ts = do
+localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
+localMin st MkResult{P.theException = Just e} lastRes _
+  | isInterrupt e = localMinFound st lastRes
+localMin st res _ ts = do
   putTemp (terminal st)
     ( short 26 (oneLine (P.reason res))
    ++ " (after " ++ number (numSuccessTests st+1) "test"
@@ -367,9 +367,10 @@ localMin' st res (t:ts) =
     MkRose res' ts' <- protectRose (reduceRose t)
     callbackPostTest st res'
     if ok res' == Just False
-      then foundFailure st{ numSuccessShrinks = numSuccessShrinks st + 1 } res' ts'
+      then localMin st{ numSuccessShrinks = numSuccessShrinks st + 1,
+                        numTryShrinks     = 0 } res' res ts'
       else localMin st{ numTryShrinks    = numTryShrinks st + 1,
-                        numTotTryShrinks = numTotTryShrinks st + 1 } res ts
+                        numTotTryShrinks = numTotTryShrinks st + 1 } res res ts
 
 localMinFound :: State -> P.Result -> IO (Int, Int, Int)
 localMinFound st res =
