@@ -111,13 +111,39 @@ class Arbitrary a where
   arbitrary = error "no default generator"
 
   -- | Produces a (possibly) empty list of all the possible
-  -- immediate shrinks of the given value. 'genericShrink'
-  -- is a reasonable default implementation to try.
+  -- immediate shrinks of the given value.
+  --
+  -- Most implementations of 'shrink' should do at least two things:
+  --
+  -- 1. Shrink a term to any of its immediate subterms or to a simpler term.
+  --
+  -- 2. Recursively apply 'shrink' to all immediate subterms.
+  --
+  -- The function 'genericShrink' does number 2 generically, leaving
+  -- you to implement number 1. As an example, if you have the
+  -- following implementation of binary trees...
+  --
+  -- > data Tree a = Nil | Branch a (Tree a) (Tree a)
+  --
+  -- ...then a good implementation of 'shrink' is as follows:
+  --
+  -- > shrink x = shrink' x ++ genericShrink x
+  -- >   where
+  -- >     shrink' Nil = []
+  -- >     shrink' (Branch _ l r) = [Nil, l, r]
+  --
+  -- We try shrinking a branch to @Nil@ first, then to its left or right
+  -- subtree, then failing that we recursively shrink the subtrees.
+  -- We have to be careful not to shrink @Nil@ to @Nil@, otherwise
+  -- shrinking would go into an infinite loop.
+  -- QuickCheck tries shrink candidates in the order they are given in
+  -- the shrink list, so we put the more aggressive shrinking steps
+  -- before the recursive 'genericShrink'.
   shrink :: a -> [a]
   shrink _ = []
 
 #ifndef NO_GENERICS
--- | Shrink a value generically.
+-- | Recursively shrink all direct subterms.
 genericShrink :: (Generic a, GenericShrink (Rep a)) => a -> [a]
 genericShrink = map to . shrinkRep . from
 
