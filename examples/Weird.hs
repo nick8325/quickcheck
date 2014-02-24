@@ -58,3 +58,13 @@ prop_forevershrink =
 
 untestable n = (odd n ==> True) .&&. (even n ==> True)
 nearlyUntestable n = (odd n ==> True) .&&. (even n || n `mod` 6 == 1 ==> True)
+
+data C = C1 | C2 | C3 deriving (Eq, Ord, Show)
+instance Arbitrary C where
+  arbitrary = return C1
+  shrink C1 = [C2]
+  shrink _ = [C3]
+
+prop_forevershrink2 C1 = False
+prop_forevershrink2 C2 = False
+prop_forevershrink2 C3 = prop_forevershrink2 C3
