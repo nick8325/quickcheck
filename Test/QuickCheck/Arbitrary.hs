@@ -173,6 +173,9 @@ class Arbitrary a where
   -- A final gotcha: we cannot define 'shrink' as simply @'shrink' x = Nil:'genericShrink' x@
   -- as this shrinks @Nil@ to @Nil@, and shrinking will go into an
   -- infinite loop.
+  --
+  -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
+  -- after deriving @Generic@ and @Typeable@ for your type.
   shrink :: a -> [a]
   shrink _ = []
 
