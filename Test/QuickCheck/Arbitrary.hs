@@ -166,7 +166,7 @@ class Arbitrary a where
   -- >     shrinkToNil Nil = []
   -- >     shrinkToNil (Branch _ l r) = [Nil]
   --
-  -- 'genericShrink' is a combination of 'subterms', which shrinks to
+  -- 'genericShrink' is a combination of 'subterms', which shrinks
   -- a term to any of its subterms, and 'recursivelyShrink', which shrinks
   -- all subterms of a term. These may be useful if you need a bit more
   -- control over shrinking than 'genericShrink' gives you.
