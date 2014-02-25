@@ -64,6 +64,8 @@ module Test.QuickCheck
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericShrink
+  , subterms
+  , recursivelyShrink
 #endif
   , shrinkNothing
   , shrinkList

@@ -18,7 +18,9 @@ module Test.QuickCheck.Arbitrary
   , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
-  , genericShrink -- :: (Generic a, GenericShrink (Rep a)) => a -> [a]
+  , genericShrink      -- :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
+  , subterms           -- :: (Generic a, Subterms (Rep a)) => a -> [a]
+  , recursivelyShrink  -- :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
 #endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
@@ -99,6 +101,7 @@ import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 #ifndef NO_GENERICS
 import GHC.Generics
+import Data.Typeable
 #endif
 
 --------------------------------------------------------------------------
@@ -113,60 +116,127 @@ class Arbitrary a where
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value.
   --
-  -- Most implementations of 'shrink' should do at least two things:
+  -- Most implementations of 'shrink' should try at least three things:
   --
-  -- 1. Shrink a term to any of its immediate subterms or to a simpler term.
+  -- 1. Shrink a term to any of its immediate subterms.
   --
   -- 2. Recursively apply 'shrink' to all immediate subterms.
   --
-  -- The function 'genericShrink' does number 2 generically, leaving
-  -- you to implement number 1. As an example, if you have the
-  -- following implementation of binary trees...
+  -- 3. Type-specific shrinkings such as replacing a constructor by a
+  --    simpler constructor.
+  --
+  -- For example, suppose we have the following implementation of binary trees:
   --
   -- > data Tree a = Nil | Branch a (Tree a) (Tree a)
   --
-  -- ...then a good implementation of 'shrink' is as follows:
+  -- We can then define 'shrink' as follows:
   --
-  -- > shrink x = shrink' x ++ genericShrink x
+  -- > shrink Nil = []
+  -- > shrink (Branch x l r) =
+  -- >   -- shrink Branch to Nil
+  -- >   [Nil] ++
+  -- >   -- shrink to subterms
+  -- >   [l, r] ++
+  -- >   -- recursively shrink subterms
+  -- >   [Branch x' l' r' | (x', l', r') <- shrink (x, l, r)]
+  --
+  -- There are a couple of subtleties here:
+  --
+  -- * QuickCheck tries the shrinking candidates in the order they
+  --   appear in the list, so we put more aggressive shrinking steps
+  --   (such as replacing the whole tree by @Nil@) before smaller
+  --   ones (such as recursively shrinking the subtrees).
+  --
+  -- * It is tempting to write the last line as
+  --   @[Branch x' l' r' | x' <- shrink x, l' <- shrink l, r' <- shrink r]@
+  --   but this is the /wrong thing/! It will force QuickCheck to shrink
+  --   @x@, @l@ and @r@ in tandem, and shrinking will stop once /one/ of
+  --   the three is fully shrunk.
+  --
+  -- There is a fair bit of boilerplate in the code above.
+  -- We can avoid it with the help of some generic functions;
+  -- note that these only work on GHC 7.2 and above.
+  -- The function 'genericShrink' tries shrinking a term to all of its
+  -- subterms and, failing that, recursively shrinks the subterms.
+  -- Using it, we can define 'shrink' as:
+  --
+  -- > shrink x = shrinkToNil x ++ genericShrink x
   -- >   where
-  -- >     shrink' Nil = []
-  -- >     shrink' (Branch _ l r) = [Nil, l, r]
+  -- >     shrinkToNil Nil = []
+  -- >     shrinkToNil (Branch _ l r) = [Nil]
   --
-  -- We try shrinking a branch to @Nil@ first, then to its left or right
-  -- subtree, then failing that we recursively shrink the subtrees.
-  -- We have to be careful not to shrink @Nil@ to @Nil@, otherwise
-  -- shrinking would go into an infinite loop.
-  -- QuickCheck tries shrink candidates in the order they are given in
-  -- the shrink list, so we put the more aggressive shrinking steps
-  -- before the recursive 'genericShrink'.
+  -- 'genericShrink' is a combination of 'subterms', which shrinks to
+  -- a term to any of its subterms, and 'recursivelyShrink', which shrinks
+  -- all subterms of a term. These may be useful if you need a bit more
+  -- control over shrinking than 'genericShrink' gives you.
+  --
+  -- A final gotcha: we cannot define 'shrink' as simply
+  --
+  -- > shrink x = Nil:genericShrink x
+  --
+  -- as this shrinks @Nil@ to @Nil@, and shrinking will go into an
+  -- infinite loop.
   shrink :: a -> [a]
   shrink _ = []
 
 #ifndef NO_GENERICS
--- | Recursively shrink all direct subterms.
-genericShrink :: (Generic a, GenericShrink (Rep a)) => a -> [a]
-genericShrink = map to . shrinkRep . from
+-- | Shrink a term to any of its immediate subterms,
+-- and also recursively shrink all subterms.
+genericShrink :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
+genericShrink x = subterms x ++ recursivelyShrink x
 
-class GenericShrink f where
-  shrinkRep :: f a -> [f a]
+-- | Recursively shrink all immediate subterms.
+recursivelyShrink :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
+recursivelyShrink = map to . grecursivelyShrink . from
 
-instance (GenericShrink f, GenericShrink g) => GenericShrink (f :*: g) where
-  shrinkRep (x :*: y) =
-    [x' :*: y | x' <- shrinkRep x] ++
-    [x :*: y' | y' <- shrinkRep y]
+class RecursivelyShrink f where
+  grecursivelyShrink :: f a -> [f a]
 
-instance (GenericShrink f, GenericShrink g) => GenericShrink (f :+: g) where
-  shrinkRep (L1 x) = map L1 (shrinkRep x)
-  shrinkRep (R1 x) = map R1 (shrinkRep x)
+instance (RecursivelyShrink f, RecursivelyShrink g) => RecursivelyShrink (f :*: g) where
+  grecursivelyShrink (x :*: y) =
+    [x' :*: y | x' <- grecursivelyShrink x] ++
+    [x :*: y' | y' <- grecursivelyShrink y]
 
-instance GenericShrink f => GenericShrink (M1 i c f) where
-  shrinkRep (M1 x) = map M1 (shrinkRep x)
+instance (RecursivelyShrink f, RecursivelyShrink g) => RecursivelyShrink (f :+: g) where
+  grecursivelyShrink (L1 x) = map L1 (grecursivelyShrink x)
+  grecursivelyShrink (R1 x) = map R1 (grecursivelyShrink x)
 
-instance Arbitrary a => GenericShrink (K1 i a) where
-  shrinkRep (K1 x) = map K1 (shrink x)
+instance RecursivelyShrink f => RecursivelyShrink (M1 i c f) where
+  grecursivelyShrink (M1 x) = map M1 (grecursivelyShrink x)
 
-instance GenericShrink U1 where
-  shrinkRep U1 = []
+instance Arbitrary a => RecursivelyShrink (K1 i a) where
+  grecursivelyShrink (K1 x) = map K1 (shrink x)
+
+instance RecursivelyShrink U1 where
+  grecursivelyShrink U1 = []
+
+-- | All immediate subterms of a term.
+subterms :: (Generic a, Typeable a, Subterms (Rep a)) => a -> [a]
+subterms = gsubterms . from
+
+class Subterms f where
+  gsubterms :: Typeable b => f a -> [b]
+
+instance (Subterms f, Subterms g) => Subterms (f :*: g) where
+  gsubterms (x :*: y) =
+    gsubterms x ++ gsubterms y
+
+instance (Subterms f, Subterms g) => Subterms (f :+: g) where
+  gsubterms (L1 x) = gsubterms x
+  gsubterms (R1 x) = gsubterms x
+
+instance Subterms f => Subterms (M1 i c f) where
+  gsubterms (M1 x) = gsubterms x
+
+instance Typeable a => Subterms (K1 i a) where
+  gsubterms (K1 x) =
+    case cast x of
+      Nothing -> []
+      Just y -> [y]
+
+instance Subterms U1 where
+  gsubterms U1 = []
+
 #endif
 
 -- instances
