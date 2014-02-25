@@ -114,7 +114,8 @@ class Arbitrary a where
   arbitrary = error "no default generator"
 
   -- | Produces a (possibly) empty list of all the possible
-  -- immediate shrinks of the given value.
+  -- immediate shrinks of the given value. The default implementation
+  -- returns the empty list, so will not try to shrink the value.
   --
   -- Most implementations of 'shrink' should try at least three things:
   --
