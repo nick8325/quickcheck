@@ -170,10 +170,7 @@ class Arbitrary a where
   -- all subterms of a term. These may be useful if you need a bit more
   -- control over shrinking than 'genericShrink' gives you.
   --
-  -- A final gotcha: we cannot define 'shrink' as simply
-  --
-  -- > shrink x = Nil:genericShrink x
-  --
+  -- A final gotcha: we cannot define 'shrink' as simply @'shrink' x = Nil:'genericShrink' x@
   -- as this shrinks @Nil@ to @Nil@, and shrinking will go into an
   -- infinite loop.
   shrink :: a -> [a]
