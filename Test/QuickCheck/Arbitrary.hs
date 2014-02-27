@@ -100,7 +100,11 @@ import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 #ifndef NO_GENERICS
+#ifdef __UHC__
+import UHC.Generics
+#else
 import GHC.Generics
+#endif
 import Data.Typeable
 #endif
 
@@ -183,12 +187,20 @@ class Arbitrary a where
 #ifndef NO_GENERICS
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
+#ifdef __UHC__
+genericShrink :: (Representable0 a rep, Typeable a, RecursivelyShrink rep, Subterms rep) => a -> [a]
+#else
 genericShrink :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
+#endif
 genericShrink x = subterms x ++ recursivelyShrink x
 
 -- | Recursively shrink all immediate subterms.
+#ifdef __UHC__
+recursivelyShrink :: (Representable0 a rep, RecursivelyShrink rep) => a -> [a]
+#else
 recursivelyShrink :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
-recursivelyShrink = map to . grecursivelyShrink . from
+#endif
+recursivelyShrink = map to0 . grecursivelyShrink . from0
 
 class RecursivelyShrink f where
   grecursivelyShrink :: f a -> [f a]
@@ -212,8 +224,12 @@ instance RecursivelyShrink U1 where
   grecursivelyShrink U1 = []
 
 -- | All immediate subterms of a term.
+#ifdef __UHC__
+subterms :: (Representable0 a rep, Typeable a, Subterms rep) => a -> [a]
+#else
 subterms :: (Generic a, Typeable a, Subterms (Rep a)) => a -> [a]
-subterms = gsubterms . from
+#endif
+subterms = gsubterms . from0
 
 class Subterms f where
   gsubterms :: Typeable b => f a -> [b]
