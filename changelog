@@ -17,6 +17,7 @@ QuickCheck HEAD (unreleased)
 		* All modifiers now have Functor instances and accessor functions.
 		* Pressing ctrl-C during shrinking now shows the last failed
 		  test case, rather than the current shrinking candidate.
+		* Experimental support for UHC. You will need the latest version of Cabal from git.
 
 	* Better distribution of test data:
 		* The Int generator now only generates fairly small numbers.
