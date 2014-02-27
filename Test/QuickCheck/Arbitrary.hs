@@ -197,10 +197,11 @@ genericShrink x = subterms x ++ recursivelyShrink x
 -- | Recursively shrink all immediate subterms.
 #ifdef __UHC__
 recursivelyShrink :: (Representable0 a rep, RecursivelyShrink rep) => a -> [a]
+recursivelyShrink = map to0 . grecursivelyShrink . from0
 #else
 recursivelyShrink :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
+recursivelyShrink = map to . grecursivelyShrink . from
 #endif
-recursivelyShrink = map to0 . grecursivelyShrink . from0
 
 class RecursivelyShrink f where
   grecursivelyShrink :: f a -> [f a]
@@ -226,10 +227,11 @@ instance RecursivelyShrink U1 where
 -- | All immediate subterms of a term.
 #ifdef __UHC__
 subterms :: (Representable0 a rep, Typeable a, Subterms rep) => a -> [a]
+subterms = gsubterms . from0
 #else
 subterms :: (Generic a, Typeable a, Subterms (Rep a)) => a -> [a]
+subterms = gsubterms . from
 #endif
-subterms = gsubterms . from0
 
 class Subterms f where
   gsubterms :: Typeable b => f a -> [b]
