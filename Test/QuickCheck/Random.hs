@@ -29,6 +29,9 @@ chop n = n `shiftR` bits
 stop :: Integral a => a -> Bool
 stop n = n <= mask
 
+mkTheGen :: Int -> TFGen
+mkTheGen n = seedTFGen (fromIntegral n, 0, 0, 0)
+
 #else
 import System.Random
 
@@ -36,6 +39,9 @@ import System.Random
 
 newTheGen :: IO StdGen
 newTheGen = newStdGen
+
+mkTheGen :: Int -> StdGen
+mkTheGen = mkStdGen
 
 chip :: Bool -> Int -> StdGen -> StdGen
 chip finished n = boolVariant finished . boolVariant (even n)
@@ -68,6 +74,9 @@ instance RandomGen QCGen where
 
 newQCGen :: IO QCGen
 newQCGen = fmap QCGen newTheGen
+
+mkQCGen :: Int -> QCGen
+mkQCGen n = QCGen (mkTheGen n)
 
 bigNatVariant :: Integer -> TheGen -> TheGen
 bigNatVariant n g
