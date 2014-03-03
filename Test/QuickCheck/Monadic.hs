@@ -14,11 +14,10 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Property
 
-import Control.Monad
-  ( liftM
-  )
+import Control.Monad(liftM, liftM2)
 
 import Control.Monad.ST
+import Control.Applicative
 
 -- instance of monad transformer?
 
@@ -30,6 +29,10 @@ newtype PropertyM m a =
 
 instance Functor (PropertyM m) where
   fmap f (MkPropertyM m) = MkPropertyM (\k -> m (k . f))
+
+instance Monad m => Applicative (PropertyM m) where
+  pure = return
+  (<*>) = liftM2 ($)
 
 instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)

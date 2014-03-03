@@ -16,6 +16,8 @@ import Test.QuickCheck.State
 import System.Timeout(timeout)
 #endif
 import Data.Maybe
+import Control.Applicative
+import Control.Monad
 
 --------------------------------------------------------------------------
 -- fixities
@@ -142,6 +144,11 @@ instance Functor Rose where
   -- f must be total
   fmap f (IORose rs)   = IORose (fmap (fmap f) rs)
   fmap f (MkRose x rs) = MkRose (f x) [ fmap f r | r <- rs ]
+
+instance Applicative Rose where
+  pure = return
+  -- f must be total
+  (<*>) = liftM2 ($)
 
 instance Monad Rose where
   return x = MkRose x []
