@@ -582,7 +582,7 @@ instance CoArbitrary a => CoArbitrary (Maybe a) where
   coarbitrary (Just x) = variant 1 . coarbitrary x
 
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Either a b) where
-  coarbitrary (Left x)  = variant 0    . coarbitrary x
+  coarbitrary (Left x)  = variant 0 . coarbitrary x
   coarbitrary (Right y) = variant 1 . coarbitrary y
 
 instance CoArbitrary a => CoArbitrary [a] where
