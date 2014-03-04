@@ -176,7 +176,8 @@ class Arbitrary a where
   -- infinite loop.
   --
   -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
-  -- after deriving @Generic@ and @Typeable@ for your type.
+  -- after deriving @Generic@ and @Typeable@ for your type. However, if your data type has any
+  -- special invariants, you will need to make sure that 'genericShrink' can't break those invariants.
   shrink :: a -> [a]
   shrink _ = []
 
