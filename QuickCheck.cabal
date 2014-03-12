@@ -102,8 +102,8 @@ library
     Build-depends: ghc-prim
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7.4)
-    Build-depends: tf-random
+  if impl(ghc >= 6.12) && flag(base4)
+    Build-depends: tf-random >= 0.2
   else
     cpp-options: -DNO_TF_RANDOM
 
