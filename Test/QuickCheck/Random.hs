@@ -11,7 +11,7 @@ import Data.Bits
 #define TheGen TFGen
 
 newTheGen :: IO TFGen
-newTheGen = fmap seedTFGen mkSeedTime
+newTheGen = newTFGen
 
 bits, mask, doneBit :: Integral a => a
 bits = 14
