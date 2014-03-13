@@ -25,11 +25,6 @@ install-ghc() {
     rehash
     cabal install random extensible-exceptions >& /dev/null || true
     cabal install tf-random >>& log || true
-    if [[ $(last-word $(ghc --version)) != $ver ]] && [[ $ver != head ]]; then
-        print 'Version mismatch!'
-        remove-ghc
-        exit 1
-    fi
     print >> log
 }
 
