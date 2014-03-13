@@ -4,7 +4,7 @@ module Test.QuickCheck.Random where
 
 #ifndef NO_TF_RANDOM
 import System.Random
-import System.Random.TF hiding (split, next)
+import System.Random.TF hiding (split, next, RandomGen)
 import Data.Word
 import Data.Bits
 
