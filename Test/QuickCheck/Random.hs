@@ -30,7 +30,7 @@ stop :: Integral a => a -> Bool
 stop n = n <= mask
 
 mkTheGen :: Int -> TFGen
-mkTheGen n = seedTFGen (fromIntegral n, 0, 0, 0)
+mkTheGen = mkTFGen
 
 #else
 import System.Random
