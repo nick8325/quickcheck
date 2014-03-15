@@ -2,7 +2,10 @@
 
 set -e
 
-sudo true
+status() {
+    echo $*
+    echo $* >&2
+}
 
 last-word() {
     last=
@@ -12,65 +15,50 @@ last-word() {
     print $last
 }
 
-install-ghc() {
-    ver=${1/ghc-/}
-    print "===> GHC $ver"
-    print "===> GHC $ver" >> log
-    sudo stow -d /opt -t /usr/local $1
-    if [[ $ver == 6.8.3 ]] || [[ $ver == 6.10.4 ]]; then
-        export runhaskell=/opt/ghc-6.12.3/bin/runhaskell
-    else
-        export runhaskell=/usr/local/bin/runhaskell
-    fi
-    rehash
-    cabal install random extensible-exceptions >& /dev/null || true
-    cabal install tf-random >>& log || true
-    print >> log
-}
-
-remove-ghc() {
-    sudo stow -d /opt -t /usr/local -D $1
-    export runhaskell=runhaskell
-    rehash
-    print
-}
-
 find-package() {
-    last-word $(sed '/using$/{N;s/\n/ /}' log|grep "using $1")
-}
-
-run-cabal() {
-    rm -rf dist
-    if $runhaskell Setup.lhs configure $* --user -v 2>&1 | grep 'Flags\|using' >&2 &&
-       $runhaskell Setup.lhs build >&2; then
-        print "OK, $(find-package base) $(find-package extensible-exceptions) $(find-package tf-random)"
-    else
-        print 'Failed!'
-    fi
+    last-word $(sed '/using$/{N;s/\n/ /}' $tmp|grep "using $1")
 }
 
 build-quickcheck() {
-    print -n "Base-4: "
-    print "Base-4:" >&2
-    run-cabal -fbase4
-    print >&2
-    print -n "Base-3: "
-    print "Base-3:" >&2
-    run-cabal -f-base4
-    print >&2
-    print -n "No options: "
-    print "No options:" >&2
-    run-cabal
+    kind=$1
+    flags=$2
+
+    status -n "$kind: "
+    rm -rf dist
+
+    if $runhaskell Setup.lhs configure -w $ghc $flags --user -v > $tmp; then
+        grep 'Flags\|using' $tmp >&2
+    else
+        status 'Failed!'
+        < $tmp >&2
+        return
+    fi
+
+    if $runhaskell Setup.lhs build >&2; then
+        status "OK, $(find-package base) $(find-package extensible-exceptions) $(find-package tf-random)"
+    else
+        status 'Failed!'
+    fi
     print >&2
 }
 
-rm -f log
-for i in /opt/ghc-*; do
-    ghc=$(basename $i)
-    install-ghc $ghc
-    build-quickcheck 2>>log
-    remove-ghc $ghc
-done
+exec 2>log
+export tmp=$(mktemp)
 
-print "===> System GHC: v$(last-word $(ghc --version))"
-build-quickcheck 2>>log
+for ghcdir in /opt/ghc-*/bin /usr/bin; do
+    export ghc=$ghcdir/ghc
+    version=$(last-word $($ghc --version))
+
+    if [[ $version = 6.8.3 ]] || [[ $version = 6.10.4 ]]; then
+        export runhaskell=/opt/ghc-6.12.3/bin/runhaskell
+    else
+        export runhaskell=$ghcdir/runhaskell
+    fi
+
+    status "==> GHC $version"
+    cabal install -w $ghc random extensible-exceptions tf-random >& /dev/null || true
+    build-quickcheck "Base-4" -fbase4
+    build-quickcheck "Base-3" -f-base4
+    build-quickcheck "No options"
+    status
+done
