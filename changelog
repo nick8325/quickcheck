@@ -1,4 +1,4 @@
-QuickCheck HEAD (unreleased)
+QuickCheck 2.7 (released 2014-03-19)
 
 	* New features:
 		* New genericShrink function provides generic shrinking with GHC.
