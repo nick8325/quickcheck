@@ -1,5 +1,5 @@
 Name: QuickCheck
-Version: 2.7
+Version: 2.7.1
 Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
@@ -34,7 +34,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.7
+  tag:      2.7.1
 
 flag base3
   Description: Choose the new smaller, split-up base package.
