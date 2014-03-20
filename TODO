@@ -1,6 +1,6 @@
 To make a release:
 * Run build-all script.
-* Bump version number in cabal file and in source-repository link.
+* Bump version number in cabal file, in source-repository link, and in test-suite stanza.
 * Tag git repo.
 
 Koen's old TODO (trimmed):
