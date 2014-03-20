@@ -433,11 +433,19 @@ instance Arbitrary Double where
 
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
-arbitrarySizedIntegral :: Num a => Gen a
+arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
-    let n' = toInteger n in
-      fmap fromInteger (choose (-n', n'))
+  withoutOverflow (toInteger n) $ \n' _ ->
+  withoutOverflow (negate (toInteger n)) $ \m' _ ->
+    fmap fromInteger (choose (m', n'))
+
+withoutOverflow :: Integral a => Integer -> (Integer -> a -> Gen a) -> Gen a
+withoutOverflow n k
+  | toInteger n' == n = k n n'
+  | otherwise = k 0 0
+  where
+    n' = fromInteger n
 
 -- | Generates a fractional number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
