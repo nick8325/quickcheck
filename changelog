@@ -1,3 +1,8 @@
+QuickCheck 2.7.1 (release 2013-03-20)
+	* Fixed bug - the Small modifier didn't work on unsigned types
+	* Changed arbitrarySizedIntegral to have an Integral constraint
+	  instead of just Num
+
 QuickCheck 2.7 (released 2014-03-19)
 
 	* New features:
