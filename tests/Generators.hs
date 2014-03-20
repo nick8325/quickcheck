@@ -38,7 +38,7 @@ instance (Arbitrary a, Bounded a) => Arbitrary (Extremal a) where
   shrink (Extremal x) = map Extremal (shrink x)
 
 smallProp :: Integral a => Path a -> Bool
-smallProp = path (\x -> x >= -100 && x <= 100)
+smallProp = path (\x -> (x >= -100 || -100 `asTypeOf` x >= 0) && x <= 100)
 
 largeProp :: Integral a => Path a -> Property
 largeProp = somePath (\x -> x < -1000000 || x > 1000000)
@@ -63,6 +63,12 @@ prop_small = smallProp
 
 prop_large :: Path (Large Int) -> Property
 prop_large = largeProp
+
+prop_smallWord :: Path (Small Word) -> Bool
+prop_smallWord = smallProp
+
+prop_largeWord :: Path (Large Word) -> Property
+prop_largeWord = largeProp
 
 data Choice a b = Choice a b deriving Show
 instance (Arbitrary a, Arbitrary b) => Arbitrary (Choice a b) where
