@@ -1,4 +1,7 @@
-QuickCheck 2.7.1 (release 2013-03-20)
+QuickCheck 2.7.2 (released 2014-03-22)
+	* Fix bug in cabal file which broke cabal test
+
+QuickCheck 2.7.1 (released 2014-03-20)
 	* Fixed bug - the Small modifier didn't work on unsigned types
 	* Changed arbitrarySizedIntegral to have an Integral constraint
 	  instead of just Num
