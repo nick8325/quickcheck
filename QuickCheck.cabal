@@ -101,8 +101,8 @@ library
   if impl(ghc >= 7.2) && impl(ghc < 7.6)
     Build-depends: ghc-prim
 
-  -- Safe Haskell appeared in GHC 7.2.
-  if impl (ghc < 7.2)
+  -- Safe Haskell appeared in GHC 7.2, but GHC.Generics isn't safe until 7.4.
+  if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.

@@ -1,5 +1,8 @@
 -- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 module Test.QuickCheck.Property where
 
 --------------------------------------------------------------------------
