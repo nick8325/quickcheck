@@ -1,3 +1,6 @@
+QuickCheck 2.7.3 (released 2014-03-24)
+	* Add annotations for Safe Haskell.
+
 QuickCheck 2.7.2 (released 2014-03-22)
 	* Fix bug in cabal file which broke cabal test
 
