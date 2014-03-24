@@ -1,5 +1,8 @@
 -- | A wrapper around the system random number generator. Internal QuickCheck module.
 {-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Trustworthy #-}
+#endif
 module Test.QuickCheck.Random where
 
 #ifndef NO_TF_RANDOM

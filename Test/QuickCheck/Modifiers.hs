@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Trustworthy #-}
+#endif
 #ifndef NO_MULTI_PARAM_TYPE_CLASSES
 {-# LANGUAGE MultiParamTypeClasses #-}
 #endif

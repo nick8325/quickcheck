@@ -101,6 +101,10 @@ library
   if impl(ghc >= 7.2) && impl(ghc < 7.6)
     Build-depends: ghc-prim
 
+  -- Safe Haskell appeared in GHC 7.2.
+  if impl (ghc < 7.2)
+    cpp-options: -DNO_SAFE_HASKELL
+
   -- Use tf-random on newer GHCs.
   if impl(ghc >= 7) && flag(base4)
     Build-depends: tf-random >= 0.4
@@ -111,7 +115,7 @@ library
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
-    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 

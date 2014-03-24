@@ -1,4 +1,7 @@
-{-# LANGUAGE TemplateHaskell, Rank2Types #-}
+{-# LANGUAGE TemplateHaskell, Rank2Types, CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- | Test all properties in the current module, using Template Haskell.
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
