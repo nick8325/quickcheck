@@ -45,7 +45,13 @@ build-quickcheck() {
 exec 2>log
 export tmp=$(mktemp)
 
-for ghcdir in /opt/ghc-*/bin /usr/bin; do
+if (( $# > 0 )); then
+    ghcdirs=$*
+else
+    ghcdirs="/opt/ghc-*/bin /usr/bin"
+fi
+
+for ghcdir in ${~=ghcdirs}; do
     export ghc=$ghcdir/ghc
     version=$(last-word $($ghc --version))
 
