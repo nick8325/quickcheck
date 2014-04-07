@@ -35,7 +35,7 @@ build-quickcheck() {
     fi
 
     if $runhaskell Setup.lhs build >&2; then
-        status "OK, $(find-package base) $(find-package extensible-exceptions) $(find-package tf-random)"
+        status "OK, $(find-package base) $(find-package extensible-exceptions) $(find-package tf-random) $(find-package transformers)"
     else
         status 'Failed!'
     fi
@@ -62,7 +62,7 @@ for ghcdir in ${~=ghcdirs}; do
     fi
 
     status "==> GHC $version"
-    cabal install -w $ghc random extensible-exceptions tf-random >& /dev/null || true
+    cabal install -w $ghc random transformers extensible-exceptions tf-random >& /dev/null || true
     build-quickcheck "Base-4" -fbase4
     build-quickcheck "Base-3" -f-base4
     build-quickcheck "No options"

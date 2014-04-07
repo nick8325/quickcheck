@@ -19,7 +19,10 @@ import Control.Monad(liftM, liftM2)
 import Control.Monad.ST
 import Control.Applicative
 
--- instance of monad transformer?
+#ifndef NO_TRANSFORMERS
+import Control.Monad.IO.Class
+import Control.Monad.Trans.Class
+#endif
 
 --------------------------------------------------------------------------
 -- type PropertyM
@@ -38,6 +41,14 @@ instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
   fail s              = stop (failed { reason = s })
+
+#ifndef NO_TRANSFORMERS
+instance MonadTrans PropertyM where
+  lift = run
+
+instance MonadIO m => MonadIO (PropertyM m) where
+  liftIO = run . liftIO
+#endif
 
 stop :: (Testable prop, Monad m) => prop -> PropertyM m a
 stop p = MkPropertyM (\_k -> return (return (property p)))
