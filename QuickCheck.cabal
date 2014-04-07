@@ -10,7 +10,7 @@ Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
 Tested-with: GHC >=6.8, Hugs, UHC
-Homepage: http://code.haskell.org/QuickCheck
+Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
 Description:
