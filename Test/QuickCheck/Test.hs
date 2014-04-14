@@ -145,7 +145,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
           | otherwise = property p
         toggleShrinking p
           | doShrinking a = p
-          | otherwise     = (noShrinking p)
+          | otherwise = noShrinking p
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
