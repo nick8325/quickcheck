@@ -17,6 +17,10 @@ import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
 import System.Random(split)
 
+-- for HPC
+import Trace.Hpc.Tix
+import Trace.Hpc.Reflect
+
 import Data.Char
   ( isSpace
   )
@@ -27,6 +31,7 @@ import Data.List
   , groupBy
   , intersperse
   )
+
 --------------------------------------------------------------------------
 -- quickCheck
 
@@ -227,7 +232,7 @@ runATest st f =
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
-     MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
+     MkRose res _ <- protectRose (reduceRose (unProp (f rnd1 size)))
      callbackPostTest st res
 
      let continue break st' | abort res = break st'
@@ -255,7 +260,7 @@ runATest st f =
          do if expect res
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
-            (numShrinks, totFailed, lastFailed) <- foundFailure st res ts
+            (numShrinks, totFailed, lastFailed) <- foundFailure st (protectRose (reduceRose (unProp (f rnd1 size))))
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
               return Success{ labels = summary st,
@@ -335,14 +340,22 @@ success st =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-foundFailure st res ts =
-  do localMin st{ numTryShrinks = 0 } res res ts
+computeTix :: IO a -> IO (a,Tix,Int)
+computeTix io =
+  do clearTix
+     x <- io
+     tix@(Tix ms) <- examineTix
+     return (x,tix,sum (map (length . map head . group . sort . tixModuleTixs) ms))
 
-localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-localMin st MkResult{P.theException = Just e} lastRes _
-  | isInterrupt e = localMinFound st lastRes
-localMin st res _ ts = do
+foundFailure :: State -> IO (Rose P.Result) -> IO (Int, Int, Int)
+foundFailure st mkRose =
+  do (MkRose res ts,tix,size) <- computeTix mkRose
+     localMin st{ numTryShrinks = 0 } res res (tix,size) ts
+
+localMin :: State -> P.Result -> P.Result -> (Tix,Int) -> [Rose P.Result] -> IO (Int, Int, Int)
+localMin st MkResult{P.theException = Just e} lastRes (bestTix,_) _
+  | isInterrupt e = localMinFound st lastRes bestTix
+localMin st res _ (bestTix,bestSize) ts = do
   putTemp (terminal st)
     ( short 26 (oneLine (P.reason res))
    ++ " (after " ++ number (numSuccessTests st+1) "test"
@@ -361,24 +374,25 @@ localMin st res _ ts = do
   case r of
     Left err ->
       localMinFound st
-         (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
-    Right ts' -> localMin' st res ts'
+         (exception "Exception while generating shrink-list" err) { callbacks = callbacks res } bestTix
+    Right ts' -> localMin' st res (bestTix,bestSize) ts'
 
-localMin' :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-localMin' st res [] = localMinFound st res
-localMin' st res (t:ts) =
+localMin' :: State -> P.Result -> (Tix,Int) -> [Rose P.Result] -> IO (Int, Int, Int)
+localMin' st res (bestTix,_) [] = localMinFound st res bestTix
+localMin' st res (bestTix,bestSize) (t:ts) =
   do -- CALLBACK before_test
-    MkRose res' ts' <- protectRose (reduceRose t)
+    (MkRose res' ts',newTix,newSize) <- computeTix (protectRose (reduceRose t))
     callbackPostTest st res'
-    if ok res' == Just False
+    if newSize <= bestSize && ok res' == Just False
       then localMin st{ numSuccessShrinks = numSuccessShrinks st + 1,
-                        numTryShrinks     = 0 } res' res ts'
+                        numTryShrinks     = 0 } res' res (newTix,newSize) ts'
       else localMin st{ numTryShrinks    = numTryShrinks st + 1,
-                        numTotTryShrinks = numTotTryShrinks st + 1 } res res ts
+                        numTotTryShrinks = numTotTryShrinks st + 1 } res res (bestTix,bestSize) ts
 
-localMinFound :: State -> P.Result -> IO (Int, Int, Int)
-localMinFound st res =
-  do let report = concat [
+localMinFound :: State -> P.Result -> Tix -> IO (Int, Int, Int)
+localMinFound st res tix =
+  do writeTix "QuickCheck.tix" tix
+     let report = concat [
            "(after " ++ number (numSuccessTests st+1) "test",
            concat [ " and " ++ number (numSuccessShrinks st) "shrink"
                   | numSuccessShrinks st > 0
