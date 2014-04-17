@@ -39,6 +39,7 @@ prop_Error (x,y) =
 --------------------------------------------------------------------------
 -- main
 
+return []
 main = $quickCheckAll
 prop_conj = counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson) .&&.
             counterexample "reverse" $(monomorphic 'prop_Reverse)
