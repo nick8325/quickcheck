@@ -32,11 +32,19 @@ import Control.Monad
 -- @'quickCheck' $('monomorphic' \'prop)@.
 -- If you want to supply custom arguments to 'polyQuickCheck',
 -- you will have to combine 'quickCheckWith' and 'monomorphic' yourself.
+--
+-- If you want to use 'polyQuickCheck' in the same file where you defined the
+-- property, the same scoping problems pop up as in 'quickCheckAll':
+-- see the note there about @return []@.
 polyQuickCheck :: Name -> ExpQ
 polyQuickCheck x = [| quickCheck $(monomorphic x) |]
 
 -- | Test a polymorphic property, defaulting all type variables to 'Integer'.
 -- This is just a convenience function that combines 'verboseCheck' and 'monomorphic'.
+--
+-- If you want to use 'polyVerboseCheck' in the same file where you defined the
+-- property, the same scoping problems pop up as in 'quickCheckAll':
+-- see the note there about @return []@.
 polyVerboseCheck :: Name -> ExpQ
 polyVerboseCheck x = [| verboseCheck $(monomorphic x) |]
 
@@ -46,6 +54,10 @@ type Error = forall a. String -> a
 --
 -- For example, if @f@ has type @'Ord' a => [a] -> [a]@
 -- then @$('monomorphic' 'f)@ has type @['Integer'] -> ['Integer']@.
+--
+-- If you want to use 'monomorphic' in the same file where you defined the
+-- property, the same scoping problems pop up as in 'quickCheckAll':
+-- see the note there about @return []@.
 monomorphic :: Name -> ExpQ
 monomorphic t = do
   ty0 <- fmap infoType (reify t)
@@ -84,6 +96,9 @@ monomorphiseType err mono ty = return ty
 -- @$'forAllProperties'@ has type @('Property' -> 'IO' 'Result') -> 'IO' 'Bool'@.
 -- An example invocation is @$'forAllProperties' 'quickCheckResult'@,
 -- which does the same thing as @$'quickCheckAll'@.
+--
+-- 'forAllProperties' has the same issue with scoping as 'quickCheckAll':
+-- see the note there about @return []@.
 forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
 forAllProperties = do
   Loc { loc_filename = filename } <- location
@@ -105,17 +120,28 @@ forAllProperties = do
 -- Polymorphic properties will be defaulted to 'Integer'.
 -- Returns 'True' if all tests succeeded, 'False' otherwise.
 --
--- Using 'quickCheckAll' interactively doesn't work.
--- Instead, add a definition to your module along the lines of
+-- To use 'quickCheckAll', add a definition to your module along
+-- the lines of
 --
+-- > return []
 -- > runTests = $quickCheckAll
 --
 -- and then execute @runTests@.
+-- The weird @return []@ thing brings the properties into scope for
+-- 'quickCheckAll'; without it, 'quickCheckAll' will not be able to
+-- find the properties on GHC 7.8. (For the curious, @return []@ is a
+-- splice that tells GHC to insert the empty list of declarations at
+-- this point in the module. This in turn causes GHC to typecheck
+-- everything that's before the splice, before it continues with the
+-- rest of the module.)
 quickCheckAll :: Q Exp
 quickCheckAll = [| $(forAllProperties) quickCheckResult |]
 
 -- | Test all properties in the current module.
 -- This is just a convenience function that combines 'quickCheckAll' and 'verbose'.
+--
+-- 'verboseCheckAll' has the same issue with scoping as 'quickCheckAll':
+-- see the note there about @return []@.
 verboseCheckAll :: Q Exp
 verboseCheckAll = [| $(forAllProperties) verboseCheckResult |]
 
