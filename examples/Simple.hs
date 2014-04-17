@@ -26,10 +26,6 @@ prop_ReverseReverse xs =
 prop_Reverse xs =
   reverse xs == xs
 
-{-
-prop_Blahblah
--}
-
 --------------------------------------------------------------------------
 -- example 3
 
@@ -40,11 +36,12 @@ prop_Error (x,y) =
 -- main
 
 return []
-main = $quickCheckAll
 prop_conj = counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson) .&&.
             counterexample "reverse" $(monomorphic 'prop_Reverse)
 prop_disj = counterexample "reverse" $(monomorphic 'prop_Reverse) .||.
             counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson)
+return []
+main = $quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.

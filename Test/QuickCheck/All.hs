@@ -91,9 +91,10 @@ forAllProperties = do
   ls <- runIO (fmap lines (readFile filename))
   let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
+      warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
-        exists <- return False `recover` (reify (mkName x) >> return True)
+        exists <- (warning x >> return False) `recover` (reify (mkName x) >> return True)
         if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
                                      property $(monomorphic (mkName x))) |] ]
          else return []
