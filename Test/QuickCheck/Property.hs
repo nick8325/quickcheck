@@ -98,7 +98,7 @@ instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (property p)
 
 instance Testable Property where
-  property = id
+  property = property . unProperty
 
 -- | Do I/O inside a property. This can obviously lead to unrepeatable
 -- testcases, so use with care.
