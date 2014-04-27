@@ -22,6 +22,8 @@ import Data.Char
 import Data.List
 import Control.Monad
 
+import qualified System.IO as S
+
 -- | Test a polymorphic property, defaulting all type variables to 'Integer'.
 --
 -- Invoke as @$('polyQuickCheck' 'prop)@, where @prop@ is a property.
@@ -103,7 +105,7 @@ forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
 forAllProperties = do
   Loc { loc_filename = filename } <- location
   when (filename == "<interactive>") $ error "don't run this interactively"
-  ls <- runIO (fmap lines (readFile filename))
+  ls <- runIO (fmap lines (readUTF8File filename))
   let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
       warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
@@ -114,6 +116,19 @@ forAllProperties = do
                                      property $(monomorphic (mkName x))) |] ]
          else return []
   [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
+
+readUTF8File name = S.openFile name S.ReadMode >>=
+                    set_utf8_io_enc >>=
+                    S.hGetContents
+
+-- Deal with UTF-8 input and output.
+set_utf8_io_enc :: S.Handle -> IO S.Handle
+#if __GLASGOW_HASKELL__ > 611
+-- possibly if MIN_VERSION_base(4,2,0)
+set_utf8_io_enc h = do S.hSetEncoding h S.utf8; return h
+#else
+set_utf8_io_enc h = return h
+#endif
 
 -- | Test all properties in the current module.
 -- The name of the property must begin with @prop_@.
