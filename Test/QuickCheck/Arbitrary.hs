@@ -10,7 +10,7 @@ module Test.QuickCheck.Arbitrary
   , CoArbitrary(..)
 
   -- ** Helper functions for implementing arbitrary
-  , arbitrarySizedIntegral        -- :: Num a => Gen a
+  , arbitrarySizedIntegral        -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedFractional      -- :: Fractional a => Gen a
