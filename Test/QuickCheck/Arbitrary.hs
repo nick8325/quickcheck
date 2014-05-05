@@ -436,16 +436,10 @@ instance Arbitrary Double where
 arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
-  withoutOverflow (toInteger n) $ \n' _ ->
-  withoutOverflow (negate (toInteger n)) $ \m' _ ->
-    fmap fromInteger (choose (m', n'))
+  inBounds fromInteger (choose (-toInteger n, toInteger n))
 
-withoutOverflow :: Integral a => Integer -> (Integer -> a -> Gen a) -> Gen a
-withoutOverflow n k
-  | toInteger n' == n = k n n'
-  | otherwise = k 0 0
-  where
-    n' = fromInteger n
+inBounds :: Integral a => (Integer -> a) -> Gen Integer -> Gen a
+inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger (fi x) == x))
 
 -- | Generates a fractional number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
