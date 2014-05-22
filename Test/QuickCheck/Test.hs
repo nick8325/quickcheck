@@ -40,7 +40,6 @@ data Args
   , maxDiscardRatio :: Int               -- ^ Maximum number of discarded tests per successful test before giving up
   , maxSize         :: Int               -- ^ Size to use for the biggest test cases
   , chatty          :: Bool              -- ^ Whether to print anything
-  , doShrinking     :: Bool              -- ^ Whether to activate shrinking
   }
  deriving ( Show, Read )
 
@@ -92,7 +91,7 @@ stdArgs = Args
   , maxDiscardRatio = 10
   , maxSize         = 100
   , chatty          = True
-  , doShrinking     = True
+-- noShrinking flag?
   }
 
 -- | Tests a property and prints the results to 'stdout'.
@@ -128,7 +127,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numSuccessShrinks         = 0
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
-                 } (unGen (unProperty (toggleShrinking (property' p))))
+                 } (unGen (unProperty (property' p)))
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
@@ -143,9 +142,6 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
         property' p
           | exhaustive p = once (property p)
           | otherwise = property p
-        toggleShrinking p
-          | doShrinking a = p
-          | otherwise = noShrinking p
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
