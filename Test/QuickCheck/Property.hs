@@ -63,6 +63,14 @@ infixr 1 .||.
 -- * Property and Testable types
 
 -- | The type of properties.
+--
+-- Backwards compatibility note: in older versions of QuickCheck
+-- 'Property' was a type synonym for @'Gen' 'Prop'@, so you could mix and
+-- match property combinators with 'Gen' monad operations.
+-- This is no longer possible directly, but as @'Gen' 'Property'@ is
+-- an instance of 'Testable', you can use the function
+-- @'property' :: 'Gen' 'Property' -> 'Property'@
+-- to get the same effect.
 newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of things which can be tested, i.e. turned into a property.
