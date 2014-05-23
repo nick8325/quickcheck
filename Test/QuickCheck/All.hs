@@ -108,7 +108,11 @@ forAllProperties = do
   ls <- runIO (fmap lines (readUTF8File filename))
   let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
+#if __GLASGOW_HASKELL__ > 705
       warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
+#else
+      warning x = report False ("Name " ++ x ++ " found in source file but was not in scope")
+#endif
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
         exists <- (warning x >> return False) `recover` (reify (mkName x) >> return True)
