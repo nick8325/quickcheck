@@ -106,7 +106,7 @@ forAllProperties = do
   Loc { loc_filename = filename } <- location
   when (filename == "<interactive>") $ error "don't run this interactively"
   ls <- runIO (fmap lines (readUTF8File filename))
-  let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_') . dropWhile (\c -> isSpace c || c == '>')) ls
+  let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_' || c == '\'') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
 #if __GLASGOW_HASKELL__ > 705
       warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
