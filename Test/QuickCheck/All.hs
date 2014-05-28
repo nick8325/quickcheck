@@ -146,13 +146,15 @@ set_utf8_io_enc h = return h
 -- > runTests = $quickCheckAll
 --
 -- and then execute @runTests@.
--- The weird @return []@ thing brings the properties into scope for
--- 'quickCheckAll'; without it, 'quickCheckAll' will not be able to
--- find the properties on GHC 7.8. (For the curious, @return []@ is a
--- splice that tells GHC to insert the empty list of declarations at
--- this point in the module. This in turn causes GHC to typecheck
--- everything that's before the splice, before it continues with the
--- rest of the module.)
+--
+-- Note: the bizarre @return []@ in the example above is needed on
+-- GHC 7.8; without it, 'quickCheckAll' will not be able to find
+-- any of the properties. For the curious, the @return []@ is a
+-- Template Haskell splice that makes GHC insert the empty list
+-- of declarations at that point in the program; GHC typechecks
+-- everything before the @return []@ before it starts on the rest
+-- of the module, which means that the later call to 'quickCheckAll'
+-- can see everything that was defined before the @return []@. Yikes!
 quickCheckAll :: Q Exp
 quickCheckAll = [| $(forAllProperties) quickCheckResult |]
 
