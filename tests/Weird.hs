@@ -1,12 +1,13 @@
 -- Lots of weird examples to test strange corner cases of QuickCheck,
 -- especially exception handling and ctrl-C handling.
 
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ScopedTypeVariables, TemplateHaskell #-}
 module Main where
 
 import Test.QuickCheck
 import Test.QuickCheck.Property
 import Test.QuickCheck.Function
+import Test.QuickCheck.All
 
 prop = callback (PostTest Counterexample (\_ _ -> putStrLn "\n\n\napa\n\n\n")) f
   where f :: Int -> Bool
@@ -44,7 +45,6 @@ test _ _ = False
 loop = loop
 
 prop_loop (n :: Int) (m :: Int) = prop_loop n m :: Bool
-main = quickCheck prop_loop
 
 data B = B deriving (Eq, Ord, Show)
 instance Arbitrary B where
@@ -65,6 +65,10 @@ instance Arbitrary C where
   shrink C1 = [C2]
   shrink _ = [C3]
 
-prop_forevershrink2 C1 = False
-prop_forevershrink2 C2 = False
-prop_forevershrink2 C3 = prop_forevershrink2 C3
+-- Also check that quickCheckAll accepts primes in property names
+prop_forevershrink2' C1 = False
+prop_forevershrink2' C2 = False
+prop_forevershrink2' C3 = prop_forevershrink2' C3
+
+return []
+main = $quickCheckAll -- UTF8 test: Привет!

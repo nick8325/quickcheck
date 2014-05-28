@@ -146,9 +146,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
 -- main
 
 return []
--- quickCheckAll reads this file and treats it as UTF-8
--- Here is a bait to test: Привет!
-main = $(quickCheckAll)
+main = $quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.
