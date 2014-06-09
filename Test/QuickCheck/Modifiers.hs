@@ -145,32 +145,9 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 newtype Positive a = Positive {getPositive :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
-          , Integral, Real
+          , Enum
 #endif
           )
-
-instance (Ord a, Num a) => Num (Positive a) where
-  Positive x + Positive y = positive (x+y)
-  Positive x - Positive y = positive (x-y)
-  Positive x * Positive y = positive (x*y)
-  negate (Positive x) = positive (negate x)
-  abs (Positive x) = positive (abs x)
-  signum (Positive x) = positive (signum x)
-  fromInteger n = positive (clamp (> 0) 1 (fromInteger n))
-
-clamp :: (a -> Bool) -> a -> a -> a
-clamp p d x
-  | p x = x
-  | otherwise = d
-
-positive :: (Ord a, Num a) => a -> Positive a
-positive x
-  | x <= 0 = error "Positive: negative number"
-  | otherwise = Positive x
-
-instance Enum a => Enum (Positive a) where
-  toEnum n = fmap toEnum (positive n)
-  fromEnum (Positive x) = fromEnum x
 
 instance Functor Positive where
   fmap f (Positive x) = Positive (f x)
@@ -191,26 +168,9 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
 newtype NonZero a = NonZero {getNonZero :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
-          , Integral, Real
+          , Enum
 #endif
           )
-
-instance (Eq a, Num a) => Num (NonZero a) where
-  NonZero x + NonZero y = nonZero (x+y)
-  NonZero x - NonZero y = nonZero (x-y)
-  NonZero x * NonZero y = nonZero (x*y)
-  negate (NonZero x) = nonZero (negate x)
-  abs (NonZero x) = nonZero (abs x)
-  signum (NonZero x) = nonZero (signum x)
-  fromInteger n = nonZero (clamp (/= 0) 0 (fromInteger n))
-
-nonZero :: (Eq a, Num a) => a -> NonZero a
-nonZero 0 = error "NonZero: passed in zero"
-nonZero x = NonZero x
-
-instance Enum a => Enum (NonZero a) where
-  toEnum n = fmap toEnum (nonZero n)
-  fromEnum (NonZero x) = fromEnum x
 
 instance Functor NonZero where
   fmap f (NonZero x) = NonZero (f x)
@@ -225,27 +185,9 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
 newtype NonNegative a = NonNegative {getNonNegative :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
-          , Integral, Real
+          , Enum
 #endif
           )
-
-instance (Ord a, Num a) => Num (NonNegative a) where
-  NonNegative x + NonNegative y = nonNegative (x+y)
-  NonNegative x - NonNegative y = nonNegative (x-y)
-  NonNegative x * NonNegative y = nonNegative (x*y)
-  negate (NonNegative x) = nonNegative (negate x)
-  abs (NonNegative x) = nonNegative (abs x)
-  signum (NonNegative x) = nonNegative (signum x)
-  fromInteger n = nonNegative (clamp (>= 0) 0 (fromInteger n))
-
-nonNegative :: (Ord a, Num a) => a -> NonNegative a
-nonNegative x
-  | x < 0 = error "NonNegative: negative number"
-  | otherwise = NonNegative x
-
-instance Enum a => Enum (NonNegative a) where
-  toEnum n = fmap toEnum (nonNegative n)
-  fromEnum (NonNegative x) = fromEnum x
 
 instance Functor NonNegative where
   fmap f (NonNegative x) = NonNegative (f x)
