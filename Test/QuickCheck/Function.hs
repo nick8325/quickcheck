@@ -1,4 +1,9 @@
-{-# LANGUAGE TypeOperators, GADTs #-}
+{-# LANGUAGE TypeOperators, GADTs, CPP #-}
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE PatternSynonyms #-}
+#endif 
+
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
 --
@@ -24,6 +29,9 @@ module Test.QuickCheck.Function
   , Function(..)
   , functionMap
   , functionShow
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+  , pattern Fn 
+#endif
   )
  where
 
@@ -260,6 +268,15 @@ shrinkFun shr (Map g h p) =
 -- the Fun modifier
 
 data Fun a b = Fun (a :-> b, b) (a -> b)
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+-- | A pattern for matching against the function only:
+-- 
+-- > prop :: Fun String Integer -> Bool
+-- > prop (Fn f) = f "banana" == f "monkey" 
+--              || f "banana" == f "elephant"
+pattern Fn f <- Fun _ f
+#endif 
 
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p,d) (abstract p d)
