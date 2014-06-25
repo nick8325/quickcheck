@@ -8,8 +8,9 @@ Module   : Test.QuickCheck.Monadic
 Allows testing of monadic values. Will generally follow this form:
 
 @
-    prop_monadic a b c = 'monadicIO' $ do
-      a\' \<- 'run' a
+    prop_monadic a b = 'monadicIO' $ do
+      a\' \<- 'run' (f a)
+      b\' \<- 'run' (f b)
       -- ...
       'assert' someBoolean
 @
