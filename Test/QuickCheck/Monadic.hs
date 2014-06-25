@@ -5,7 +5,7 @@
 {-|
 Module   : Test.QuickCheck.Monadic
 
-Allows testing of monadic values. Will generate follow this form:
+Allows testing of monadic values. Will generally follow this form:
 
 @
     prop_monadic a b c = 'monadicIO' $ do
