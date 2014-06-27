@@ -12,7 +12,7 @@ for @Integer@s one might write:
     prop_commutativeAdd n m = n + m == m + n
 @
 
-and testing it with:
+and testing:
 
 >>> quickcheck prop_commutativeAdd
 +++ OK, passed 100 tests.
@@ -20,7 +20,7 @@ and testing it with:
 which generates 200 @Integer@s and checks that @prop_commutativeAdd@
 holds for them.
 
-To see the actual values generated 'verboseCheck' can be used:
+'verboseCheck' can be used to see the actual values generated:
 
 >>> verboseCheck prop_commutativeAdd
 Passed:
