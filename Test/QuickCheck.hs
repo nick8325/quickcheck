@@ -2,7 +2,7 @@
 
 To use QuickCheck to check a property, first define a function
 expressing that property (functions expressing properties under test
-end to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
+tend to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
 for @Integer@s one might write:
 
 @
