@@ -17,7 +17,7 @@ and testing it with:
 >>> quickcheck prop_commutativeAdd
 +++ OK, passed 100 tests.
 
-which generates 200 @Integer@s and checks that @prop_commutativeadd@
+which generates 200 @Integer@s and checks that @prop_commutativeAdd@
 holds for them.
 
 To see the actual values generated 'verboseCheck' can be used:
@@ -33,7 +33,7 @@ Passed:
 +++ OK, passed 100 tests.
 
 and if more than 100 tests are needed the number of tests can be
-increased as such:
+increased by updating the 'stdArgs' record:
 
 >>> quickCheckWith stdArgs { maxSuccess = 500 } prop_commutativeAdd
 +++ OK, passed 500 tests.
