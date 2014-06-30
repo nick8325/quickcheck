@@ -19,6 +19,7 @@ import System.Random
 import Control.Monad
   ( liftM
   , ap
+  , replicateM
   )
 
 import Control.Applicative
