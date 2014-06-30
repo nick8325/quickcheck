@@ -1,3 +1,71 @@
+{-| For further information see the <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>.
+
+To use QuickCheck to check a property, first define a function
+expressing that property (functions expressing properties under test
+tend to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
+for @Integer@s one might write:
+
+@
+    import Test.QuickCheck
+
+    prop_commutativeAdd :: Integer -> Integer -> Bool
+    prop_commutativeAdd n m = n + m == m + n
+@
+
+and testing:
+
+>>> quickcheck prop_commutativeAdd
++++ OK, passed 100 tests.
+
+which generates 200 @Integer@s and checks that @prop_commutativeAdd@
+holds for them.
+
+'verboseCheck' can be used to see the actual values generated:
+
+>>> verboseCheck prop_commutativeAdd
+Passed:
+0
+0
+  …98 tests omitted…
+Passed:
+-68
+6
++++ OK, passed 100 tests.
+
+and if more than 100 tests are needed the number of tests can be
+increased by updating the 'stdArgs' record:
+
+>>> quickCheckWith stdArgs { maxSuccess = 500 } prop_commutativeAdd
++++ OK, passed 500 tests.
+
+To let QuickCheck generate values of your own data type an 'Arbitrary'
+instance must be defined:
+
+@
+    data Point = MkPoint Int Int deriving Eq
+    
+    instance Arbitrary Point where
+      arbitrary = do
+        x <- 'arbitrary'
+        y <- arbitrary
+        return (MkPoint x y)
+    
+    swapPoint :: Point -> Point
+    swapPoint (MkPoint x y) = MkPoint y x
+
+    -- swapPoint . swapPoint = id
+    prop_swapInvolution point = swapPoint (swapPoint point) == point
+@
+
+>>> quickCheck prop_swapInvolution
++++ OK, passed 100 tests.
+
+See "Test.QuickCheck.Function" for generating random shrinkable,
+showable functions used for testing higher-order functions and
+"Test.QuickCheck.Monadic" for testing impure or monadic code
+(e.g. effectful code in 'IO').
+
+-}
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
