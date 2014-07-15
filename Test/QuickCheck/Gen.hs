@@ -19,6 +19,7 @@ import System.Random
 import Control.Monad
   ( liftM
   , ap
+  , replicateM
   )
 
 import Control.Applicative
@@ -171,7 +172,7 @@ listOf1 gen = sized $ \n ->
 
 -- | Generates a list of the given length.
 vectorOf :: Int -> Gen a -> Gen [a]
-vectorOf k gen = sequence [ gen | _ <- [1..k] ]
+vectorOf = replicateM
 
 -- | Generates an infinite list.
 infiniteListOf :: Gen a -> Gen [a]
