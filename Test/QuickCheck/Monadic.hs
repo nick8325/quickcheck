@@ -55,7 +55,7 @@ module Test.QuickCheck.Monadic (
   , forAllM
   , monitor
   , stop
-    
+
   -- * Run functions
   , monadic
   , monadic'
@@ -88,9 +88,9 @@ import Control.Monad.Trans.Class
 
 -- | The property monad is really a monad transformer that can contain
 -- monadic computations in the monad @m@ it is parameterized by:
--- 
+--
 --   * @m@ - the @m@-computations that may be performed within @PropertyM@
--- 
+--
 -- Elements of @PropertyM m a@ may mix property operations and @m@-computations.
 newtype PropertyM m a =
   MkPropertyM { unPropertyM :: (a -> Gen (m Property)) -> Gen (m Property) }
@@ -129,19 +129,19 @@ assert False = fail "Assertion failed"
 -- | Tests preconditions. Unlike 'assert' this does not cause the
 -- property to fail, rather it discards them just like using the
 -- implication combinator 'Test.QuickCheck.Property.==>'.
--- 
+--
 -- This allows representing the <https://en.wikipedia.org/wiki/Hoare_logic Hoare triple>
 --
 -- > {p} x ← e{q}
 --
 -- as
--- 
+--
 -- @
 -- pre p
 -- x \<- run e
 -- assert q
 -- @
--- 
+--
 pre :: Monad m => Bool -> PropertyM m ()
 pre True  = return ()
 pre False = stop rejected
@@ -220,13 +220,13 @@ monadic' (MkPropertyM m) = m (const (return (return (property True))))
 --
 -- >>> quickCheck prop_cat
 -- +++ OK, passed 100 tests.
--- 
+--
 monadicIO :: PropertyM IO a -> Property
 monadicIO = monadic ioProperty
 
 #ifndef NO_ST_MONAD
 -- | Runs the property monad for 'ST'-computations.
--- 
+--
 -- @
 -- -- Your mutable sorting algorithm here
 -- sortST :: Ord a => [a] -> 'Control.Monad.ST.ST' s (MVector s a)
@@ -236,10 +236,10 @@ monadicIO = monadic ioProperty
 --   sorted  \<- run ('Data.Vector.freeze' =<< sortST xs)
 --   assert ('Data.Vector.toList' sorted == sort xs)
 -- @
--- 
+--
 -- >>> quickCheck prop_sortST
 -- +++ OK, passed 100 tests.
--- 
+--
 monadicST :: (forall s. PropertyM (ST s) a) -> Property
 monadicST m = property (runSTGen (monadic' m))
 

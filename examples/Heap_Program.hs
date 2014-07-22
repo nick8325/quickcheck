@@ -26,7 +26,7 @@ data Heap a
   = Node a (Heap a) (Heap a)
   | Nil
  deriving ( Eq, Ord, Show )
-  
+
 empty :: Heap a
 empty = Nil
 
@@ -54,13 +54,13 @@ Nil `merge` h2  = h2
 h1@(Node x h11 h12) `merge` h2@(Node y h21 h22)
   | x <= y    = Node x (h12 `merge` h2) h11
   | otherwise = Node y (h22 `merge` h1) h21
-        
+
 fromList :: Ord a => [a] -> Heap a
 fromList xs = merging [ unit x | x <- xs ]
  where
   merging []  = empty
   merging [h] = h
-  merging hs  = merging (sweep hs) 
+  merging hs  = merging (sweep hs)
 
   sweep []         = []
   sweep [h]        = [h]
@@ -184,7 +184,7 @@ prop_ToSortedList (HeapPP _ h) =
   h ==? xs && xs == sort xs
  where
   xs = toSortedList h
-  
+
 --------------------------------------------------------------------------
 -- main
 

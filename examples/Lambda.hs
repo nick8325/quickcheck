@@ -88,7 +88,7 @@ instance Arbitrary Exp where
                   ++ [ ab
                      | Lam x a' <- [a]
                      , let ab = subst x b a'
-                     , length (show ab) < length (show (App a b)) 
+                     , length (show ab) < length (show (App a b))
                      ]
                   ++ [ App a' b | a' <- shrink a ]
                   ++ [ App a b' | b' <- shrink b ]
@@ -269,7 +269,7 @@ instance Arbitrary Exp where
                      ++ [ red
                         | Lam x a' <- [a]
                         , let red = subst x b a'
-                        , length (show red) < length (show (App a b)) 
+                        , length (show red) < length (show (App a b))
                         ]
   shrinkRec (Var x)   = [Con (MkCon (map toUpper (show x)))]
   shrinkRec _         = []
@@ -355,7 +355,7 @@ instance Arbitrary OpenExp where
 
 prop_EvalProducesValueWT (WellTyped a) =
   isValue (eval a)
-    
+
 -}
 
 x = MkVar "x"

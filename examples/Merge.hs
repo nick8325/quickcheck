@@ -87,7 +87,7 @@ prop_Merge xs (ys :: [Int]) =
 --  classify (length xs `min` length ys >= 5) "not trivial" $
 --  cover (length xs `min` length ys >= 5) 70 "not trivial" $
 
-{-  
+{-
   shrink (Ordered xs) =
     [ Ordered xs'
     | xs' <- shrink xs
@@ -108,7 +108,7 @@ prop_Merging (xss :: [OrderedList Int]) =
 
 
 --  mapSize (`div` 2) $ \(xss :: [OrderedList Int]) ->
-  
+
 --------------------------------------------------------------------------
 -- the end.
 

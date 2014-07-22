@@ -25,7 +25,7 @@ data Heap a
   = Node a (Heap a) (Heap a)
   | Empty
  deriving ( Eq, Ord, Show )
-  
+
 empty :: Heap a
 empty = Empty
 
@@ -53,13 +53,13 @@ Empty `merge` h2    = h2
 h1@(Node x h11 h12) `merge` h2@(Node y h21 h22)
   | x <= y    = Node x (h12 `merge` h2) h11
   | otherwise = Node y (h22 `merge` h1) h21
-        
+
 fromList :: Ord a => [a] -> Heap a
 fromList xs = merging [ unit x | x <- xs ]
  where
   merging []  = empty
   merging [h] = h
-  merging hs  = merging (sweep hs) 
+  merging hs  = merging (sweep hs)
 
   sweep []         = []
   sweep [h]        = [h]
@@ -124,7 +124,7 @@ prop_ToSortedList (h :: Heap Int) =
   h ==? xs && xs == sort xs
  where
   xs = toSortedList h
-  
+
 --------------------------------------------------------------------------
 -- generators
 
@@ -141,7 +141,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
                     where arbHeap2 = arbHeap (Just y) (n `div` 2))
         | n > 0
         ]
-        
+
 --------------------------------------------------------------------------
 -- main
 
