@@ -6,10 +6,10 @@ tend to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
 for @Integer@s one might write:
 
 @
-    import Test.QuickCheck
+import Test.QuickCheck
 
-    prop_commutativeAdd :: Integer -> Integer -> Bool
-    prop_commutativeAdd n m = n + m == m + n
+prop_commutativeAdd :: Integer -> Integer -> Bool
+prop_commutativeAdd n m = n + m == m + n
 @
 
 and testing:
@@ -42,19 +42,19 @@ To let QuickCheck generate values of your own data type an 'Arbitrary'
 instance must be defined:
 
 @
-    data Point = MkPoint Int Int deriving Eq
-    
-    instance Arbitrary Point where
-      arbitrary = do
-        x <- 'arbitrary'
-        y <- arbitrary
-        return (MkPoint x y)
-    
-    swapPoint :: Point -> Point
-    swapPoint (MkPoint x y) = MkPoint y x
+data Point = MkPoint Int Int deriving Eq
 
-    -- swapPoint . swapPoint = id
-    prop_swapInvolution point = swapPoint (swapPoint point) == point
+instance Arbitrary Point where
+  arbitrary = do
+    x <- 'arbitrary'
+    y <- arbitrary
+    return (MkPoint x y)
+
+swapPoint :: Point -> Point
+swapPoint (MkPoint x y) = MkPoint y x
+
+-- swapPoint . swapPoint = id
+prop_swapInvolution point = swapPoint (swapPoint point) == point
 @
 
 >>> quickCheck prop_swapInvolution
