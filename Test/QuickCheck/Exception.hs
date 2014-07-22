@@ -80,7 +80,7 @@ tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = E.try (m >>= E.evaluate)
 --tryEvaluateIO m = Right `fmap` m
 
--- Test if an exception was a ^C.
+-- | Test if an exception was a @^C@.
 -- QuickCheck won't try to shrink an interrupted test case.
 isInterrupt :: AnException -> Bool
 

@@ -49,7 +49,7 @@ import Data.Maybe( fromJust )
 --------------------------------------------------------------------------
 -- concrete functions
 
--- the type of possibly partial concrete functions
+-- | The type of possibly partial concrete functions
 data a :-> c where
   Pair  :: (a :-> (b :-> c)) -> ((a,b) :-> c)
   (:+:) :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
