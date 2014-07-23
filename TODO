@@ -1,6 +1,8 @@
 Add tests for Positive (Small Int) and Small (Positive Int) - or
 perhaps a property that combines many modifiers.
 
+Edit new documentation.
+
 To make a release:
 * Run build-all script.
 * Bump version number in cabal file, in source-repository link, and in test-suite stanza.
