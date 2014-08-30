@@ -232,6 +232,28 @@ instance SumSize (C1 s a) where
   {-# INLINE sumSize #-}
 
 
+-- | This class takes an integer `x` and returns a `gArbitrary` value
+-- for the `x`'th alternative in a sum type.
+class ChooseSum f where
+  chooseSum :: Int -> Gen (f a)
+
+-- Recursive case: Check whether `x` lies in the left or the right side
+-- of the (:+:) split.
+instance ( GArbitrary a, GArbitrary b
+         , SumSize    a, SumSize    b
+         , ChooseSum  a, ChooseSum  b ) => ChooseSum (a :+: b) where
+  chooseSum x = do
+    let sizeL = unTagged2 (sumSize :: Tagged2 a Int)
+    if x <= sizeL
+      then L1 <$> chooseSum x
+      else R1 <$> chooseSum (x - sizeL)
+
+-- Constructor base case.
+instance (GArbitrary a) => ChooseSum (C1 s a) where
+  chooseSum 1 = gArbitrary
+  chooseSum _ = error "chooseSum: BUG"
+
+
 class GArbitrary f where
   gArbitrary :: Gen (f a)
 
@@ -242,7 +264,8 @@ instance (GArbitrary a, GArbitrary b) => GArbitrary (a :*: b) where
   gArbitrary = (:*:) <$> gArbitrary <*> gArbitrary
 
 instance ( GArbitrary a, GArbitrary b
-         , SumSize    a, SumSize    b ) => GArbitrary (a :+: b) where
+         , SumSize    a, SumSize    b
+         , ChooseSum  a, ChooseSum  b ) => GArbitrary (a :+: b) where
   gArbitrary = do
     -- We cannot simply choose with equal probability between the left and
     -- right part of the `a :+: b` (e.g. with `choose (False, True)`),
@@ -252,18 +275,22 @@ instance ( GArbitrary a, GArbitrary b
     -- then a would be chosen just as often as b and c together.
     -- So we first have to compute the number of alternatives using `sumSize`,
     -- and then uniformly sample a number in the corresponding range.
-    -- TODO: The code below could be optimised since the `choose` has to be
-    --       done only once for the whole sum type, not recursively at each
-    --       :+: split. However, this will only give us a 2x speed-up because
-    --       while GHC doesn't guarantee any nesting strategy for :+:, it does
-    --       in practice create binary trees.
-    let sizeL = unTagged2 (sumSize :: Tagged2 a Int)
-        sizeR = unTagged2 (sumSize :: Tagged2 b Int)
-        size = sizeL + sizeR
+    let size = unTagged2 (sumSize :: Tagged2 (a :+: b) Int)
     x <- choose (1, size)
-    if x <= sizeL
-      then L1 <$> gArbitrary
-      else R1 <$> gArbitrary
+    -- Optimisation:
+    -- We could just recursively call `gArbitrary` on the left orright branch
+    -- here, as in
+    --   if x <= sizeL
+    --     then L1 <$> gArbitrary
+    --     else R1 <$> gArbitrary
+    -- but this would unnecessarily sample again in the same sum type, and that
+    -- even though `x` completely determines which alternative to choose,
+    -- and sampling is slow because it needs IO and random numbers.
+    -- So instead we use `chooseSum x` to pick the x'th alternative from the
+    -- current sum type.
+    -- This made it around 50% faster for a sum type with 26 alternatives
+    -- on my computer.
+    chooseSum x
 
 instance GArbitrary a => GArbitrary (M1 i c a) where
   gArbitrary = M1 <$> gArbitrary
