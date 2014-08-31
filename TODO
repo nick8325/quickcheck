@@ -1,3 +1,6 @@
+Fix collection of labels in conjunction and disjunction
+Allow using unicode characters in Function instance for Char
+
 Add tests for Positive (Small Int) and Small (Positive Int) - or
 perhaps a property that combines many modifiers.
 
