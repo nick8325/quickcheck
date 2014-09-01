@@ -232,6 +232,8 @@ runATest st f =
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
+         cons [] xs = xs
+         cons x  xs = x:xs
 
      case res of
        MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
@@ -239,7 +241,7 @@ runATest st f =
               st{ numSuccessTests           = numSuccessTests st + 1
                 , numRecentlyDiscardedTests = 0
                 , randomSeed                = rnd2
-                , collected                 = stamp : collected st
+                , collected                 = stamp `cons` collected st
                 , expectedFailure           = expect
                 } f
 
