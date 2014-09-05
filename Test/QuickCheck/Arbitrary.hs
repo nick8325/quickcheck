@@ -3,6 +3,10 @@
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses, OverlappingInstances #-}
+#endif
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
 #endif
 module Test.QuickCheck.Arbitrary
   (
@@ -20,8 +24,8 @@ module Test.QuickCheck.Arbitrary
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericArbitrary   -- :: (Generic a, GArbitrary (Rep a)) => Gen a
-  , genericShrink      -- :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
-  , subterms           -- :: (Generic a, Subterms (Rep a)) => a -> [a]
+  , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
+  , subterms           -- :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
   , recursivelyShrink  -- :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
 #endif
   , shrinkNothing            -- :: a -> [a]
@@ -104,7 +108,6 @@ import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 #ifndef NO_GENERICS
 import GHC.Generics
-import Data.Typeable
 #endif
 
 --------------------------------------------------------------------------
@@ -203,7 +206,7 @@ class Arbitrary a where
   -- infinite loop.
   --
   -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
-  -- after deriving @Generic@ and @Typeable@ for your type. However, if your data type has any
+  -- after deriving @Generic@ for your type. However, if your data type has any
   -- special invariants, you will need to check that 'genericShrink' can't break those invariants.
   shrink :: a -> [a]
   shrink _ = []
@@ -257,6 +260,10 @@ instance (GArbitrary a) => ChooseSum (C1 s a) where
 class GArbitrary f where
   gArbitrary :: Gen (f a)
 
+instance GArbitrary V1 where
+  -- Following the `Encode' V1` example in GHC.Generics.
+  gArbitrary = undefined
+
 instance GArbitrary U1 where
   gArbitrary = return U1
 
@@ -307,8 +314,9 @@ genericArbitrary = to <$> gArbitrary
 
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
-genericShrink :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
+genericShrink :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
 genericShrink x = subterms x ++ recursivelyShrink x
+
 
 -- | Recursively shrink all immediate subterms.
 recursivelyShrink :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
@@ -335,32 +343,80 @@ instance Arbitrary a => RecursivelyShrink (K1 i a) where
 instance RecursivelyShrink U1 where
   grecursivelyShrink U1 = []
 
+instance RecursivelyShrink V1 where
+  -- The empty type can't be shrunk to anything.
+  grecursivelyShrink _ = []
+
+
 -- | All immediate subterms of a term.
-subterms :: (Generic a, Typeable a, Subterms (Rep a)) => a -> [a]
-subterms = gsubterms . from
+subterms :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
+subterms = gSubterms . from
 
-class Subterms f where
-  gsubterms :: Typeable b => f a -> [b]
 
-instance (Subterms f, Subterms g) => Subterms (f :*: g) where
-  gsubterms (x :*: y) =
-    gsubterms x ++ gsubterms y
+class GSubterms f a where
+  -- | Provides the immediate subterms of a term that are of the same type
+  -- as the term itself.
+  --
+  -- Requires a constructor to be stripped off; this means it skips through
+  -- @M1@ wrappers and returns @[]@ on everything that's not `(:*:)` or `(:+:)`.
+  --
+  -- Once a `(:*:)` or `(:+:)` constructor has been reached, this function
+  -- delegates to `gSubtermsIncl` to return the immediately next constructor
+  -- available.
+  gSubterms :: f a -> [a]
 
-instance (Subterms f, Subterms g) => Subterms (f :+: g) where
-  gsubterms (L1 x) = gsubterms x
-  gsubterms (R1 x) = gsubterms x
+instance GSubterms V1 a where
+  -- The empty type can't be shrunk to anything.
+  gSubterms _ = []
 
-instance Subterms f => Subterms (M1 i c f) where
-  gsubterms (M1 x) = gsubterms x
+instance GSubterms U1 a where
+  gSubterms U1 = []
 
-instance Typeable a => Subterms (K1 i a) where
-  gsubterms (K1 x) =
-    case cast x of
-      Nothing -> []
-      Just y -> [y]
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubterms (f :*: g) a where
+  gSubterms (l :*: r) = gSubtermsIncl l ++ gSubtermsIncl r
 
-instance Subterms U1 where
-  gsubterms U1 = []
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubterms (f :+: g) a where
+  gSubterms (L1 x) = gSubtermsIncl x
+  gSubterms (R1 x) = gSubtermsIncl x
+
+instance GSubterms f a => GSubterms (M1 i c f) a where
+  gSubterms (M1 x) = gSubterms x
+
+instance GSubterms (K1 i a) b where
+  gSubterms (K1 _) = []
+
+
+class GSubtermsIncl f a where
+  -- | Provides the immediate subterms of a term that are of the same type
+  -- as the term itself.
+  --
+  -- In contrast to `gSubterms`, this returns the immediate next constructor
+  -- available.
+  gSubtermsIncl :: f a -> [a]
+
+instance GSubtermsIncl V1 a where
+  -- The empty type can't be shrunk to anything.
+  gSubtermsIncl _ = []
+
+instance GSubtermsIncl U1 a where
+  gSubtermsIncl U1 = []
+
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubtermsIncl (f :*: g) a where
+  gSubtermsIncl (l :*: r) = gSubtermsIncl l ++ gSubtermsIncl r
+
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubtermsIncl (f :+: g) a where
+  gSubtermsIncl (L1 x) = gSubtermsIncl x
+  gSubtermsIncl (R1 x) = gSubtermsIncl x
+
+instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
+  gSubtermsIncl (M1 x) = gSubtermsIncl x
+
+-- This is the important case: We've found a term of the same type.
+instance Arbitrary a => GSubtermsIncl (K1 i a) a where
+  gSubtermsIncl (K1 x) = [x]
+
+instance GSubtermsIncl (K1 i a) b where
+  gSubtermsIncl (K1 _) = []
 
 #endif
 
