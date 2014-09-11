@@ -2,7 +2,7 @@
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms #-}
-#endif 
+#endif
 
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
@@ -30,7 +30,7 @@ module Test.QuickCheck.Function
   , functionMap
   , functionShow
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
-  , pattern Fn 
+  , pattern Fn
 #endif
   )
  where
@@ -49,7 +49,7 @@ import Data.Maybe( fromJust )
 --------------------------------------------------------------------------
 -- concrete functions
 
--- the type of possibly partial concrete functions
+-- | The type of possibly partial concrete functions
 data a :-> c where
   Pair  :: (a :-> (b :-> c)) -> ((a,b) :-> c)
   (:+:) :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
@@ -271,12 +271,12 @@ data Fun a b = Fun (a :-> b, b) (a -> b)
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A pattern for matching against the function only:
--- 
+--
 -- > prop :: Fun String Integer -> Bool
--- > prop (Fn f) = f "banana" == f "monkey" 
+-- > prop (Fn f) = f "banana" == f "monkey"
 --              || f "banana" == f "elephant"
 pattern Fn f <- Fun _ f
-#endif 
+#endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p,d) (abstract p d)

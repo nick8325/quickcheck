@@ -32,7 +32,7 @@ data Heap a
   = Node a (Heap a) (Heap a)
   | Nil
  deriving ( Eq, Ord, Show )
-  
+
 empty :: Heap a
 empty = Nil
 
@@ -60,7 +60,7 @@ Nil `merge` h2  = h2
 h1@(Node x h11 h12) `merge` h2@(Node y h21 h22)
   | x <= y    = Node x (h12 `merge` h2) h11
   | otherwise = Node y (h22 `merge` h1) h21
-        
+
 fromList :: Ord a => [a] -> Heap a
 fromList xs = merging [ unit x | x <- xs ] []
  where

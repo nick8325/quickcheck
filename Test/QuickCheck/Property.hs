@@ -168,23 +168,23 @@ instance Monad Rose where
   -- k must be total
   m >>= k  = joinRose (fmap k m)
 
--- Execute the "IORose" bits of a rose tree, returning a tree
+-- | Execute the "IORose" bits of a rose tree, returning a tree
 -- constructed by MkRose.
 reduceRose :: Rose Result -> IO (Rose Result)
 reduceRose r@(MkRose _ _) = return r
 reduceRose (IORose m) = m >>= reduceRose
 
--- Apply a function to the outermost MkRose constructor of a rose tree.
+-- | Apply a function to the outermost MkRose constructor of a rose tree.
 -- The function must be total!
 onRose :: (a -> [Rose a] -> Rose a) -> Rose a -> Rose a
 onRose f (MkRose x rs) = f x rs
 onRose f (IORose m) = IORose (fmap (onRose f) m)
 
--- Wrap a rose tree in an exception handler.
+-- | Wrap a rose tree in an exception handler.
 protectRose :: IO (Rose Result) -> IO (Rose Result)
 protectRose = protect (return . exception "Exception")
 
--- Wrap all the Results in a rose tree in exception handlers.
+-- | Wrap all the Results in a rose tree in exception handlers.
 protectResults :: Rose Result -> Rose Result
 protectResults = onRose $ \x rs ->
   IORose $ do
