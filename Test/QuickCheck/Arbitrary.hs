@@ -27,6 +27,7 @@ module Test.QuickCheck.Arbitrary
   , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
   , subterms           -- :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
   , recursivelyShrink  -- :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
+  , genericCoarbitrary -- :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
 #endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
@@ -736,7 +737,16 @@ shrinkRealFrac x =
 --------------------------------------------------------------------------
 -- ** CoArbitrary
 
+#ifndef NO_GENERICS
 -- | Used for random generation of functions.
+--
+-- As in 'Arbitrary', a default definition is provided using "GHC.Generics".
+-- Use it with:
+--
+-- >instance CoArbitrary Mydatatype
+#else
+-- | Used for random generation of functions.
+#endif
 class CoArbitrary a where
   -- | Used to generate a function of type @a -> b@.
   -- The first argument is a value, the second a generator.
@@ -751,6 +761,38 @@ class CoArbitrary a where
   -- @
 
   coarbitrary :: a -> Gen b -> Gen b
+#ifndef NO_GENERICS
+  default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
+  coarbitrary = genericCoarbitrary
+#endif
+
+
+-- | Generic CoArbitrary implementation.
+genericCoarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
+genericCoarbitrary = gCoarbitrary . from
+
+
+class GCoArbitrary f where
+  gCoarbitrary :: f a -> Gen b -> Gen b
+
+instance GCoArbitrary U1 where
+  gCoarbitrary U1 = id
+
+instance (GCoArbitrary f, GCoArbitrary g) => GCoArbitrary (f :*: g) where
+  -- Like the instance for tuples.
+  gCoarbitrary (l :*: r) = gCoarbitrary l . gCoarbitrary r
+
+instance (GCoArbitrary f, GCoArbitrary g) => GCoArbitrary (f :+: g) where
+  -- Like the instance for Either.
+  gCoarbitrary (L1 x) = variant 0 . gCoarbitrary x
+  gCoarbitrary (R1 x) = variant 1 . gCoarbitrary x
+
+instance GCoArbitrary f => GCoArbitrary (M1 i c f) where
+  gCoarbitrary (M1 x) = gCoarbitrary x
+
+instance CoArbitrary a => GCoArbitrary (K1 i a) where
+  gCoarbitrary (K1 x) = coarbitrary x
+
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
