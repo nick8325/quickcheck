@@ -157,7 +157,7 @@ Test-Suite test-quickcheck
     main-is: Heap.hs
     build-depends:
       base,
-      QuickCheck == 2.8.1
+      QuickCheck
     if flag(templateHaskell)
         Buildable: True
     else
