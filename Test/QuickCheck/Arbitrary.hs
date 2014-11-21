@@ -24,6 +24,8 @@ module Test.QuickCheck.Arbitrary
 #endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
+  , shrinkMapBy              -- :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
+  , shrinkMap                -- :: Arbitrary a -> (a -> b) -> (b -> a) -> b -> [b]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
   , shrinkRealFracToInteger  -- :: RealFrac a => a -> [a]
@@ -498,6 +500,23 @@ arbitrarySizedBoundedIntegral =
 -- | Returns no shrinking alternatives.
 shrinkNothing :: a -> [a]
 shrinkNothing _ = []
+
+-- | Map shrink function to other domain. This is handy if your data type
+-- has special invariants, but is *almost* isomorphic to some other type.
+--
+-- @
+-- shrinkOrderedList :: (Ord a, Arbitrary a) => [a] -> [[a]]
+-- shrinkOrderedList = shrinkMap sort id
+--
+-- shrinkSet :: (Ord a, Arbitrary a) => Set a -> Set [a]
+-- shrinkSet = shrinkMap fromList toList
+-- @
+shrinkMap :: Arbitrary a => (a -> b) -> (b -> a) -> b -> [b]
+shrinkMap f g = shrinkMapBy f g shrink
+
+-- | Non-overloaded `shrinkMap`
+shrinkMapBy :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
+shrinkMapBy f g shr = map f . shr . g
 
 -- | Shrink an integral number.
 shrinkIntegral :: Integral a => a -> [a]
