@@ -20,10 +20,16 @@ import Control.Monad
   ( liftM
   , ap
   , replicateM
+  , foldM
   )
 
 import Control.Applicative
   ( Applicative(..)
+  , (<$>)
+  )
+
+import Control.Arrow
+  ( second
   )
 
 import Test.QuickCheck.Random
@@ -135,6 +141,33 @@ frequency xs0 = choose (1, tot) >>= (`pick` xs0)
 elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
+
+-- | Generates a random subset of the given list. The order is preserved.
+subsetOf :: [a] -> Gen [a]
+subsetOf = foldM go [] . reverse
+    where
+      go acc i = do
+          b <- choose (False,True)
+          return (if b then i:acc else acc)
+
+-- | Generates a decision of selecting one value from the given list.
+--   The decision consists of the selected value and the rest of the list
+--   (the list order is preserved).
+--   The input list must be non-empty.
+selectOneFrom :: [a] -> Gen (a,[a])
+selectOneFrom [] = error "QuickCheck.selectOneFrom used with empty list"
+selectOneFrom xs = elements . selectOne $ xs
+  where
+    selectOne :: [a] -> [(a,[a])]
+    selectOne [] = []
+    selectOne (y:ys) = (y,ys) : map (second (y:)) (selectOne ys)
+
+-- | Generates a shuffled list of the given list.
+shuffled :: [a] -> Gen [a]
+shuffled [] = return []
+shuffled xs = do
+    (y,ys) <- selectOneFrom xs
+    (y:) <$> shuffled ys
 
 -- | Takes a list of elements of increasing size, and chooses
 -- among an initial segment of the list. The size of this initial
