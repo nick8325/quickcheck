@@ -134,6 +134,9 @@ library
     -- Plus some bits of the standard library are missing.
     cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
 
+  ghc-options:
+    -Wall
+
 Test-Suite test-quickcheck
     type: exitcode-stdio-1.0
     hs-source-dirs:
