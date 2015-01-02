@@ -732,6 +732,19 @@ class CoArbitrary a where
   --   coarbitrary []     = 'variant' 0
   --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
   -- @
+  --
+  -- In order to generate arbitrary /functions/ of type
+  -- `a1 -> ... -> an -> b`, we must be able to generate arbitrary
+  -- `b`s, and each `ai` given must perturb the `b` created by the
+  -- function. This is what `CoArbitrary` is for.
+  --
+  -- The extension to functions of multiple arguments is done via
+  -- the `instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b)`.
+  --
+  -- The actual generation of arbitrary functions is implemented
+  -- in the `instance (CoArbitrary a, Arbitrary b) => Arbitrary (a -> b)`.
+  --
+  -- For writing properties over functions, see "Test.QuickCheck.Function".
 
   coarbitrary :: a -> Gen b -> Gen b
 
