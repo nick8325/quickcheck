@@ -80,6 +80,7 @@ infoType (VarI _ ty _ _) = ty
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
   let plain (PlainTV _) = True
+      plain (KindedTV _ StarT) = True
       plain _ = False
   unless (all plain xs) $ err "Higher-kinded type variables in type"
   return (map (\(PlainTV x) -> x) xs, ctx, ty)
