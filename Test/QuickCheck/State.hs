@@ -21,18 +21,18 @@ data State
                                                    --   #tests and #discarded tests
 
                                                    -- dynamic
-  , numSuccessTests           :: Int               -- ^ the current number of tests that have succeeded
-  , numDiscardedTests         :: Int               -- ^ the current number of discarded tests
-  , numRecentlyDiscardedTests :: Int               -- ^ the number of discarded tests since the last successful test
-  , labels                    :: Map String Int    -- ^ all labels that have been defined so far
-  , collected                 :: [[String]]        -- ^ all labels that have been collected so far
-  , expectedFailure           :: Bool              -- ^ indicates if the property is expected to fail
-  , randomSeed                :: QCGen             -- ^ the current random seed
+  , numSuccessTests           :: !Int              -- ^ the current number of tests that have succeeded
+  , numDiscardedTests         :: !Int              -- ^ the current number of discarded tests
+  , numRecentlyDiscardedTests :: !Int              -- ^ the number of discarded tests since the last successful test
+  , labels                    :: !(Map String Int) -- ^ all labels that have been defined so far
+  , collected                 :: ![[String]]       -- ^ all labels that have been collected so far
+  , expectedFailure           :: !Bool             -- ^ indicates if the property is expected to fail
+  , randomSeed                :: !QCGen            -- ^ the current random seed
 
                                                    -- shrinking
-  , numSuccessShrinks         :: Int               -- ^ number of successful shrinking steps so far
-  , numTryShrinks             :: Int               -- ^ number of failed shrinking steps since the last successful shrink
-  , numTotTryShrinks          :: Int               -- ^ total number of failed shrinking steps
+  , numSuccessShrinks         :: !Int              -- ^ number of successful shrinking steps so far
+  , numTryShrinks             :: !Int              -- ^ number of failed shrinking steps since the last successful shrink
+  , numTotTryShrinks          :: !Int              -- ^ total number of failed shrinking steps
   }
 
 --------------------------------------------------------------------------
