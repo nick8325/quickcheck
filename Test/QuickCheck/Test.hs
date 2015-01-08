@@ -9,13 +9,15 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels ) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State
+import Test.QuickCheck.State hiding (labels)
+import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
 import System.Random(split)
+import qualified Data.Map.Strict as Map
 
 import Data.Char
   ( isSpace
@@ -121,6 +123,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numSuccessTests           = 0
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
+                 , S.labels                  = Map.empty
                  , collected                 = []
                  , expectedFailure           = False
                  , randomSeed                = rnd
@@ -241,6 +244,7 @@ runATest st f =
               st{ numSuccessTests           = numSuccessTests st + 1
                 , numRecentlyDiscardedTests = 0
                 , randomSeed                = rnd2
+                , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
                 , collected                 = stamp `cons` collected st
                 , expectedFailure           = expect
                 } f
@@ -250,6 +254,7 @@ runATest st f =
               st{ numDiscardedTests         = numDiscardedTests st + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
                 , randomSeed                = rnd2
+                , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
                 , expectedFailure           = expect
                 } f
 
@@ -284,10 +289,9 @@ summary st = reverse
            . map (\ss -> (head ss, (length ss * 100) `div` numSuccessTests st))
            . group
            . sort
-           $ [ concat (intersperse ", " s')
+           $ [ concat (intersperse ", " s)
              | s <- collected st
-             , let s' = [ t | (t,_) <- s ]
-             , not (null s')
+             , not (null s)
              ]
 
 success :: State -> IO ()
@@ -309,28 +313,18 @@ success st =
             . sort
             $ [ concat (intersperse ", " s')
               | s <- collected st
-              , let s' = [ t | (t,0) <- s ]
+              , let s' = [ t | t <- s, Map.lookup t (S.labels st) == Just 0 ]
               , not (null s')
               ]
 
-  covers = [ ("only " ++ show occurP ++ "% " ++ fst (head lps) ++ "; not " ++ show reqP ++ "%")
-           | lps <- groupBy first
-                  . sort
-                  $ [ lp
-                    | lps <- collected st
-                    , lp <- maxi lps
-                    , snd lp > 0
-                    ]
-           , let occurP = (100 * length lps) `div` maxSuccessTests st
-                 reqP   = maximum (map snd lps)
+  covers = [ ("only " ++ show occurP ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
+           | (l, reqP) <- Map.toList (S.labels st)
+             -- XXX in case of a disjunction, a label can occur several times,
+             -- need to think what to do there
+           , let occur = length [ l' | l' <- concat (collected st), l == l' ]
+                 occurP = (100 * occur) `div` maxSuccessTests st
            , occurP < reqP
            ]
-
-  (x,_) `first` (y,_) = x == y
-
-  maxi = map (\lps -> (fst (head lps), maximum (map snd lps)))
-       . groupBy first
-       . sort
 
   showP p = (if p < 10 then " " else "") ++ show p ++ "% "
 

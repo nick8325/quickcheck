@@ -48,7 +48,9 @@ flag templateHaskell
 library
   -- Choose which library versions to use.
   if flag(base4)
-    Build-depends: base >= 4 && < 5, random
+    Build-depends: base >= 4 && < 5
+                 , containers
+                 , random
   else
     if flag(base3)
       Build-depends: base >= 3 && < 4, random
@@ -141,6 +143,7 @@ Test-Suite test-quickcheck
     main-is: Heap.hs
     build-depends:
       base,
+      containers,
       QuickCheck == 2.7.6,
       template-haskell >= 2.4,
       test-framework >= 0.4 && < 0.9

@@ -3,6 +3,8 @@ module Test.QuickCheck.State where
 
 import Test.QuickCheck.Text
 import Test.QuickCheck.Random
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict(Map)
 
 --------------------------------------------------------------------------
 -- State
@@ -16,13 +18,14 @@ data State
   , maxSuccessTests           :: Int               -- ^ maximum number of successful tests needed
   , maxDiscardedTests         :: Int               -- ^ maximum number of tests that can be discarded
   , computeSize               :: Int -> Int -> Int -- ^ how to compute the size of test cases from
-                                                   -- #tests and #discarded tests
+                                                   --   #tests and #discarded tests
 
                                                    -- dynamic
   , numSuccessTests           :: Int               -- ^ the current number of tests that have succeeded
   , numDiscardedTests         :: Int               -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: Int               -- ^ the number of discarded tests since the last successful test
-  , collected                 :: [[(String,Int)]]  -- ^ all labels that have been collected so far
+  , labels                    :: Map String Int    -- ^ all labels that have been defined so far
+  , collected                 :: [[String]]        -- ^ all labels that have been collected so far
   , expectedFailure           :: Bool              -- ^ indicates if the property is expected to fail
   , randomSeed                :: QCGen             -- ^ the current random seed
 

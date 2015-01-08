@@ -13,7 +13,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( showErr, isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State
+import Test.QuickCheck.State hiding (labels)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -21,6 +21,8 @@ import System.Timeout(timeout)
 import Data.Maybe
 import Control.Applicative
 import Control.Monad
+import qualified Data.Map.Strict as Map
+import Data.Map.Strict(Map)
 
 --------------------------------------------------------------------------
 -- fixities
@@ -208,7 +210,8 @@ data Result
   , reason       :: String            -- ^ a message indicating what went wrong
   , theException :: Maybe AnException -- ^ the exception thrown, if any
   , abort        :: Bool              -- ^ if True, the test should not be repeated
-  , stamp        :: [(String,Int)]    -- ^ the collected values for this test case
+  , labels       :: Map String Int    -- ^ all labels used by this property
+  , stamp        :: [String]          -- ^ the collected values for this test case
   , callbacks    :: [Callback]        -- ^ the callbacks for this test case
   }
 
@@ -220,6 +223,7 @@ result =
   , reason       = ""
   , theException = Nothing
   , abort        = False
+  , labels       = Map.empty
   , stamp        = []
   , callbacks    = []
   }
@@ -371,10 +375,14 @@ cover :: Testable prop =>
       -> Int    -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover True n s = n `seq` s `listSeq` (mapTotalResult $ \res -> res { stamp = (s,n) : stamp res })
+cover x n s =
+  x `seq` n `seq` s `listSeq`
+  mapTotalResult $
+    \res -> res {
+      labels = Map.insertWith max s n (labels res),
+      stamp = if x then s:stamp res else stamp res }
   where [] `listSeq` z = z
         (x:xs) `listSeq` z = x `seq` xs `listSeq` z
-cover False _ _ = property
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),
@@ -500,6 +508,7 @@ disjoin ps =
     result2
     { reason       = if null (reason result2) then reason result1 else reason result2
     , theException = if null (reason result2) then theException result1 else theException result2
+    , labels       = Map.unionWith max (labels result1) (labels result2)
     , stamp        = stamp result1 ++ stamp result2
     , callbacks    = callbacks result1 ++
                     [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
