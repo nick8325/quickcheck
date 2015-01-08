@@ -26,6 +26,8 @@ Description:
   QuickCheck provides combinators to define properties, observe
   the distribution of test data, and define test
   data generators.
+  .
+  For a short tutorial for this package, see <https://ocharles.org.uk/blog/posts/2012-12-08-24-days-of-hackage.html>.
 
 source-repository head
   type:     git
