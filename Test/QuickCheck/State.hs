@@ -20,7 +20,7 @@ data State
   , computeSize               :: Int -> Int -> Int -- ^ how to compute the size of test cases from
                                                    --   #tests and #discarded tests
 
-                                                   -- dynamic
+  -- dynamic
   , numSuccessTests           :: !Int              -- ^ the current number of tests that have succeeded
   , numDiscardedTests         :: !Int              -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: !Int              -- ^ the number of discarded tests since the last successful test
