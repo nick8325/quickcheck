@@ -73,6 +73,10 @@ import Data.Fixed
   )
 #endif
 
+#ifndef NO_NATURALS
+import Numeric.Natural
+#endif
+
 import Data.Ratio
   ( Ratio
   , (%)
@@ -363,6 +367,12 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
+#ifndef NO_NATURALS
+instance Arbitrary Natural where
+  arbitrary = arbitrarySizedNatural
+  shrink    = shrinkIntegral
+#endif
+
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
@@ -437,6 +447,13 @@ arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
   inBounds fromInteger (choose (-toInteger n, toInteger n))
+
+-- | Generates a natural number. The number's maximum value depends on
+-- the size parameter.
+arbitrarySizedNatural :: Integral a => Gen a
+arbitrarySizedNatural =
+  sized $ \n ->
+  inBounds fromInteger (choose (0, toInteger n))
 
 inBounds :: Integral a => (Integer -> a) -> Gen Integer -> Gen a
 inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger (fi x) == x))
@@ -636,6 +653,11 @@ instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrar
 
 instance CoArbitrary Integer where
   coarbitrary = coarbitraryIntegral
+
+#ifndef NO_NATURALS
+instance CoArbitrary Natural where
+  coarbitrary = coarbitraryIntegral
+#endif
 
 instance CoArbitrary Int where
   coarbitrary = coarbitraryIntegral
