@@ -70,7 +70,12 @@ sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
 resize :: Int -> Gen a -> Gen a
-resize n (MkGen m) = MkGen (\r _ -> m r n)
+resize n = scaled (const n)
+
+-- | Scale the size parameter. Returns a generator which runtime-size
+-- parameter is scaled with `f`.
+scaled :: (Int -> Int) -> Gen a -> Gen a
+scaled f (MkGen m) = MkGen (\r n -> m r (f n))
 
 -- | Generates a random element in the given inclusive range.
 choose :: Random a => (a,a) -> Gen a
