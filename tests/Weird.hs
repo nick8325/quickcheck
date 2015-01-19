@@ -9,7 +9,7 @@ import Test.QuickCheck.Property
 import Test.QuickCheck.Function
 import Test.QuickCheck.All
 
-prop = callback (PostTest Counterexample (\_ _ -> putStrLn "\n\n\napa\n\n\n")) f
+prop = callback (PostTest (\_ _ -> putStrLn "\n\n\napa\n\n\n")) f
   where f :: Int -> Bool
         f _ = undefined
 
