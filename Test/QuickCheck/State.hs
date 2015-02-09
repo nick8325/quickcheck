@@ -5,6 +5,7 @@ import Test.QuickCheck.Text
 import Test.QuickCheck.Random
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
+import Data.Set(Set)
 
 --------------------------------------------------------------------------
 -- State
@@ -25,7 +26,7 @@ data State
   , numDiscardedTests         :: !Int              -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: !Int              -- ^ the number of discarded tests since the last successful test
   , labels                    :: !(Map String Int) -- ^ all labels that have been defined so far
-  , collected                 :: ![[String]]       -- ^ all labels that have been collected so far
+  , collected                 :: ![Set String]     -- ^ all labels that have been collected so far
   , expectedFailure           :: !Bool             -- ^ indicates if the property is expected to fail
   , randomSeed                :: !QCGen            -- ^ the current random seed
 

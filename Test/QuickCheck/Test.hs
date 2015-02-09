@@ -18,6 +18,7 @@ import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
 import System.Random(split)
 import qualified Data.Map.Strict as Map
+import qualified Data.Set as Set
 
 import Data.Char
   ( isSpace
@@ -244,8 +245,9 @@ runATest st f =
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
-         cons [] xs = xs
-         cons x  xs = x:xs
+         cons x xs
+           | Set.null x = xs
+           | otherwise = x:xs
 
      case res of
        MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
@@ -298,9 +300,9 @@ summary st = reverse
            . map (\ss -> (head ss, (length ss * 100) `div` numSuccessTests st))
            . group
            . sort
-           $ [ concat (intersperse ", " s)
+           $ [ concat (intersperse ", " (Set.toList s))
              | s <- collected st
-             , not (null s)
+             , not (Set.null s)
              ]
 
 success :: State -> IO ()
@@ -322,7 +324,7 @@ success st =
             . sort
             $ [ concat (intersperse ", " s')
               | s <- collected st
-              , let s' = [ t | t <- s, Map.lookup t (S.labels st) == Just 0 ]
+              , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
               , not (null s')
               ]
 
@@ -339,7 +341,7 @@ labelPercentage l st =
   -- need to think what to do there
   (100 * occur) `div` maxSuccessTests st
   where
-    occur = length [ l' | l' <- concat (collected st), l == l' ]
+    occur = length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
 
 insufficientCoverage :: State -> Bool
 insufficientCoverage st =

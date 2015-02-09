@@ -23,6 +23,8 @@ import Control.Applicative
 import Control.Monad
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict(Map)
+import qualified Data.Set as Set
+import Data.Set(Set)
 
 --------------------------------------------------------------------------
 -- fixities
@@ -211,7 +213,7 @@ data Result
   , theException :: Maybe AnException -- ^ the exception thrown, if any
   , abort        :: Bool              -- ^ if True, the test should not be repeated
   , labels       :: Map String Int    -- ^ all labels used by this property
-  , stamp        :: [String]          -- ^ the collected values for this test case
+  , stamp        :: Set String        -- ^ the collected values for this test case
   , callbacks    :: [Callback]        -- ^ the callbacks for this test case
   }
 
@@ -224,7 +226,7 @@ result =
   , theException = Nothing
   , abort        = False
   , labels       = Map.empty
-  , stamp        = []
+  , stamp        = Set.empty
   , callbacks    = []
   }
 
@@ -380,7 +382,7 @@ cover x n s =
   mapTotalResult $
     \res -> res {
       labels = Map.insertWith max s n (labels res),
-      stamp = if x then s:stamp res else stamp res }
+      stamp = if x then Set.insert s (stamp res) else stamp res }
   where [] `listSeq` z = z
         (x:xs) `listSeq` z = x `seq` xs `listSeq` z
 
@@ -448,26 +450,32 @@ conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
-     return (MkProp (conj [] roses))
+     return (MkProp (conj id roses))
  where
-  conj cbs [] =
-    MkRose succeeded{callbacks = cbs} []
+  conj k [] =
+    MkRose (k succeeded) []
 
-  conj cbs (p : ps) = IORose $ do
+  conj k (p : ps) = IORose $ do
     rose@(MkRose result _) <- reduceRose p
     case ok result of
       _ | not (expect result) ->
         return (return failed { reason = "expectFailure may not occur inside a conjunction" })
-      Just True -> return (conj (cbs ++ callbacks result) ps)
+      Just True -> return (conj (addLabels result (addCallbacks result k)) ps)
       Just False -> return rose
       Nothing -> do
-        rose2@(MkRose result2 _) <- reduceRose (conj (cbs ++ callbacks result) ps)
+        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacks result k) ps)
         return $
           -- Nasty work to make sure we use the right callbacks
           case ok result2 of
             Just True -> MkRose (result2 { ok = Nothing }) []
             Just False -> rose2
             Nothing -> rose2
+
+  addCallbacks result k r =
+    r { callbacks = callbacks result ++ callbacks r }
+  addLabels result k r =
+    r { labels = Map.unionWith max (labels result) (labels r),
+        stamp = Set.union (stamp result) (stamp r) }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -489,12 +497,25 @@ disjoin ps =
          Just False -> do
            result2 <- q
            return $
-             if expect result2 then
-               case ok result2 of
-                 Just True -> result2
-                 Just False -> result1 >>> result2
-                 Nothing -> result2
-             else expectFailureError
+             case ok result2 of
+               _ | not (expect result2) -> expectFailureError
+               Just True -> result2
+               Just False ->
+                 MkResult {
+                   ok = Just False,
+                   expect = True,
+                   reason = sep (reason result1) (reason result2),
+                   theException = theException result1 `mplus` theException result2,
+                   -- The following three fields are not important because the
+                   -- test case has failed anyway
+                   abort = False,
+                   labels = Map.empty,
+                   stamp = Set.empty,
+                   callbacks =
+                     callbacks result1 ++
+                     [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
+                     callbacks result2 }
+               Nothing -> result2
          Nothing -> do
            result2 <- q
            return (case ok result2 of
@@ -503,17 +524,9 @@ disjoin ps =
                      _ -> result1)
 
   expectFailureError = failed { reason = "expectFailure may not occur inside a disjunction" }
-  result1 >>> result2 | not (expect result1 && expect result2) = expectFailureError
-  result1 >>> result2 =
-    result2
-    { reason       = if null (reason result2) then reason result1 else reason result2
-    , theException = if null (reason result2) then theException result1 else theException result2
-    , labels       = Map.unionWith max (labels result1) (labels result2)
-    , stamp        = stamp result1 ++ stamp result2
-    , callbacks    = callbacks result1 ++
-                    [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
-                    callbacks result2
-    }
+  sep [] s = s
+  sep s [] = s
+  sep s s' = s ++ ", " ++ s'
 
 -- | Like '==', but prints a counterexample when it fails.
 infix 4 ===
