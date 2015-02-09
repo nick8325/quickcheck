@@ -370,8 +370,9 @@ classify :: Testable prop =>
          -> prop -> Property
 classify b s = cover b 0 s
 
--- | Checks that at least the given proportion of the test cases belong
--- to the given class.
+-- | Checks that at least the given proportion of test cases belong
+-- to the given class. Tests with a false precondition are ignored
+-- for the purposes of coverage.
 cover :: Testable prop =>
          Bool   -- ^ @True@ if the test case belongs to the class.
       -> Int    -- ^ The required percentage (0-100) of test cases.
