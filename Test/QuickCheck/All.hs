@@ -80,10 +80,14 @@ infoType (VarI _ ty _ _) = ty
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
   let plain (PlainTV  _)       = True
+#ifndef MIN_VERSION_template_haskell
+      plain (KindedTV _ StarT) = True
+#else
 #if MIN_VERSION_template_haskell(2,8,0)
       plain (KindedTV _ StarT) = True
 #else
       plain (KindedTV _ StarK) = True
+#endif
 #endif
       plain _                  = False
   unless (all plain xs) $ err "Higher-kinded type variables in type"
