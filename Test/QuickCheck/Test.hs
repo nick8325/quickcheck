@@ -78,6 +78,12 @@ data Result
     , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
     , output         :: String            --   Printed output
     }
+ -- | The tests passed but a use of 'cover' had insufficient coverage
+ | InsufficientCoverage
+    { numTests       :: Int               --   Number of tests performed
+    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , output         :: String            --   Printed output
+    }
  deriving ( Show )
 
 -- | Check if the test run result was a success
@@ -176,31 +182,34 @@ test st f
   | otherwise                                    = runATest st f
 
 doneTesting :: State -> (QCGen -> Int -> Prop) -> IO Result
-doneTesting st _f =
-  do -- CALLBACK done_testing?
-     if expectedFailure st then
-       putPart (terminal st)
-         ( "+++ OK, passed "
-        ++ show (numSuccessTests st)
-        ++ " tests"
-         )
-      else
-       putPart (terminal st)
-         ( bold ("*** Failed!")
-        ++ " Passed "
-        ++ show (numSuccessTests st)
-        ++ " tests (expected failure)"
-         )
-     success st
-     theOutput <- terminalOutput (terminal st)
-     if expectedFailure st then
-       return Success{ labels = summary st,
-                       numTests = numSuccessTests st,
-                       output = theOutput }
-      else
-       return NoExpectedFailure{ labels = summary st,
-                                 numTests = numSuccessTests st,
-                                 output = theOutput }
+doneTesting st _f
+  | not (expectedFailure st) = do
+      putPart (terminal st)
+        ( bold ("*** Failed!")
+       ++ " Passed "
+       ++ show (numSuccessTests st)
+       ++ " tests (expected failure)"
+        )
+      finished NoExpectedFailure
+  | insufficientCoverage st = do
+      putPart (terminal st)
+        ( bold ("*** Insufficient coverage after ")
+       ++ show (numSuccessTests st)
+       ++ " tests"
+        )
+      finished InsufficientCoverage
+  | otherwise = do
+      putPart (terminal st)
+        ( "+++ OK, passed "
+       ++ show (numSuccessTests st)
+       ++ " tests"
+        )
+      finished Success
+  where
+    finished k = do
+      success st
+      theOutput <- terminalOutput (terminal st)
+      return (k (numSuccessTests st) (summary st) theOutput)
 
 giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
 giveUp st _f =
@@ -317,16 +326,24 @@ success st =
               , not (null s')
               ]
 
-  covers = [ ("only " ++ show occurP ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
+  covers = [ ("only " ++ show (labelPercentage l st) ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
            | (l, reqP) <- Map.toList (S.labels st)
-             -- XXX in case of a disjunction, a label can occur several times,
-             -- need to think what to do there
-           , let occur = length [ l' | l' <- concat (collected st), l == l' ]
-                 occurP = (100 * occur) `div` maxSuccessTests st
-           , occurP < reqP
+           , labelPercentage l st < reqP
            ]
 
   showP p = (if p < 10 then " " else "") ++ show p ++ "% "
+
+labelPercentage :: String -> State -> Int
+labelPercentage l st =
+  -- XXX in case of a disjunction, a label can occur several times,
+  -- need to think what to do there
+  (100 * occur) `div` maxSuccessTests st
+  where
+    occur = length [ l' | l' <- concat (collected st), l == l' ]
+
+insufficientCoverage :: State -> Bool
+insufficientCoverage st =
+  or [ labelPercentage l st < reqP | (l, reqP) <- Map.toList (S.labels st) ]
 
 --------------------------------------------------------------------------
 -- main shrinking loop
