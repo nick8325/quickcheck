@@ -241,7 +241,7 @@ runATest st f =
         )
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
-     callbackPostTest st res
+     res <- callbackPostTest st res
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
@@ -384,7 +384,7 @@ localMin' st res [] = localMinFound st res
 localMin' st res (t:ts) =
   do -- CALLBACK before_test
     MkRose res' ts' <- protectRose (reduceRose t)
-    callbackPostTest st res'
+    res' <- callbackPostTest st res'
     if ok res' == Just False
       then localMin st{ numSuccessShrinks = numSuccessShrinks st + 1,
                         numTryShrinks     = 0 } res' res ts'
@@ -409,28 +409,27 @@ localMinFound st res =
            | msg <- lines (P.reason res)
            ]
      callbackPostFinalFailure st res
+     -- NB no need to check if callbacks threw an exception because
+     -- we are about to return to the user anyway
      return (numSuccessShrinks st, numTotTryShrinks st - numTryShrinks st, numTryShrinks st)
 
 --------------------------------------------------------------------------
 -- callbacks
 
-callbackPostTest :: State -> P.Result -> IO ()
-callbackPostTest st res =
-  sequence_ [ safely st (f st res) | PostTest _ f <- callbacks res ]
+callbackPostTest :: State -> P.Result -> IO P.Result
+callbackPostTest st res = protect (exception "Exception running callback") $ do
+  sequence_ [ f st res | PostTest _ f <- callbacks res ]
+  return res
 
 callbackPostFinalFailure :: State -> P.Result -> IO ()
-callbackPostFinalFailure st res =
-  sequence_ [ safely st (f st res) | PostFinalFailure _ f <- callbacks res ]
-
-safely :: State -> IO () -> IO ()
-safely st x = do
-  r <- tryEvaluateIO x
-  case r of
-    Left e ->
-      putLine (terminal st)
-        ("*** Exception in callback: " ++ show e)
-    Right x ->
-      return x
+callbackPostFinalFailure st res = do
+  x <- tryEvaluateIO $ sequence_ [ f st res | PostFinalFailure _ f <- callbacks res ]
+  case x of
+    Left err -> do
+      putLine (terminal st) "*** Exception running callback: "
+      tryEvaluateIO $ putLine (terminal st) (show err)
+      return ()
+    Right () -> return ()
 
 --------------------------------------------------------------------------
 -- the end.
