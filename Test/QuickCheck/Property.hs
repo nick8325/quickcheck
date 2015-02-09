@@ -460,10 +460,10 @@ conjoin ps =
     case ok result of
       _ | not (expect result) ->
         return (return failed { reason = "expectFailure may not occur inside a conjunction" })
-      Just True -> return (conj (addLabels result (addCallbacks result k)) ps)
+      Just True -> return (conj (addLabels result . addCallbacks result . k) ps)
       Just False -> return rose
       Nothing -> do
-        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacks result k) ps)
+        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacks result . k) ps)
         return $
           -- Nasty work to make sure we use the right callbacks
           case ok result2 of
@@ -471,9 +471,9 @@ conjoin ps =
             Just False -> rose2
             Nothing -> rose2
 
-  addCallbacks result k r =
+  addCallbacks result r =
     r { callbacks = callbacks result ++ callbacks r }
-  addLabels result k r =
+  addLabels result r =
     r { labels = Map.unionWith max (labels result) (labels r),
         stamp = Set.union (stamp result) (stamp r) }
 
