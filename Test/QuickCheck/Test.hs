@@ -358,26 +358,31 @@ localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, In
 localMin st MkResult{P.theException = Just e} lastRes _
   | isInterrupt e = localMinFound st lastRes
 localMin st res _ ts = do
-  putTemp (terminal st)
-    ( short 26 (oneLine (P.reason res))
-   ++ " (after " ++ number (numSuccessTests st+1) "test"
-   ++ concat [ " and "
-            ++ show (numSuccessShrinks st)
-            ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
-            ++ " shrink"
-            ++ (if numSuccessShrinks st == 1
-                && numTryShrinks st == 0
-                then "" else "s")
-             | numSuccessShrinks st > 0 || numTryShrinks st > 0
-             ]
-   ++ ")..."
-    )
-  r <- tryEvaluate ts
+  r <- tryEvaluateIO $
+    putTemp (terminal st)
+      ( short 26 (oneLine (P.reason res))
+     ++ " (after " ++ number (numSuccessTests st+1) "test"
+     ++ concat [ " and "
+              ++ show (numSuccessShrinks st)
+              ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
+              ++ " shrink"
+              ++ (if numSuccessShrinks st == 1
+                  && numTryShrinks st == 0
+                  then "" else "s")
+               | numSuccessShrinks st > 0 || numTryShrinks st > 0
+               ]
+     ++ ")..."
+      )
   case r of
     Left err ->
-      localMinFound st
-         (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
-    Right ts' -> localMin' st res ts'
+      localMinFound st (exception "Exception while printing status message" err) { callbacks = callbacks res }
+    Right () -> do
+      r <- tryEvaluate ts
+      case r of
+        Left err ->
+          localMinFound st
+            (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
+        Right ts' -> localMin' st res ts'
 
 localMin' :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
 localMin' st res [] = localMinFound st res
