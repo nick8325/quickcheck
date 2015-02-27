@@ -45,6 +45,8 @@ import Data.Char
 import Data.Word
 import Data.List( intersperse )
 import Data.Maybe( fromJust )
+import Data.Ratio
+import Control.Arrow( (&&&) )
 
 --------------------------------------------------------------------------
 -- concrete functions
@@ -193,6 +195,9 @@ instance Function Char where
    where
     ord' c = fromIntegral (ord c) :: Word8
     chr' n = chr (fromIntegral n)
+
+instance (Function a, Integral a) => Function (Ratio a) where
+  function = functionMap (numerator &&& denominator) (uncurry (%))
 
 -- poly instances
 
