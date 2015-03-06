@@ -73,10 +73,10 @@ resize :: Int -> Gen a -> Gen a
 resize n _ | n < 0 = error "Test.QuickCheck.resize: negative size"
 resize n (MkGen g) = MkGen (\r _ -> g r n)
 
--- | Scale the size parameter. Returns a generator which runtime-size
--- parameter is scaled with `f`.
-scaled :: (Int -> Int) -> Gen a -> Gen a
-scaled f g = sized (\n -> resize (f n) g)
+-- | Adjust the size parameter, by transforming it with the given
+-- function.
+scale :: (Int -> Int) -> Gen a -> Gen a
+scale f g = sized (\n -> resize (f n) g)
 
 -- | Generates a random element in the given inclusive range.
 choose :: Random a => (a,a) -> Gen a

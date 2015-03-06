@@ -105,6 +105,7 @@ module Test.QuickCheck
   , growingElements
   , sized
   , resize
+  , scale
   , suchThat
   , suchThatMaybe
   , listOf
