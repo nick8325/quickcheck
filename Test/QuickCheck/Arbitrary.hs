@@ -2,6 +2,11 @@
 {-# LANGUAGE CPP #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
+{-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE MultiParamTypeClasses, OverlappingInstances #-}
+#endif
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
 #endif
 module Test.QuickCheck.Arbitrary
   (
@@ -18,9 +23,11 @@ module Test.QuickCheck.Arbitrary
   , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
-  , genericShrink      -- :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
-  , subterms           -- :: (Generic a, Subterms (Rep a)) => a -> [a]
+  , genericArbitrary   -- :: (Generic a, GArbitrary (Rep a)) => Gen a
+  , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
+  , subterms           -- :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
   , recursivelyShrink  -- :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
+  , genericCoarbitrary -- :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
 #endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
@@ -44,6 +51,7 @@ module Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
+import Control.Applicative
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Gen.Unsafe
@@ -105,17 +113,40 @@ import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 #ifndef NO_GENERICS
 import GHC.Generics
-import Data.Typeable
 #endif
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
+#ifndef NO_GENERICS
 -- | Random generation and shrinking of values.
+--
+-- A default `arbitrary` definition is provided using "GHC.Generics".
+-- If your data type is an instance of `Generic`, you can simply write:
+--
+-- >instance Arbitrary Mydatatype
+--
+-- Polymorphic example:
+--
+-- >data Tree a = Leaf a | Branch (Tree a) (Tree a)
+-- >    deriving (Generic)
+-- >
+-- >instance Arbitrary a => Arbitrary (Tree a)
+--
+-- There is no default `shrink` since we want to keep the empty list default,
+-- but a `genericShrink` is provided.
+#else
+-- | Random generation and shrinking of values.
+#endif
 class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
+#ifndef NO_GENERICS
+  default arbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
+  arbitrary = genericArbitrary
+#else
   arbitrary = error "no default generator"
+#endif
 
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value. The default implementation
@@ -180,16 +211,117 @@ class Arbitrary a where
   -- infinite loop.
   --
   -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
-  -- after deriving @Generic@ and @Typeable@ for your type. However, if your data type has any
+  -- after deriving @Generic@ for your type. However, if your data type has any
   -- special invariants, you will need to check that 'genericShrink' can't break those invariants.
   shrink :: a -> [a]
   shrink _ = []
 
 #ifndef NO_GENERICS
+
+
+newtype Tagged2 (s :: * -> *) b = Tagged2 {unTagged2 :: b}
+
+
+-- | Calculates the size of a sum type (numbers of alternatives).
+--
+-- Example: `data X = A | B | C` has `sumSize` 3.
+class SumSize f where
+  sumSize :: Tagged2 f Int
+
+-- Recursive case: Sum split `(:+:)`..
+instance (SumSize a, SumSize b) => SumSize (a :+: b) where
+  sumSize = Tagged2 $ unTagged2 (sumSize :: Tagged2 a Int) +
+                          unTagged2 (sumSize :: Tagged2 b Int)
+  {-# INLINE sumSize #-}
+
+-- Constructor base case.
+instance SumSize (C1 s a) where
+  sumSize = Tagged2 1
+  {-# INLINE sumSize #-}
+
+
+-- | This class takes an integer `x` and returns a `gArbitrary` value
+-- for the `x`'th alternative in a sum type.
+class ChooseSum f where
+  chooseSum :: Int -> Gen (f a)
+
+-- Recursive case: Check whether `x` lies in the left or the right side
+-- of the (:+:) split.
+instance ( GArbitrary a, GArbitrary b
+         , SumSize    a, SumSize    b
+         , ChooseSum  a, ChooseSum  b ) => ChooseSum (a :+: b) where
+  chooseSum x = do
+    let sizeL = unTagged2 (sumSize :: Tagged2 a Int)
+    if x <= sizeL
+      then L1 <$> chooseSum x
+      else R1 <$> chooseSum (x - sizeL)
+
+-- Constructor base case.
+instance (GArbitrary a) => ChooseSum (C1 s a) where
+  chooseSum 1 = gArbitrary
+  chooseSum _ = error "chooseSum: BUG"
+
+
+class GArbitrary f where
+  gArbitrary :: Gen (f a)
+
+instance GArbitrary V1 where
+  -- Following the `Encode' V1` example in GHC.Generics.
+  gArbitrary = undefined
+
+instance GArbitrary U1 where
+  gArbitrary = return U1
+
+instance (GArbitrary a, GArbitrary b) => GArbitrary (a :*: b) where
+  gArbitrary = (:*:) <$> gArbitrary <*> gArbitrary
+
+instance ( GArbitrary a, GArbitrary b
+         , SumSize    a, SumSize    b
+         , ChooseSum  a, ChooseSum  b ) => GArbitrary (a :+: b) where
+  gArbitrary = do
+    -- We cannot simply choose with equal probability between the left and
+    -- right part of the `a :+: b` (e.g. with `choose (False, True)`),
+    -- because GHC.Generics does not guarantee :+: to be balanced; even if it
+    -- did, it could only do so for sum types with 2^n alternatives.
+    -- If we did that and got a data structure of form `(a :+: (b :+: c))`,
+    -- then a would be chosen just as often as b and c together.
+    -- So we first have to compute the number of alternatives using `sumSize`,
+    -- and then uniformly sample a number in the corresponding range.
+    let size = unTagged2 (sumSize :: Tagged2 (a :+: b) Int)
+    x <- choose (1, size)
+    -- Optimisation:
+    -- We could just recursively call `gArbitrary` on the left orright branch
+    -- here, as in
+    --   if x <= sizeL
+    --     then L1 <$> gArbitrary
+    --     else R1 <$> gArbitrary
+    -- but this would unnecessarily sample again in the same sum type, and that
+    -- even though `x` completely determines which alternative to choose,
+    -- and sampling is slow because it needs IO and random numbers.
+    -- So instead we use `chooseSum x` to pick the x'th alternative from the
+    -- current sum type.
+    -- This made it around 50% faster for a sum type with 26 alternatives
+    -- on my computer.
+    chooseSum x
+
+instance GArbitrary a => GArbitrary (M1 i c a) where
+  gArbitrary = M1 <$> gArbitrary
+
+instance Arbitrary a => GArbitrary (K1 i a) where
+  gArbitrary = K1 <$> arbitrary
+
+
+-- | `Gen` for generic instances in which each constructor has equal probability
+-- of being chosen.
+genericArbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
+genericArbitrary = to <$> gArbitrary
+
+
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
-genericShrink :: (Generic a, Typeable a, RecursivelyShrink (Rep a), Subterms (Rep a)) => a -> [a]
+genericShrink :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
 genericShrink x = subterms x ++ recursivelyShrink x
+
 
 -- | Recursively shrink all immediate subterms.
 recursivelyShrink :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
@@ -216,32 +348,80 @@ instance Arbitrary a => RecursivelyShrink (K1 i a) where
 instance RecursivelyShrink U1 where
   grecursivelyShrink U1 = []
 
+instance RecursivelyShrink V1 where
+  -- The empty type can't be shrunk to anything.
+  grecursivelyShrink _ = []
+
+
 -- | All immediate subterms of a term.
-subterms :: (Generic a, Typeable a, Subterms (Rep a)) => a -> [a]
-subterms = gsubterms . from
+subterms :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
+subterms = gSubterms . from
 
-class Subterms f where
-  gsubterms :: Typeable b => f a -> [b]
 
-instance (Subterms f, Subterms g) => Subterms (f :*: g) where
-  gsubterms (x :*: y) =
-    gsubterms x ++ gsubterms y
+class GSubterms f a where
+  -- | Provides the immediate subterms of a term that are of the same type
+  -- as the term itself.
+  --
+  -- Requires a constructor to be stripped off; this means it skips through
+  -- @M1@ wrappers and returns @[]@ on everything that's not `(:*:)` or `(:+:)`.
+  --
+  -- Once a `(:*:)` or `(:+:)` constructor has been reached, this function
+  -- delegates to `gSubtermsIncl` to return the immediately next constructor
+  -- available.
+  gSubterms :: f a -> [a]
 
-instance (Subterms f, Subterms g) => Subterms (f :+: g) where
-  gsubterms (L1 x) = gsubterms x
-  gsubterms (R1 x) = gsubterms x
+instance GSubterms V1 a where
+  -- The empty type can't be shrunk to anything.
+  gSubterms _ = []
 
-instance Subterms f => Subterms (M1 i c f) where
-  gsubterms (M1 x) = gsubterms x
+instance GSubterms U1 a where
+  gSubterms U1 = []
 
-instance Typeable a => Subterms (K1 i a) where
-  gsubterms (K1 x) =
-    case cast x of
-      Nothing -> []
-      Just y -> [y]
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubterms (f :*: g) a where
+  gSubterms (l :*: r) = gSubtermsIncl l ++ gSubtermsIncl r
 
-instance Subterms U1 where
-  gsubterms U1 = []
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubterms (f :+: g) a where
+  gSubterms (L1 x) = gSubtermsIncl x
+  gSubterms (R1 x) = gSubtermsIncl x
+
+instance GSubterms f a => GSubterms (M1 i c f) a where
+  gSubterms (M1 x) = gSubterms x
+
+instance GSubterms (K1 i a) b where
+  gSubterms (K1 _) = []
+
+
+class GSubtermsIncl f a where
+  -- | Provides the immediate subterms of a term that are of the same type
+  -- as the term itself.
+  --
+  -- In contrast to `gSubterms`, this returns the immediate next constructor
+  -- available.
+  gSubtermsIncl :: f a -> [a]
+
+instance GSubtermsIncl V1 a where
+  -- The empty type can't be shrunk to anything.
+  gSubtermsIncl _ = []
+
+instance GSubtermsIncl U1 a where
+  gSubtermsIncl U1 = []
+
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubtermsIncl (f :*: g) a where
+  gSubtermsIncl (l :*: r) = gSubtermsIncl l ++ gSubtermsIncl r
+
+instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubtermsIncl (f :+: g) a where
+  gSubtermsIncl (L1 x) = gSubtermsIncl x
+  gSubtermsIncl (R1 x) = gSubtermsIncl x
+
+instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
+  gSubtermsIncl (M1 x) = gSubtermsIncl x
+
+-- This is the important case: We've found a term of the same type.
+instance Arbitrary a => GSubtermsIncl (K1 i a) a where
+  gSubtermsIncl (K1 x) = [x]
+
+instance GSubtermsIncl (K1 i a) b where
+  gSubtermsIncl (K1 _) = []
 
 #endif
 
@@ -557,7 +737,16 @@ shrinkRealFrac x =
 --------------------------------------------------------------------------
 -- ** CoArbitrary
 
+#ifndef NO_GENERICS
 -- | Used for random generation of functions.
+--
+-- As in 'Arbitrary', a default definition is provided using "GHC.Generics".
+-- Use it with:
+--
+-- >instance CoArbitrary Mydatatype
+#else
+-- | Used for random generation of functions.
+#endif
 class CoArbitrary a where
   -- | Used to generate a function of type @a -> b@.
   -- The first argument is a value, the second a generator.
@@ -570,8 +759,53 @@ class CoArbitrary a where
   --   coarbitrary []     = 'variant' 0
   --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
   -- @
+  --
+  -- In order to generate arbitrary /functions/ of type
+  -- `a1 -> ... -> an -> b`, we must be able to generate arbitrary
+  -- `b`s, and each `ai` given must perturb the `b` created by the
+  -- function. This is what `CoArbitrary` is for.
+  --
+  -- The extension to functions of multiple arguments is done via
+  -- the `instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b)`.
+  --
+  -- The actual generation of arbitrary functions is implemented
+  -- in the `instance (CoArbitrary a, Arbitrary b) => Arbitrary (a -> b)`.
+  --
+  -- For writing properties over functions, see "Test.QuickCheck.Function".
 
   coarbitrary :: a -> Gen b -> Gen b
+#ifndef NO_GENERICS
+  default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
+  coarbitrary = genericCoarbitrary
+#endif
+
+
+-- | Generic CoArbitrary implementation.
+genericCoarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
+genericCoarbitrary = gCoarbitrary . from
+
+
+class GCoArbitrary f where
+  gCoarbitrary :: f a -> Gen b -> Gen b
+
+instance GCoArbitrary U1 where
+  gCoarbitrary U1 = id
+
+instance (GCoArbitrary f, GCoArbitrary g) => GCoArbitrary (f :*: g) where
+  -- Like the instance for tuples.
+  gCoarbitrary (l :*: r) = gCoarbitrary l . gCoarbitrary r
+
+instance (GCoArbitrary f, GCoArbitrary g) => GCoArbitrary (f :+: g) where
+  -- Like the instance for Either.
+  gCoarbitrary (L1 x) = variant 0 . gCoarbitrary x
+  gCoarbitrary (R1 x) = variant 1 . gCoarbitrary x
+
+instance GCoArbitrary f => GCoArbitrary (M1 i c f) where
+  gCoarbitrary (M1 x) = gCoarbitrary x
+
+instance CoArbitrary a => GCoArbitrary (K1 i a) where
+  gCoarbitrary (K1 x) = coarbitrary x
+
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
