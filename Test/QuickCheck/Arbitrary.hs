@@ -118,35 +118,11 @@ import GHC.Generics
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
-#ifndef NO_GENERICS
 -- | Random generation and shrinking of values.
---
--- A default `arbitrary` definition is provided using "GHC.Generics".
--- If your data type is an instance of `Generic`, you can simply write:
---
--- >instance Arbitrary Mydatatype
---
--- Polymorphic example:
---
--- >data Tree a = Leaf a | Branch (Tree a) (Tree a)
--- >    deriving (Generic)
--- >
--- >instance Arbitrary a => Arbitrary (Tree a)
---
--- There is no default `shrink` since we want to keep the empty list default,
--- but a `genericShrink` is provided.
-#else
--- | Random generation and shrinking of values.
-#endif
 class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
-#ifndef NO_GENERICS
-  default arbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
-  arbitrary = genericArbitrary
-#else
   arbitrary = error "no default generator"
-#endif
 
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value. The default implementation
@@ -310,9 +286,8 @@ instance GArbitrary a => GArbitrary (M1 i c a) where
 instance Arbitrary a => GArbitrary (K1 i a) where
   gArbitrary = K1 <$> arbitrary
 
-
--- | `Gen` for generic instances in which each constructor has equal probability
--- of being chosen.
+-- | Generator for generic instances in which each constructor has
+-- equal probability of being chosen.
 genericArbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
 genericArbitrary = to <$> gArbitrary
 
