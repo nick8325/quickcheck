@@ -127,14 +127,14 @@ putPart, putTemp, putLine :: Terminal -> String -> IO ()
 putPart tm@(MkTerminal res _ out _) s =
   do flush tm
      out s
-     modifyIORef' res (++ s)
+     modifyIORef res (++ s)
 
 putLine tm s = putPart tm (s ++ "\n")
 
 putTemp tm@(MkTerminal _ tmp _ err) s =
   do flush tm
      err (s ++ [ '\b' | _ <- s ])
-     modifyIORef' tmp (+ length s)
+     modifyIORef tmp (+ length s)
 
 --------------------------------------------------------------------------
 -- the end.
