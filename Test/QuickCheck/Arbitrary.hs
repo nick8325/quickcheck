@@ -739,13 +739,10 @@ class CoArbitrary a where
 #ifndef NO_GENERICS
   default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
   coarbitrary = genericCoarbitrary
-#endif
-
 
 -- | Generic CoArbitrary implementation.
 genericCoarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
 genericCoarbitrary = gCoarbitrary . from
-
 
 class GCoArbitrary f where
   gCoarbitrary :: f a -> Gen b -> Gen b
@@ -767,7 +764,7 @@ instance GCoArbitrary f => GCoArbitrary (M1 i c f) where
 
 instance CoArbitrary a => GCoArbitrary (K1 i a) where
   gCoarbitrary (K1 x) = coarbitrary x
-
+#endif
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
