@@ -121,7 +121,7 @@ library
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7) && flag(base4)
+  if impl(ghc >= 7) && (flag(base4point8) || flag(base4))
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
