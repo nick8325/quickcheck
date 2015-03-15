@@ -21,8 +21,8 @@ import System.Timeout(timeout)
 import Data.Maybe
 import Control.Applicative
 import Control.Monad
-import qualified Data.Map.Strict as Map
-import Data.Map.Strict(Map)
+import qualified Data.Map as Map
+import Data.Map(Map)
 import qualified Data.Set as Set
 import Data.Set(Set)
 
