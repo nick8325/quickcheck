@@ -17,8 +17,7 @@ and testing:
 >>> quickcheck prop_commutativeAdd
 +++ OK, passed 100 tests.
 
-which generates 200 @Integer@s and checks that @prop_commutativeAdd@
-holds for them.
+which tests @prop_commutativeAdd@ on 100 random @(Integer, Integer)@ pairs.
 
 'verboseCheck' can be used to see the actual values generated:
 
