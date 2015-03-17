@@ -186,3 +186,4 @@ runQuickCheckAll ps qc =
       Failure { } -> False
       NoExpectedFailure { } -> False
       GaveUp { } -> False
+      InsufficientCoverage { } -> False
