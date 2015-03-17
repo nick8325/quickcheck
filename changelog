@@ -1,3 +1,23 @@
+QuickCheck 2.8 (released ???)
+	* New features:
+		* Support for GHC 7.10
+		* Arbitrary instance for Natural
+		* New generators shuffle and sublistOf
+		* Support for generic coarbitrary
+		* When using the cover combinator, insufficient coverage now
+		  causes the property to fail
+
+	* API changes:
+		* Test.QuickCheck.Function: new pattern synonym Fn
+		* genericShrink no longer requires Typeable
+		* Result has a new constructor InsufficientCoverage
+
+	* Bug fixes:
+		* Fix memory leaks
+		* Exceptions thrown by callbacks now cause the test to fail
+		* Fixed a bug where the cover combinator wouldn't give a
+		  warning if coverage was 0%
+
 QuickCheck 2.7.3 (released 2014-03-24)
 	* Add annotations for Safe Haskell.
 
