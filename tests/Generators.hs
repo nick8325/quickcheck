@@ -16,7 +16,7 @@ instance Arbitrary a => Arbitrary (Path a) where
         fmap (x:) $
         oneof $
           [return []] ++
-          [resize (n-1) (pathFrom y) | y <- shrink x]
+          [resize (n-1) (pathFrom y) | n > 0, y <- shrink x]
 
   shrink (Path xs) = map Path [ ys | ys <- inits xs, length ys > 0 && length ys < length xs ]
 
@@ -126,4 +126,5 @@ prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
 prop_nonnegative = pathInt getNonNegative (>= 0)
 prop_nonnegative_bound = somePathInt getNonNegative (== 0)
 
+return []
 main = $quickCheckAll >>= print
