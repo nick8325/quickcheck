@@ -16,6 +16,7 @@ module Test.QuickCheck.Arbitrary
 
   -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
+  , arbitrarySizedNatural         -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedFractional      -- :: Fractional a => Gen a

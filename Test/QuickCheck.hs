@@ -112,6 +112,8 @@ module Test.QuickCheck
   , listOf1
   , vectorOf
   , infiniteListOf
+  , shuffle
+  , sublistOf
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
@@ -128,6 +130,7 @@ module Test.QuickCheck
 
     -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral
+  , arbitrarySizedNatural
   , arbitrarySizedFractional
   , arbitrarySizedBoundedIntegral
   , arbitraryBoundedIntegral
@@ -135,6 +138,7 @@ module Test.QuickCheck
   , arbitraryBoundedEnum
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
+  , genericCoarbitrary
   , genericShrink
   , subterms
   , recursivelyShrink
