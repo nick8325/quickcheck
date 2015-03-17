@@ -11,6 +11,7 @@ QuickCheck 2.8 (released ???)
 		* Test.QuickCheck.Function: new pattern synonym Fn
 		* genericShrink no longer requires Typeable
 		* Result has a new constructor InsufficientCoverage
+		* resize throws an error if the size is negative
 
 	* Bug fixes:
 		* Fix memory leaks
