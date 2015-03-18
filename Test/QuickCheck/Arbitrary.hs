@@ -615,10 +615,19 @@ shrinkRealFrac x =
 #ifndef NO_GENERICS
 -- | Used for random generation of functions.
 --
--- As in 'Arbitrary', a default definition is provided using "GHC.Generics".
--- Use it with:
+-- If you are using a recent GHC, there is a default definition of
+-- 'coarbitrary' using 'genericCoarbitrary', so if your type has a
+-- 'Generic' instance it's enough to say
 --
--- >instance CoArbitrary Mydatatype
+-- > instance CoArbitrary MyType
+--
+-- You should only use 'genericCoarbitrary' for data types where
+-- equality is structural, i.e. if you can't have two different
+-- representations of the same value. An example where it's not
+-- safe is sets implemented using binary search trees: the same
+-- set can be represented as several different trees.
+-- Here you would have to explicitly define
+-- @coarbitrary s = coarbitrary (toList s)@.
 #else
 -- | Used for random generation of functions.
 #endif
@@ -634,11 +643,6 @@ class CoArbitrary a where
   --   coarbitrary []     = 'variant' 0
   --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
   -- @
-  --
-  -- If you are using a recent GHC, 'coarbitrary' has a default
-  -- implementation using 'genericCoarbitrary'. You should only
-  -- use this for data types where equality is structural, i.e.
-  -- you can't have two different representations of the same value.
   coarbitrary :: a -> Gen b -> Gen b
 #ifndef NO_GENERICS
   default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
