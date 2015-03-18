@@ -1,4 +1,4 @@
-QuickCheck 2.8 (released ???)
+QuickCheck 2.8 (released 2015-03-18)
 	* New features:
 		* Support for GHC 7.10
 		* Arbitrary instance for Natural
