@@ -217,19 +217,6 @@ data Result
   , callbacks    :: [Callback]        -- ^ the callbacks for this test case
   }
 
-result :: Result
-result =
-  MkResult
-  { ok           = undefined
-  , expect       = True
-  , reason       = ""
-  , theException = Nothing
-  , abort        = False
-  , labels       = Map.empty
-  , stamp        = Set.empty
-  , callbacks    = []
-  }
-
 exception :: String -> AnException -> Result
 exception msg err
   | isDiscard err = rejected
@@ -244,14 +231,23 @@ formatException msg err = msg ++ ":" ++ format (show err)
 protectResult :: IO Result -> IO Result
 protectResult = protect (exception "Exception")
 
-succeeded :: Result
-succeeded = result{ ok = Just True }
-
-failed :: Result
-failed = result{ ok = Just False }
-
-rejected :: Result
-rejected = result{ ok = Nothing }
+succeeded, failed, rejected :: Result
+(succeeded, failed, rejected) =
+  (result{ ok = Just True },
+   result{ ok = Just False },
+   result{ ok = Nothing })
+  where
+    result =
+      MkResult
+      { ok           = undefined
+      , expect       = True
+      , reason       = ""
+      , theException = Nothing
+      , abort        = False
+      , labels       = Map.empty
+      , stamp        = Set.empty
+      , callbacks    = []
+      }
 
 --------------------------------------------------------------------------
 -- ** Lifting and mapping functions
