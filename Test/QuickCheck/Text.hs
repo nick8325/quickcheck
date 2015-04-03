@@ -126,8 +126,12 @@ flush (MkTerminal _ tmp _ err) =
 putPart, putTemp, putLine :: Terminal -> String -> IO ()
 putPart tm@(MkTerminal res _ out _) s =
   do flush tm
+     force s
      out s
      modifyIORef res (++ s)
+  where
+    force [] = return ()
+    force (x:xs) = x `seq` force xs
 
 putLine tm s = putPart tm (s ++ "\n")
 
