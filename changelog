@@ -1,3 +1,8 @@
+QuickCheck 2.8.1 (released 2015-04-03)
+	* Fix bug where exceptions thrown printing counterexamples weren't
+	  being caught when terminal output was disabled
+	* Don't export Test.QuickCheck.Property.result
+
 QuickCheck 2.8 (released 2015-03-18)
 	* New features:
 		* Support for GHC 7.10
