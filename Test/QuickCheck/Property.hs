@@ -303,7 +303,7 @@ counterexample s =
     res <- tryEvaluateIO (putLine (terminal st) s)
     case res of
       Left err ->
-        putLine (terminal st) (formatException "Exception thrown by generator" err)
+        putLine (terminal st) (formatException "Exception thrown while printing test case" err)
       Right () ->
         return ()
 
