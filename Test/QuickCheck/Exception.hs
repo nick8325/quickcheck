@@ -54,6 +54,9 @@ tryEvaluate x = return (Right x)
 tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = fmap Right m
 
+evaluate :: a -> IO a
+evaluate x = x `seq` return x
+
 isInterrupt :: AnException -> Bool
 isInterrupt _ = False
 
@@ -79,6 +82,9 @@ tryEvaluate x = tryEvaluateIO (return x)
 tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = E.try (m >>= E.evaluate)
 --tryEvaluateIO m = Right `fmap` m
+
+evaluate :: a -> IO a
+evaluate = E.evaluate
 
 -- | Test if an exception was a @^C@.
 -- QuickCheck won't try to shrink an interrupted test case.

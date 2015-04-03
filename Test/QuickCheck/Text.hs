@@ -38,7 +38,6 @@ import System.IO
   )
 
 import Data.IORef
-import Control.Exception (evaluate)
 import Test.QuickCheck.Exception
 
 --------------------------------------------------------------------------
