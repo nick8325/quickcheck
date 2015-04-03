@@ -38,6 +38,7 @@ import System.IO
   )
 
 import Data.IORef
+import Control.Exception (evaluate)
 import Test.QuickCheck.Exception
 
 --------------------------------------------------------------------------
@@ -130,8 +131,12 @@ putPart tm@(MkTerminal res _ out _) s =
      out s
      modifyIORef res (++ s)
   where
-    force [] = return ()
-    force (x:xs) = x `seq` force xs
+    force :: [a] -> IO ()
+    force = evaluate . seqList
+
+    seqList :: [a] -> ()
+    seqList [] = ()
+    seqList (x:xs) = x `seq` seqList xs
 
 putLine tm s = putPart tm (s ++ "\n")
 
