@@ -30,7 +30,7 @@ install:
 script:
  - if [ -f configure.ac ]; then autoreconf -i; fi
  - cabal configure --enable-tests --enable-benchmarks -v2  # -v2 provides useful information for debugging
- - cabal build -j2  # this builds all libraries and executables (including tests/benchmarks)
+ - cabal build   # this builds all libraries and executables (including tests/benchmarks)
  - cabal test
  - cabal check
  - cabal sdist   # tests that a source-distribution can be generated
@@ -39,4 +39,4 @@ script:
 # If there are no other `.tar.gz` files in `dist`, this can be even simpler:
 # `cabal install --force-reinstalls dist/*-*.tar.gz`
  - SRC_TGZ=$(cabal info . | awk '{print $2;exit}').tar.gz &&
-   (cd dist && cabal install -j2 --force-reinstalls "$SRC_TGZ")
+   (cd dist && cabal install --force-reinstalls "$SRC_TGZ")
