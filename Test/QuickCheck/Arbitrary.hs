@@ -122,7 +122,6 @@ import GHC.Generics
 class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
-  arbitrary = error "no default generator"
 
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value. The default implementation
