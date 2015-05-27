@@ -279,7 +279,7 @@ data Fun a b = Fun (a :-> b, b) (a -> b)
 --
 -- > prop :: Fun String Integer -> Bool
 -- > prop (Fn f) = f "banana" == f "monkey"
---              || f "banana" == f "elephant"
+-- >            || f "banana" == f "elephant"
 pattern Fn f <- Fun _ f
 #endif
 
