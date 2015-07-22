@@ -42,6 +42,8 @@ data Args
     -- ^ Should we replay a previous test?
     -- Note: saving a seed from one version of QuickCheck and
     -- replaying it in another is not supported.
+    -- If you want to store a test case permanently you should save
+    -- the test case itself.
   , maxSuccess      :: Int
     -- ^ Maximum number of successful tests before succeeding
   , maxDiscardRatio :: Int
