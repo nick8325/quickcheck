@@ -38,11 +38,18 @@ import Data.List
 -- | Args specifies arguments to the QuickCheck driver
 data Args
   = Args
-  { replay          :: Maybe (QCGen,Int) -- ^ Should we replay a previous test?
-  , maxSuccess      :: Int               -- ^ Maximum number of successful tests before succeeding
-  , maxDiscardRatio :: Int               -- ^ Maximum number of discarded tests per successful test before giving up
-  , maxSize         :: Int               -- ^ Size to use for the biggest test cases
-  , chatty          :: Bool              -- ^ Whether to print anything
+  { replay          :: Maybe (QCGen,Int)
+    -- ^ Should we replay a previous test?
+    -- Note: saving a seed from one version of QuickCheck and
+    -- replaying it in another is not supported.
+  , maxSuccess      :: Int
+    -- ^ Maximum number of successful tests before succeeding
+  , maxDiscardRatio :: Int
+    -- ^ Maximum number of discarded tests per successful test before giving up
+  , maxSize         :: Int
+    -- ^ Size to use for the biggest test cases
+  , chatty          :: Bool
+    -- ^ Whether to print anything
   }
  deriving ( Show, Read )
 
