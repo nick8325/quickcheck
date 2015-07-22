@@ -825,7 +825,7 @@ coarbitraryEnum = variant . fromEnum
 vector :: Arbitrary a => Int -> Gen [a]
 vector k = vectorOf k arbitrary
 
--- | Generates an ordered list of a given length.
+-- | Generates an ordered list.
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
 
