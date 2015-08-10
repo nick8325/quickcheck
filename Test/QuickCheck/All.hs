@@ -73,9 +73,15 @@ monomorphic t = do
       return (SigE (VarE t) ty')
 
 infoType :: Info -> Type
+#if __GLASGOW_HASKELL__ >= 711
+infoType (ClassOpI _ ty _) = ty
+infoType (DataConI _ ty _) = ty
+infoType (VarI _ ty _) = ty
+#else
 infoType (ClassOpI _ ty _ _) = ty
 infoType (DataConI _ ty _ _) = ty
 infoType (VarI _ ty _ _) = ty
+#endif
 
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
