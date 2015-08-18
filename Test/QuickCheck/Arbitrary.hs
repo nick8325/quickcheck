@@ -3,7 +3,10 @@
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses, OverlappingInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+#if __GLASGOW_HASKELL__ < 710
+{-# LANGUAGE OverlappingInstances  #-}
+#endif
 #endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
