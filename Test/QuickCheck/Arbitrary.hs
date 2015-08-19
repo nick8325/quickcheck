@@ -294,10 +294,10 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
   gSubtermsIncl (M1 x) = gSubtermsIncl x
 
 -- This is the important case: We've found a term of the same type.
-instance Arbitrary a => GSubtermsIncl (K1 i a) a where
+instance {-# OVERLAPPING #-} Arbitrary a => GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
-instance GSubtermsIncl (K1 i a) b where
+instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
 #endif
