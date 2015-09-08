@@ -35,6 +35,7 @@ import System.IO
   , BufferMode (..)
   , hGetBuffering
   , hSetBuffering
+  , hIsTerminalDevice
   )
 
 import Data.IORef
@@ -102,8 +103,10 @@ withBuffering action = do
   action `finally` hSetBuffering stderr mode
 
 withStdioTerminal :: (Terminal -> IO a) -> IO a
-withStdioTerminal action =
-  withBuffering (newTerminal (handle stdout) (handle stderr) >>= action)
+withStdioTerminal action = do
+  isatty <- hIsTerminalDevice stderr
+  let err = if isatty then handle stderr else const (return ())
+  withBuffering (newTerminal (handle stdout) err >>= action)
 
 withNullTerminal :: (Terminal -> IO a) -> IO a
 withNullTerminal action =
