@@ -66,11 +66,20 @@ monomorphic t = do
   let err msg = error $ msg ++ ": " ++ pprint ty0
   (polys, ctx, ty) <- deconstructType err ty0
   case polys of
-    [] -> return (VarE t)
+    [] -> return (expName t)
     _ -> do
       integer <- [t| Integer |]
       ty' <- monomorphiseType err integer ty
-      return (SigE (VarE t) ty')
+      return (SigE (expName t) ty')
+
+expName :: Name -> Exp
+expName n = if isVar n then VarE n else ConE n
+
+-- See section 2.4 of the Haskell 2010 Language Report, plus support for "[]"
+isVar :: Name -> Bool
+isVar = let isVar' (c:_) = not (isUpper c || c `elem` ":[")
+            isVar' _     = True
+        in isVar' . nameBase
 
 infoType :: Info -> Type
 #if __GLASGOW_HASKELL__ >= 711

@@ -70,5 +70,14 @@ prop_forevershrink2' C1 = False
 prop_forevershrink2' C2 = False
 prop_forevershrink2' C3 = prop_forevershrink2' C3
 
+-- Test automatic monomorphism
+prop_poly :: [a] -> Bool
+prop_poly a = length a >= 0
+
+-- See if monomorphic accepts constructor names
+dummyRun = quickCheck $(monomorphic 'True)
+monoNil  = $(monomorphic '[])
+monoCons = $(monomorphic '(:))
+
 return []
 main = $quickCheckAll -- UTF8 test: Привет!
