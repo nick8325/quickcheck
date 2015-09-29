@@ -711,7 +711,7 @@ instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
 
-instance CoArbitrary a => CoArbitrary (Ratio a) where
+instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
 
 #ifndef NO_FIXED
