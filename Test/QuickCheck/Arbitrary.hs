@@ -197,7 +197,7 @@ class Arbitrary a where
 #ifndef NO_GENERICS
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
-genericShrink :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
+genericShrink :: (Generic a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
 genericShrink x = subterms x ++ recursivelyShrink x
 
 -- | Recursively shrink all immediate subterms.
@@ -231,7 +231,7 @@ instance RecursivelyShrink V1 where
 
 
 -- | All immediate subterms of a term.
-subterms :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
+subterms :: (Generic a, GSubterms (Rep a) a) => a -> [a]
 subterms = gSubterms . from
 
 
@@ -294,7 +294,7 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
   gSubtermsIncl (M1 x) = gSubtermsIncl x
 
 -- This is the important case: We've found a term of the same type.
-instance {-# OVERLAPPING #-} Arbitrary a => GSubtermsIncl (K1 i a) a where
+instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
 instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
@@ -367,11 +367,11 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
                ++ [ x':xs | x'  <- shrink x ]
 -}
 
-instance (Integral a, Arbitrary a) => Arbitrary (Ratio a) where
+instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFracToInteger
 
-instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
+instance Arbitrary a => Arbitrary (Complex a) where
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -711,7 +711,7 @@ instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
 
-instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
+instance CoArbitrary a => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
 
 #ifndef NO_FIXED
@@ -719,7 +719,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
+instance CoArbitrary a => CoArbitrary (Complex a) where
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
