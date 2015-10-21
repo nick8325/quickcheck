@@ -124,7 +124,7 @@ library
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
-  -- Use tf-random on newer GHCs. Build with noTDRandom flag to disable.
+  -- Use tf-random on newer GHCs. Build with noTFRandom flag to disable.
   if !flag(noTFRandom) && impl(ghc >= 7) && (flag(base4point8) || flag(base4))
     Build-depends: tf-random >= 0.4
   else
