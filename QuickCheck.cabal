@@ -51,6 +51,9 @@ flag base4point8
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
 
+flag noTFRandom
+  Description: Forces StdGen to be used instead of TFGen.
+
 library
   -- Choose which library versions to use.
   if flag(base4point8)
@@ -121,8 +124,8 @@ library
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
-  -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7) && (flag(base4point8) || flag(base4))
+  -- Use tf-random on newer GHCs. Build with noTDRandom flag to disable.
+  if !flag(noTFRandom) && impl(ghc >= 7) && (flag(base4point8) || flag(base4))
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
