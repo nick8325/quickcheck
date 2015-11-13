@@ -33,6 +33,8 @@ import Control.Arrow
   )
 
 import Test.QuickCheck.Random
+import Data.List
+import Data.Ord
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -155,13 +157,9 @@ sublistOf xs = filterM (\_ -> choose (False, True)) xs
 
 -- | Generates a random permutation of the given list.
 shuffle :: [a] -> Gen [a]
-shuffle [] = return []
 shuffle xs = do
-  (y, ys) <- elements (selectOne xs)
-  (y:) <$> shuffle ys
-  where
-    selectOne [] = []
-    selectOne (y:ys) = (y,ys) : map (second (y:)) (selectOne ys)
+  ns <- vectorOf (length xs) (choose (minBound :: Int, maxBound))
+  return (map snd (sortBy (comparing fst) (zip ns xs)))
 
 -- | Takes a list of elements of increasing size, and chooses
 -- among an initial segment of the list. The size of this initial
