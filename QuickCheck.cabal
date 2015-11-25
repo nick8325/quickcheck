@@ -157,10 +157,7 @@ Test-Suite test-quickcheck
     main-is: Heap.hs
     build-depends:
       base,
-      containers,
-      QuickCheck == 2.8.1,
-      template-haskell >= 2.4,
-      test-framework >= 0.4 && < 0.9
+      QuickCheck
     if flag(templateHaskell)
         Buildable: True
     else
