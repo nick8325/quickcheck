@@ -55,6 +55,7 @@ module Test.QuickCheck.Arbitrary
 -- imports
 
 import Control.Applicative
+import Data.Foldable(toList)
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Gen.Unsafe
@@ -117,6 +118,12 @@ import Data.Word(Word, Word8, Word16, Word32, Word64)
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
+
+import qualified Data.Set as Set
+import qualified Data.Map as Map
+import qualified Data.IntSet as IntSet
+import qualified Data.IntMap as IntMap
+import qualified Data.Sequence as Sequence
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -496,6 +503,23 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
+-- Arbitrary instances for container types
+instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
+  arbitrary = fmap Set.fromList arbitrary
+  shrink = map Set.fromList . shrink . Set.toList
+instance (Ord k, Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
+  arbitrary = fmap Map.fromList arbitrary
+  shrink = map Map.fromList . shrink . Map.toList
+instance Arbitrary IntSet.IntSet where
+  arbitrary = fmap IntSet.fromList arbitrary
+  shrink = map IntSet.fromList . shrink . IntSet.toList
+instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
+  arbitrary = fmap IntMap.fromList arbitrary
+  shrink = map IntMap.fromList . shrink . IntMap.toList
+instance Arbitrary a => Arbitrary (Sequence.Seq a) where
+  arbitrary = fmap Sequence.fromList arbitrary
+  shrink = map Sequence.fromList . shrink . toList
+
 -- ** Helper functions for implementing arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
@@ -800,6 +824,18 @@ instance CoArbitrary Float where
 
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
+
+-- Coarbitrary instances for container types
+instance (Ord a, CoArbitrary a) => CoArbitrary (Set.Set a) where
+  coarbitrary = coarbitrary. Set.toList
+instance (Ord k, CoArbitrary k, CoArbitrary v) => CoArbitrary (Map.Map k v) where
+  coarbitrary = coarbitrary . Map.toList
+instance CoArbitrary IntSet.IntSet where
+  coarbitrary = coarbitrary . IntSet.toList
+instance CoArbitrary a => CoArbitrary (IntMap.IntMap a) where
+  coarbitrary = coarbitrary . IntMap.toList
+instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
+  coarbitrary = coarbitrary . toList
 
 -- ** Helpers for implementing coarbitrary
 
