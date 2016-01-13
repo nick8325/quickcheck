@@ -1,3 +1,13 @@
+QuickCheck 2.8.2 (released ??)
+	* GHC 8 support
+	* Add Arbitrary and CoArbitrary instances for types in
+	  containers package
+	* Improve speed of shuffle combinator
+	* Only print to stderr if it's a terminal.
+	* Small changes: slightly improve documentation,
+	  remove redundant constraints from some functions' types,
+	  small improvements to Test.QuickCheck.All.
+
 QuickCheck 2.8.1 (released 2015-04-03)
 	* Fix bug where exceptions thrown printing counterexamples weren't
 	  being caught when terminal output was disabled
