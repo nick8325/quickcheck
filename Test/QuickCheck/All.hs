@@ -2,6 +2,13 @@
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
+
+#ifndef MIN_VERSION_template_haskell
+-- Fun-fact: GHC 8.0+ provides MIN_VERSION_template_haskell()
+-- automatically iff `-package` flags are passed on the commandline
+#define MIN_VERSION_template_haskell(a,b,c) 1
+#endif
+
 -- | Test all properties in the current module, using Template Haskell.
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
@@ -82,21 +89,23 @@ isVar = let isVar' (c:_) = not (isUpper c || c `elem` ":[")
         in isVar' . nameBase
 
 infoType :: Info -> Type
+#if MIN_VERSION_template_haskell(2,11,0)
+infoType (ClassOpI _ ty _) = ty
+infoType (DataConI _ ty _) = ty
+infoType (VarI _ ty _) = ty
+#else
 infoType (ClassOpI _ ty _ _) = ty
 infoType (DataConI _ ty _ _) = ty
 infoType (VarI _ ty _ _) = ty
+#endif
 
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
   let plain (PlainTV  _)       = True
-#ifndef MIN_VERSION_template_haskell
-      plain (KindedTV _ StarT) = True
-#else
 #if MIN_VERSION_template_haskell(2,8,0)
       plain (KindedTV _ StarT) = True
 #else
       plain (KindedTV _ StarK) = True
-#endif
 #endif
       plain _                  = False
   unless (all plain xs) $ err "Higher-kinded type variables in type"
