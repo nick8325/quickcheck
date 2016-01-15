@@ -378,7 +378,7 @@ instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFracToInteger
 
-instance Arbitrary a => Arbitrary (Complex a) where
+instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -743,7 +743,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-instance CoArbitrary a => CoArbitrary (Complex a) where
+instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
