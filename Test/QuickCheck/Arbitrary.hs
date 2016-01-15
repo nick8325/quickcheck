@@ -826,9 +826,9 @@ instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
 -- Coarbitrary instances for container types
-instance (Ord a, CoArbitrary a) => CoArbitrary (Set.Set a) where
+instance CoArbitrary a => CoArbitrary (Set.Set a) where
   coarbitrary = coarbitrary. Set.toList
-instance (Ord k, CoArbitrary k, CoArbitrary v) => CoArbitrary (Map.Map k v) where
+instance (CoArbitrary k, CoArbitrary v) => CoArbitrary (Map.Map k v) where
   coarbitrary = coarbitrary . Map.toList
 instance CoArbitrary IntSet.IntSet where
   coarbitrary = coarbitrary . IntSet.toList
