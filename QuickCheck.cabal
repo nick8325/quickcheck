@@ -1,5 +1,5 @@
 Name: QuickCheck
-Version: 2.8.1
+Version: 2.8.2
 Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
@@ -37,7 +37,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.8.1
+  tag:      2.8.2
 
 flag base3
   Description: Choose the new smaller, split-up base package.
@@ -160,7 +160,7 @@ Test-Suite test-quickcheck
     build-depends:
       base,
       containers,
-      QuickCheck == 2.8.1,
+      QuickCheck == 2.8.2,
       template-haskell >= 2.4,
       test-framework >= 0.4 && < 0.9
     if flag(templateHaskell)

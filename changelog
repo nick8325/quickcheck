@@ -1,4 +1,4 @@
-QuickCheck 2.8.2 (released ??)
+QuickCheck 2.8.2 (released 2016-01-15)
 	* GHC 8 support
 	* Add Arbitrary and CoArbitrary instances for types in
 	  containers package
