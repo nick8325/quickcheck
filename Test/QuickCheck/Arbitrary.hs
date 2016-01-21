@@ -127,6 +127,9 @@ import qualified Data.Sequence as Sequence
 
 import qualified Data.Monoid as Monoid
 
+import Data.Functor.Identity
+import Data.Functor.Constant
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
@@ -527,6 +530,15 @@ instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = fmap ZipList arbitrary
   shrink = map ZipList . shrink . getZipList
 
+-- Arbitrary instance for transformers' Functors
+instance Arbitrary a => Arbitrary (Identity a) where
+  arbitrary = fmap Identity arbitrary
+  shrink = map Identity . shrink . runIdentity
+
+instance Arbitrary a => Arbitrary (Constant a b) where
+  arbitrary = fmap Constant arbitrary
+  shrink = map Constant . shrink . getConstant
+
 -- Arbitrary instance for Const
 instance Arbitrary a => Arbitrary (Const a b) where
   arbitrary = fmap Const arbitrary
@@ -891,6 +903,13 @@ instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
 -- CoArbitrary instance for Ziplist
 instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for transformers' Functors
+instance CoArbitrary a => CoArbitrary (Identity a) where
+  coarbitrary = coarbitrary . runIdentity
+
+instance CoArbitrary a => CoArbitrary (Constant a b) where
+  coarbitrary = coarbitrary . getConstant
 
 -- CoArbitrary instance for Const
 instance CoArbitrary a => CoArbitrary (Const a b) where
