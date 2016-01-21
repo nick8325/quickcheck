@@ -520,6 +520,11 @@ instance Arbitrary a => Arbitrary (Sequence.Seq a) where
   arbitrary = fmap Sequence.fromList arbitrary
   shrink = map Sequence.fromList . shrink . toList
 
+-- Arbitrary instance for Ziplist
+instance Arbitrary a => Arbitrary (ZipList a) where
+  arbitrary = fmap ZipList arbitrary
+  shrink = map ZipList . shrink . getZipList
+
 -- ** Helper functions for implementing arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
@@ -836,6 +841,10 @@ instance CoArbitrary a => CoArbitrary (IntMap.IntMap a) where
   coarbitrary = coarbitrary . IntMap.toList
 instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
   coarbitrary = coarbitrary . toList
+
+-- CoArbitrary instance for Ziplist
+instance CoArbitrary a => CoArbitrary (ZipList a) where
+  coarbitrary = coarbitrary . getZipList
 
 -- ** Helpers for implementing coarbitrary
 
