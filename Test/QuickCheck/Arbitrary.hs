@@ -126,6 +126,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Sequence as Sequence
 
 import qualified Data.Monoid as Monoid
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
@@ -526,6 +527,11 @@ instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = fmap ZipList arbitrary
   shrink = map ZipList . shrink . getZipList
 
+-- Arbitrary instance for Const
+instance Arbitrary a => Arbitrary (Const a b) where
+  arbitrary = fmap Const arbitrary
+  shrink = map Const . shrink . getConst
+
 -- Arbitrary instances for Monoid
 instance Arbitrary a => Arbitrary (Monoid.Dual a) where
   arbitrary = fmap Monoid.Dual arbitrary
@@ -885,6 +891,10 @@ instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
 -- CoArbitrary instance for Ziplist
 instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for Const
+instance CoArbitrary a => CoArbitrary (Const a b) where
+  coarbitrary = coarbitrary . getConst
 
 -- CoArbitrary instances for Monoid
 instance CoArbitrary a => CoArbitrary (Monoid.Dual a) where
