@@ -125,6 +125,11 @@ import qualified Data.IntSet as IntSet
 import qualified Data.IntMap as IntMap
 import qualified Data.Sequence as Sequence
 
+import qualified Data.Monoid as Monoid
+
+import Data.Functor.Identity
+import Data.Functor.Constant
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
@@ -520,6 +525,64 @@ instance Arbitrary a => Arbitrary (Sequence.Seq a) where
   arbitrary = fmap Sequence.fromList arbitrary
   shrink = map Sequence.fromList . shrink . toList
 
+-- Arbitrary instance for Ziplist
+instance Arbitrary a => Arbitrary (ZipList a) where
+  arbitrary = fmap ZipList arbitrary
+  shrink = map ZipList . shrink . getZipList
+
+-- Arbitrary instance for transformers' Functors
+instance Arbitrary a => Arbitrary (Identity a) where
+  arbitrary = fmap Identity arbitrary
+  shrink = map Identity . shrink . runIdentity
+
+instance Arbitrary a => Arbitrary (Constant a b) where
+  arbitrary = fmap Constant arbitrary
+  shrink = map Constant . shrink . getConstant
+
+-- Arbitrary instance for Const
+instance Arbitrary a => Arbitrary (Const a b) where
+  arbitrary = fmap Const arbitrary
+  shrink = map Const . shrink . getConst
+
+-- Arbitrary instances for Monoid
+instance Arbitrary a => Arbitrary (Monoid.Dual a) where
+  arbitrary = fmap Monoid.Dual arbitrary
+  shrink = map Monoid.Dual . shrink . Monoid.getDual
+
+instance (Arbitrary a, CoArbitrary a) => Arbitrary (Monoid.Endo a) where
+  arbitrary = fmap Monoid.Endo arbitrary
+  shrink = map Monoid.Endo . shrink . Monoid.appEndo
+
+instance Arbitrary Monoid.All where
+  arbitrary = fmap Monoid.All arbitrary
+  shrink = map Monoid.All . shrink . Monoid.getAll
+
+instance Arbitrary Monoid.Any where
+  arbitrary = fmap Monoid.Any arbitrary
+  shrink = map Monoid.Any . shrink . Monoid.getAny
+
+instance Arbitrary a => Arbitrary (Monoid.Sum a) where
+  arbitrary = fmap Monoid.Sum arbitrary
+  shrink = map Monoid.Sum . shrink . Monoid.getSum
+
+instance Arbitrary a => Arbitrary (Monoid.Product a) where
+  arbitrary = fmap Monoid.Product  arbitrary
+  shrink = map Monoid.Product  . shrink . Monoid.getProduct
+
+instance Arbitrary a => Arbitrary (Monoid.First a) where
+  arbitrary = fmap Monoid.First arbitrary
+  shrink = map Monoid.First . shrink . Monoid.getFirst
+
+instance Arbitrary a => Arbitrary (Monoid.Last a) where
+  arbitrary = fmap Monoid.Last arbitrary
+  shrink = map Monoid.Last . shrink . Monoid.getLast
+
+#if MIN_VERSION_base(4,8,0)
+instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
+  arbitrary = fmap Monoid.Alt arbitrary
+  shrink = map Monoid.Alt . shrink . Monoid.getAlt
+#endif
+
 -- ** Helper functions for implementing arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
@@ -836,6 +899,51 @@ instance CoArbitrary a => CoArbitrary (IntMap.IntMap a) where
   coarbitrary = coarbitrary . IntMap.toList
 instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
   coarbitrary = coarbitrary . toList
+
+-- CoArbitrary instance for Ziplist
+instance CoArbitrary a => CoArbitrary (ZipList a) where
+  coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for transformers' Functors
+instance CoArbitrary a => CoArbitrary (Identity a) where
+  coarbitrary = coarbitrary . runIdentity
+
+instance CoArbitrary a => CoArbitrary (Constant a b) where
+  coarbitrary = coarbitrary . getConstant
+
+-- CoArbitrary instance for Const
+instance CoArbitrary a => CoArbitrary (Const a b) where
+  coarbitrary = coarbitrary . getConst
+
+-- CoArbitrary instances for Monoid
+instance CoArbitrary a => CoArbitrary (Monoid.Dual a) where
+  coarbitrary = coarbitrary . Monoid.getDual
+
+instance (Arbitrary a, CoArbitrary a) => CoArbitrary (Monoid.Endo a) where
+  coarbitrary = coarbitrary . Monoid.appEndo
+
+instance CoArbitrary Monoid.All where
+  coarbitrary = coarbitrary . Monoid.getAll
+
+instance CoArbitrary Monoid.Any where
+  coarbitrary = coarbitrary . Monoid.getAny
+
+instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
+  coarbitrary = coarbitrary . Monoid.getSum
+
+instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
+  coarbitrary = coarbitrary . Monoid.getProduct
+
+instance CoArbitrary a => CoArbitrary (Monoid.First a) where
+  coarbitrary = coarbitrary . Monoid.getFirst
+
+instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
+  coarbitrary = coarbitrary . Monoid.getLast
+
+#if MIN_VERSION_base(4,8,0)
+instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
+  coarbitrary = coarbitrary . Monoid.getAlt
+#endif
 
 -- ** Helpers for implementing coarbitrary
 
