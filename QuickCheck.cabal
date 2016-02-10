@@ -48,23 +48,29 @@ flag base4
 flag base4point8
   Description: Choose the even more newer base package with natural numbers.
 
+flag base4point9
+  Description: Choose the even more newer base package with semigroups.
+
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
 
 library
   -- Choose which library versions to use.
-  if flag(base4point8)
-    Build-depends: base >= 4.8 && < 5
+  if flag(base4point9)
+    Build-depends: base >= 4.9 && < 5
   else
-    if flag(base4)
-      Build-depends: base >= 4 && < 4.8
+    if flag(base4point8)
+      Build-depends: base >= 4.8 && < 4.9
     else
-      if flag(base3)
-        Build-depends: base >= 3 && < 4
+      if flag(base4)
+        Build-depends: base >= 4 && < 4.8
       else
-        Build-depends: base < 3
-  if flag(base4point8) || flag(base4) || flag(base3)
+        if flag(base3)
+          Build-depends: base >= 3 && < 4
+        else
+          Build-depends: base < 3
+  if flag(base4point9) || flag(base4point8) || flag(base4) || flag(base3)
     Build-depends: random
   Build-depends: containers
 
@@ -124,14 +130,18 @@ library
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7) && (flag(base4point8) || flag(base4))
+  if impl(ghc >= 7) && (flag(base4point9) || flag(base4point8) || flag(base4))
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
 
   -- Natural numbers.
-  if !flag(base4point8)
+  if !(flag(base4point9) || flag(base4point8))
     cpp-options: -DNO_NATURALS
+
+  -- Semigroups, particularly NonEmpty
+  if !flag(base4point9)
+    Build-depends: semigroups
 
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)

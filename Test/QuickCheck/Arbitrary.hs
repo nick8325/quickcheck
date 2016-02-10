@@ -104,6 +104,9 @@ import Data.List
   , nub
   )
 
+import Data.List.NonEmpty (NonEmpty (..), nonEmpty)
+import Data.Maybe (mapMaybe)
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -351,6 +354,15 @@ instance Arbitrary a => Arbitrary [a] where
        sequence [ arbitrary | _ <- [1..k] ]
 
   shrink xs = shrinkList shrink xs
+
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = sized $ \n ->
+    do k <- choose (0, n)
+       x <- arbitrary
+       xs <- sequence [ arbitrary | _ <- [1..k] ]
+       return (x :| xs)
+
+  shrink (x :| xs) = mapMaybe nonEmpty . shrinkList shrink $ x : xs
 
 -- | Shrink a list of values given a shrinking function for individual values.
 shrinkList :: (a -> [a]) -> [a] -> [[a]]
@@ -797,6 +809,9 @@ instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Either a b) where
 instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
+
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (x :| xs) = coarbitrary (x, xs)
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
