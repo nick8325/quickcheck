@@ -97,6 +97,9 @@ library
   if impl(ghc < 7.10)
     cpp-options: -DNO_NATURALS
 
+  if impl(ghc < 8.0)
+    cpp-options: -DNO_NONEMPTY    
+
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
