@@ -41,35 +41,53 @@ source-repository this
 
 flag base3
   Description: Choose the new smaller, split-up base package.
+  Default: False
 
 flag base4
   Description: Choose the even newer base package with extensible exceptions.
+  Default: False
 
 flag base4point8
   Description: Choose the even more newer base package with natural numbers.
+  Default: False
 
 flag base4point9
   Description: Choose the even more newer base package with semigroups.
+  Default: True
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
 
 library
-  -- Choose which library versions to use.
-  if flag(base4point9)
+  -- Choose which base library versions to use.
+  if flag(base4point9) && !flag(base4point8) && !flag(base4) && !flag(base3)
     Build-depends: base >= 4.9 && < 5
-  else
-    if flag(base4point8)
-      Build-depends: base >= 4.8 && < 4.9
-    else
-      if flag(base4)
-        Build-depends: base >= 4 && < 4.8
-      else
-        if flag(base3)
-          Build-depends: base >= 3 && < 4
-        else
-          Build-depends: base < 3
+
+  if !flag(base4point9) && flag(base4point8) && !flag(base4) && !flag(base3)
+    Build-depends: base >= 4.8 && < 4.9
+
+  if !flag(base4point9) && !flag(base4point8) && flag(base4) && !flag(base3)
+    Build-depends: base >= 4 && < 4.8
+
+  if !flag(base4point9) && !flag(base4point8) && !flag(base4) && flag(base3)
+    Build-depends: base >= 3 && < 4
+
+  if !flag(base4point9) && !flag(base4point8) && !flag(base4) && !flag(base3)
+    Build-depends: base < 3
+
+  -- Cannot be two flags on
+  if flag(base4point9)
+    if flag(base4point8) ||  flag(base4) || flag(base3)
+      Build-depends: base < 0
+
+  if flag(base4point8)
+    if flag(base4) || flag(base3)
+      Build-depends: base < 0
+
+  if flag(base4) && flag(base3)
+      Build-depends: base < 0
+
   if flag(base4point9) || flag(base4point8) || flag(base4) || flag(base3)
     Build-depends: random
   Build-depends: containers
