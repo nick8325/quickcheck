@@ -132,3 +132,30 @@ Test-Suite test-quickcheck
     else
         Buildable: False
 
+Test-Suite test-quickcheck-gcoarbitrary
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: GCoArbitraryExample.hs
+    build-depends: base, QuickCheck == 2.8.2
+    if impl(ghc < 7.2)
+        buildable: False
+    if impl(ghc >= 7.2) && impl(ghc < 7.6)
+        build-depends: ghc-prim
+
+Test-Suite test-quickcheck-generators
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: Generators.hs
+    build-depends: base, QuickCheck == 2.8.2
+    if !flag(templateHaskell)
+        Buildable: False
+
+Test-Suite test-quickcheck-gshrink
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: GShrinkExample.hs
+    build-depends: base, QuickCheck == 2.8.2
+    if impl(ghc < 7.2)
+        buildable: False
+    if impl(ghc >= 7.2) && impl(ghc < 7.6)
+        build-depends: ghc-prim

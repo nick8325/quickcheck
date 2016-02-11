@@ -1,6 +1,6 @@
 {-# LANGUAGE DeriveGeneric, ScopedTypeVariables #-}
 
-module GCoArbitraryExample where
+module Main where
 
 import GHC.Generics (Generic)
 import Test.QuickCheck
