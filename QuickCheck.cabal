@@ -39,34 +39,12 @@ source-repository this
   location: https://github.com/nick8325/quickcheck
   tag:      2.8.2
 
-flag base3
-  Description: Choose the new smaller, split-up base package.
-
-flag base4
-  Description: Choose the even newer base package with extensible exceptions.
-
-flag base4point8
-  Description: Choose the even more newer base package with natural numbers.
-
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
 
 library
-  -- Choose which library versions to use.
-  if flag(base4point8)
-    Build-depends: base >= 4.8 && < 5
-  else
-    if flag(base4)
-      Build-depends: base >= 4 && < 4.8
-    else
-      if flag(base3)
-        Build-depends: base >= 3 && < 4
-      else
-        Build-depends: base < 3
-  if flag(base4point8) || flag(base4) || flag(base3)
-    Build-depends: random
-  Build-depends: containers
+  Build-depends: base >=4.3 && <5, random, containers
 
   -- Modules that are always built.
   Exposed-Modules:
@@ -87,30 +65,16 @@ library
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-  if impl(ghc >= 7)
     Build-depends: transformers >= 0.2
   else
     cpp-options: -DNO_TRANSFORMERS
-  if impl(ghc >= 6.12) && flag(templateHaskell)
+
+  if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
     Other-Extensions: TemplateHaskell
     Exposed-Modules: Test.QuickCheck.All
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
-
-  -- Compiler-specific tweaks, lots of 'em!
-
-  -- On old versions of GHC use the ghc package to catch ctrl-C.
-  if impl(ghc >= 6.7) && impl(ghc < 6.13)
-      Build-depends: ghc
-
-  -- We want to use extensible-exceptions even if linking against base-3.
-  if impl(ghc >= 6.9) && impl (ghc < 7.0)
-    Build-depends: extensible-exceptions
-
-  -- GHC < 7.0 can't cope with multiple LANGUAGE pragmas in the same file.
-  if impl(ghc < 7)
-    Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
 
   -- The new generics appeared in GHC 7.2...
   if impl(ghc < 7.2)
@@ -124,13 +88,13 @@ library
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7) && (flag(base4point8) || flag(base4))
+  if impl(ghc)
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
 
-  -- Natural numbers.
-  if !flag(base4point8)
+  -- Natural numbers. Appeared in base-4.8 / GHC 7.10
+  if impl(ghc < 7.10)
     cpp-options: -DNO_NATURALS
 
   -- Switch off most optional features on non-GHC systems.
