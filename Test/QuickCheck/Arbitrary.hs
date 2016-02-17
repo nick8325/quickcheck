@@ -353,20 +353,12 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Either a b) where
   shrink (Right y) = [ Right y' | y' <- shrink y ]
 
 instance Arbitrary a => Arbitrary [a] where
-  arbitrary = sized $ \n ->
-    do k <- choose (0,n)
-       sequence [ arbitrary | _ <- [1..k] ]
-
+  arbitrary = listOf arbitrary
   shrink xs = shrinkList shrink xs
 
 #ifndef NO_NONEMPTY
 instance Arbitrary a => Arbitrary (NonEmpty a) where
-  arbitrary = sized $ \n ->
-    do k <- choose (0, n)
-       x <- arbitrary
-       xs <- sequence [ arbitrary | _ <- [1..k] ]
-       return (x :| xs)
-
+  arbitrary = liftM2 (:|) arbitrary arbitrary
   shrink (x :| xs) = mapMaybe nonEmpty . shrinkList shrink $ x : xs
 #endif
 
@@ -607,9 +599,8 @@ instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
 instance Arbitrary Version where
   arbitrary = sized $ \n ->
     do k <- choose (0, log2 n)
-       x <- arbitrarySizedNatural
-       xs <- sequence [ arbitrarySizedNatural | _ <- [1..k] ]
-       return $ Version (x : xs) []
+       xs <- vectorOf (k+1) arbitrarySizedNatural
+       return (Version xs [])
     where
       log2 :: Int -> Int
       log2 n | n <= 1 = 0
