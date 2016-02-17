@@ -4,6 +4,8 @@ import Test.QuickCheck.Gen.Unsafe
 import Data.List
 import Data.Int
 import Data.Word
+import Data.Version (showVersion, parseVersion)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 newtype Path a = Path [a] deriving (Show, Functor)
 
@@ -125,6 +127,13 @@ prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
 
 prop_nonnegative = pathInt getNonNegative (>= 0)
 prop_nonnegative_bound = somePathInt getNonNegative (== 0)
+
+prop_version_roundtrip x = Just x === parseVersion' (showVersion x)
+  where
+    parseVersion' s = case filter (null . snd) $ readP_to_S parseVersion s of
+        [(y, "")] -> Just y
+        _         -> Nothing
+
 
 return []
 main = $quickCheckAll >>= print

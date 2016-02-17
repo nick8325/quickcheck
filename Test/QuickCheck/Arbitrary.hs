@@ -109,6 +109,8 @@ import Data.List.NonEmpty (NonEmpty (..), nonEmpty)
 import Data.Maybe (mapMaybe)
 #endif
 
+import Data.Version (Version (..))
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -599,6 +601,25 @@ instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   shrink = map Monoid.Alt . shrink . Monoid.getAlt
 #endif
 
+-- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
+instance Arbitrary Version where
+  arbitrary = sized $ \n ->
+    do k <- choose (0, log2 n)
+       x <- arbitrarySizedNatural
+       xs <- sequence [ arbitrarySizedNatural | _ <- [1..k] ]
+       return $ Version (x : xs) []
+    where
+      log2 :: Int -> Int
+      log2 n | n <= 1 = 0
+             | otherwise = 1 + log2 (n `div` 2)
+
+  shrink (Version xs _) =
+    [ Version xs' []
+    | xs' <- shrink xs
+    , length xs' > 0
+    , all (>=0) xs'
+    ]
+
 -- ** Helper functions for implementing arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
@@ -965,6 +986,9 @@ instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
 #endif
+
+instance CoArbitrary Version where
+  coarbitrary (Version a b) = coarbitrary (a, b)
 
 -- ** Helpers for implementing coarbitrary
 
