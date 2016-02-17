@@ -595,10 +595,12 @@ instance Arbitrary a => Arbitrary (Monoid.Last a) where
   arbitrary = fmap Monoid.Last arbitrary
   shrink = map Monoid.Last . shrink . Monoid.getLast
 
+#if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
   shrink = map Monoid.Alt . shrink . Monoid.getAlt
+#endif
 #endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
@@ -982,9 +984,11 @@ instance CoArbitrary a => CoArbitrary (Monoid.First a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
 
+#if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
+#endif
 #endif
 
 instance CoArbitrary Version where
