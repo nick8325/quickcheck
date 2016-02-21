@@ -14,7 +14,7 @@ prop_commutativeAdd n m = n + m == m + n
 
 and testing:
 
->>> quickcheck prop_commutativeAdd
+>>> quickCheck prop_commutativeAdd
 +++ OK, passed 100 tests.
 
 which tests @prop_commutativeAdd@ on 100 random @(Integer, Integer)@ pairs.
