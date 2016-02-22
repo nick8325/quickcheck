@@ -3,10 +3,8 @@
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-#if __GLASGOW_HASKELL__ < 710
-{-# LANGUAGE OverlappingInstances  #-}
-#endif
+{-# LANGUAGE MultiParamTypeClasses, TypeFamilies, DataKinds #-}
+{-# LANGUAGE UndecidableInstances #-}
 #endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
@@ -312,12 +310,24 @@ instance (GSubtermsIncl f a, GSubtermsIncl g a) => GSubtermsIncl (f :+: g) a whe
 instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
   gSubtermsIncl (M1 x) = gSubtermsIncl x
 
--- This is the important case: We've found a term of the same type.
-instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) a where
-  gSubtermsIncl (K1 x) = [x]
+type family Same a b where
+  Same a a = 'True
+  Same a b = 'False
 
-instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
-  gSubtermsIncl (K1 _) = []
+-- An auxiliary class to handle K1 without overlapping
+-- instances.
+class same ~ Same a b => GSubtermsInclK1 (same :: Bool) a b where
+  gSubtermsInclK1 :: K1 i a b -> [b]
+
+-- This is the important case: We've found a term of the same type.
+instance a ~ b => GSubtermsInclK1 'True a b where
+  gSubtermsInclK1 (K1 x) = [x]
+
+instance Same a b ~ 'False => GSubtermsInclK1 'False a b where
+  gSubtermsInclK1 (K1 _) = []
+
+instance GSubtermsInclK1 same a b => GSubtermsIncl (K1 i a) b where
+  gSubtermsIncl = gSubtermsInclK1
 
 #endif
 
