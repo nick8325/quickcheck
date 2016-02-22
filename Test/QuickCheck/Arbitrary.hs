@@ -532,8 +532,28 @@ instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
   arbitrary = fmap IntMap.fromList arbitrary
   shrink = map IntMap.fromList . shrink . IntMap.toList
 instance Arbitrary a => Arbitrary (Sequence.Seq a) where
-  arbitrary = fmap Sequence.fromList arbitrary
-  shrink = map Sequence.fromList . shrink . toList
+  arbitrary = seqOf arbitrary
+  shrink xs = shrinkSeq shrink xs
+
+-- | Shrink a list of values given a shrinking function for individual values.
+shrinkSeq :: (a -> [a]) -> Sequence.Seq a -> [Sequence.Seq a]
+shrinkSeq shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div`2) n) ]
+                 ++ shrinkOne xs
+ where
+  n = Sequence.length xs
+
+  shrinkOne s =
+    case Sequence.viewl s of
+      Sequence.EmptyL -> []
+      x Sequence.:< xs -> [x Sequence.<| xs | x' <- shr x ]
+                  ++ [ x Sequence.<| xs' | xs' <- shrinkOne xs ]
+
+  removes k n xs
+    | k > n     = []
+    | Sequence.null xs2  = [Sequence.empty]
+    | otherwise = xs2 : map (xs1 Sequence.><) (removes k (n-k) xs2)
+   where
+    (xs1,xs2) = Sequence.splitAt k xs
 
 -- Arbitrary instance for Ziplist
 instance Arbitrary a => Arbitrary (ZipList a) where
