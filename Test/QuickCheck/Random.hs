@@ -3,6 +3,9 @@
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
+#ifndef NO_NEWTYPE_DERIVING
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+#endif
 module Test.QuickCheck.Random where
 
 #ifndef NO_TF_RANDOM
@@ -61,20 +64,23 @@ stop n = n <= 1
 -- A wrapper around either 'TFGen' on GHC, or 'StdGen'
 -- on other Haskell systems.
 newtype QCGen = QCGen TheGen
+#ifndef NO_NEWTYPE_DERIVING
+  deriving RandomGen
+#else
+instance RandomGen QCGen where
+  split (QCGen g) =
+    case split g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+  genRange (QCGen g) = genRange g
+  next (QCGen g) =
+    case next g of
+      (x, g') -> (x, QCGen g')
+#endif
 
 instance Show QCGen where
   showsPrec n (QCGen g) = showsPrec n g
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
-
-instance RandomGen QCGen where
-  split (QCGen g) = (QCGen g1, QCGen g2)
-    where
-      (g1, g2) = split g
-  genRange (QCGen g) = genRange g
-  next (QCGen g) = (x, QCGen g')
-    where
-      (x, g') = next g
 
 newQCGen :: IO QCGen
 newQCGen = fmap QCGen newTheGen
