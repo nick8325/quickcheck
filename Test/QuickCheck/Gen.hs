@@ -16,16 +16,10 @@ import System.Random
   , newStdGen
   )
 
-import Control.Monad
-  ( liftM
-  , ap
-  , replicateM
-  , filterM
-  )
-
 import Control.Applicative
   ( Applicative(..)
   , (<$>)
+  , (<$)
   )
 
 import Control.Arrow
@@ -49,13 +43,23 @@ instance Functor Gen where
   fmap f (MkGen h) =
     MkGen (\r n -> f (h r n))
 
+#ifdef __GLASGOW_HASKELL__
+  x <$ _ = MkGen (\_ _ -> x)
+#endif
+
 instance Applicative Gen where
-  pure  = return
-  (<*>) = ap
+  pure x = MkGen (\_ _ -> x)
+
+  MkGen fs <*> MkGen xs = MkGen $ \r n ->
+    let (r1, r2) = split r
+    in fs r1 n (xs r2 n)
+
+  -- If you're not using the result, there's no need to generate the random number
+  _ *> x = x
+  x <* _ = x
 
 instance Monad Gen where
-  return x =
-    MkGen (\_ _ -> x)
+  return x = MkGen (\_ _ -> x)
 
   MkGen m >>= k =
     MkGen (\r n ->
@@ -63,6 +67,27 @@ instance Monad Gen where
           MkGen m' = k (m r1 n)
        in m' r2 n
     )
+
+  -- If you're not using the result, there's no need to generate the random number
+  _ >> x = x
+
+-- These are stricter than <*> because it seems unusual to
+-- lift over three or more *pure* generators.
+liftA3Gen :: (a -> b -> c -> r) -> Gen a -> Gen b -> Gen c -> Gen r
+liftA3Gen f (MkGen a) (MkGen b) (MkGen c) = MkGen $ \r n ->
+  case split3 r of
+    (r1, r2, r3) -> f (a r1 n) (b r2 n) (c r3 n)
+
+liftA4Gen :: (a -> b -> c -> d -> r) -> Gen a -> Gen b -> Gen c -> Gen d -> Gen r
+liftA4Gen f (MkGen a) (MkGen b) (MkGen c) (MkGen d) = MkGen $ \r n ->
+  case split4 r of
+    (r1, r2, r3, r4) -> f (a r1 n) (b r2 n) (c r3 n) (d r4 n)
+
+liftA5Gen :: (a -> b -> c -> d -> e -> r) -> Gen a -> Gen b -> Gen c -> Gen d -> Gen e -> Gen r
+liftA5Gen f (MkGen a) (MkGen b) (MkGen c) (MkGen d) (MkGen e) = MkGen $ \r n ->
+  case split5 r of
+    (r1, r2, r3, r4, r5) -> f (a r1 n) (b r2 n) (c r3 n) (d r4 n) (e r5 n)
+
 
 --------------------------------------------------------------------------
 -- ** Primitive generator combinators
@@ -93,9 +118,7 @@ choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 -- | Run a generator. The size passed to the generator is always 30;
 -- if you want another size then you should explicitly use 'resize'.
 generate :: Gen a -> IO a
-generate (MkGen g) =
-  do r <- newQCGen
-     return (g r 30)
+generate (MkGen g) = (\r -> g r 30) <$> newQCGen
 
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
@@ -151,15 +174,21 @@ elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
+{-# INLINE filterA #-}
+filterA :: Applicative f => (a -> f Bool) -> [a] -> f [a]
+filterA p = foldr go (pure [])
+  where
+    go x r = (\yn more -> if yn then x : more else more) <$> p x <*> r
+
 -- | Generates a random subsequence of the given list.
 sublistOf :: [a] -> Gen [a]
-sublistOf xs = filterM (\_ -> choose (False, True)) xs
+sublistOf xs = filterA (\_ -> choose (False, True)) xs
 
 -- | Generates a random permutation of the given list.
 shuffle :: [a] -> Gen [a]
-shuffle xs = do
-  ns <- vectorOf (length xs) (choose (minBound :: Int, maxBound))
-  return (map snd (sortBy (comparing fst) (zip ns xs)))
+shuffle xs =
+  (\ns -> map snd . sortBy (comparing fst) $ zip ns xs) <$>
+  (vectorOf (length xs) (choose (minBound :: Int, maxBound)))
 
 -- | Takes a list of elements of increasing size, and chooses
 -- among an initial segment of the list. The size of this initial
@@ -195,9 +224,14 @@ listOf1 gen = sized $ \n ->
   do k <- choose (1,1 `max` n)
      vectorOf k gen
 
+replicateA :: Applicative f => Int -> f a -> f [a]
+replicateA n _ | n <= 0 = pure []
+replicateA 1 m = (:[]) <$> m
+replicateA n m = (:) <$> m <*> replicateA (n - 1) m
+
 -- | Generates a list of the given length.
 vectorOf :: Int -> Gen a -> Gen [a]
-vectorOf = replicateM
+vectorOf = replicateA
 
 -- | Generates an infinite list.
 infiniteListOf :: Gen a -> Gen [a]
