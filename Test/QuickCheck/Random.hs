@@ -68,13 +68,13 @@ instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
 instance RandomGen QCGen where
-  split (QCGen g) = (QCGen g1, QCGen g2)
-    where
-      (g1, g2) = split g
+  split (QCGen g) =
+    case split g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
   genRange (QCGen g) = genRange g
-  next (QCGen g) = (x, QCGen g')
-    where
-      (x, g') = next g
+  next (QCGen g) =
+    case next g of
+      (x, g') -> (x, QCGen g')
 
 newQCGen :: IO QCGen
 newQCGen = fmap QCGen newTheGen
