@@ -440,6 +440,76 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e)
     [ (v', w', x', y', z')
     | (v', (w', (x', (y', z')))) <- shrink (v, (w, (x, (y, z)))) ]
 
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f
+         )
+      => Arbitrary (a,b,c,d,e,f)
+ where
+  arbitrary = return (,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary
+
+  shrink (u, v, w, x, y, z) =
+    [ (u', v', w', x', y', z')
+    | (u', (v', (w', (x', (y', z'))))) <- shrink (u, (v, (w, (x, (y, z))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g
+         )
+      => Arbitrary (a,b,c,d,e,f,g)
+ where
+  arbitrary = return (,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary
+
+  shrink (t, u, v, w, x, y, z) =
+    [ (t', u', v', w', x', y', z')
+    | (t', (u', (v', (w', (x', (y', z')))))) <- shrink (t, (u, (v, (w, (x, (y, z)))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h)
+ where
+  arbitrary = return (,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+  shrink (s, t, u, v, w, x, y, z) =
+    [ (s', t', u', v', w', x', y', z')
+    | (s', (t', (u', (v', (w', (x', (y', z')))))))
+      <- shrink (s, (t, (u, (v, (w, (x, (y, z))))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h,i)
+ where
+  arbitrary = return (,,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary
+
+  shrink (r, s, t, u, v, w, x, y, z) =
+    [ (r', s', t', u', v', w', x', y', z')
+    | (r', (s', (t', (u', (v', (w', (x', (y', z'))))))))
+      <- shrink (r, (s, (t, (u, (v, (w, (x, (y, z)))))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i, Arbitrary j
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h,i,j)
+ where
+  arbitrary = return (,,,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary
+
+  shrink (q, r, s, t, u, v, w, x, y, z) =
+    [ (q', r', s', t', u', v', w', x', y', z')
+    | (q', (r', (s', (t', (u', (v', (w', (x', (y', z')))))))))
+      <- shrink (q, (r, (s, (t, (u, (v, (w, (x, (y, z))))))))) ]
+
 -- typical instance for primitive (numerical) types
 
 instance Arbitrary Integer where
