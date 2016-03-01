@@ -1,5 +1,6 @@
 -- | Type classes for random generation of values.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
