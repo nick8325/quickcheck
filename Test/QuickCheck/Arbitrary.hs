@@ -121,8 +121,10 @@ import Control.Monad
 
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
-import Foreign.C.Types
 import System.Exit (ExitCode(..))
+#if MIN_VERSION_base(4,4,0)
+import Foreign.C.Types
+#endif
 
 #ifndef NO_GENERICS
 import GHC.Generics
@@ -590,6 +592,7 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
+#if MIN_VERSION_base(4,4,0)
 instance Arbitrary CChar where
   arbitrary = CChar <$> arbitrary
   shrink (CChar x) = CChar <$> shrink x
@@ -689,7 +692,7 @@ instance Arbitrary CFloat where
 instance Arbitrary CDouble where
   arbitrary = CDouble <$> arbitrary
   shrink (CDouble x) = CDouble <$> shrink x
-
+#endif
 
 -- Arbitrary instances for container types
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
