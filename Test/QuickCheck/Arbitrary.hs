@@ -727,6 +727,14 @@ instance Arbitrary a => Arbitrary (Const a b) where
   arbitrary = fmap Const arbitrary
   shrink = map Const . shrink . getConst
 
+instance Arbitrary (m a) => Arbitrary (WrappedMonad m a) where
+  arbitrary = WrapMonad <$> arbitrary
+  shrink (WrapMonad a) = map WrapMonad (shrink a)
+
+instance Arbitrary (a b c) => Arbitrary (WrappedArrow a b c) where
+  arbitrary = WrapArrow <$> arbitrary
+  shrink (WrapArrow a) = map WrapArrow (shrink a)
+
 -- Arbitrary instances for Monoid
 instance Arbitrary a => Arbitrary (Monoid.Dual a) where
   arbitrary = fmap Monoid.Dual arbitrary
