@@ -123,7 +123,7 @@ import Control.Monad
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
-#if MIN_VERSION_base(4,4,0)
+#if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types
 #endif
 
@@ -593,7 +593,7 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
-#if MIN_VERSION_base(4,4,0)
+#if MIN_VERSION_base(4,5,0)
 instance Arbitrary CChar where
   arbitrary = CChar <$> arbitrary
   shrink (CChar x) = CChar <$> shrink x
