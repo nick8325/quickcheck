@@ -122,6 +122,7 @@ import Control.Monad
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 import Foreign.C.Types
+import System.Exit (ExitCode(..))
 
 #ifndef NO_GENERICS
 import GHC.Generics
@@ -784,6 +785,13 @@ instance Arbitrary Version where
     , length xs' > 0
     , all (>=0) xs'
     ]
+
+instance Arbitrary ExitCode where
+  arbitrary = frequency [(1, return ExitSuccess), (3, liftM ExitFailure arbitrary)]
+
+  shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
+  shrink _        = []
+
 
 -- ** Helper functions for implementing arbitrary
 
