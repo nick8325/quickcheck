@@ -1,6 +1,11 @@
 -- | Type classes for random generation of values.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+#ifdef MIN_VERSION_base
+#if MIN_VERSION_base(4,7,0)
+{-# LANGUAGE PolyKinds #-}
+#endif
+#endif
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
@@ -123,8 +128,15 @@ import Control.Monad
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
+#ifdef MIN_VERSION_base
 #if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types
+#endif
+#endif
+#ifdef MIN_VERSION_base
+#if MIN_VERSION_base(4,7,0)
+import Data.Typeable (Proxy(..))
+#endif
 #endif
 
 #ifndef NO_GENERICS
@@ -803,6 +815,13 @@ instance Arbitrary ExitCode where
 
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0)
+instance Arbitrary (Proxy a) where
+  arbitrary = return Proxy
+#endif
+#endif
 
 
 -- ** Helper functions for implementing arbitrary
