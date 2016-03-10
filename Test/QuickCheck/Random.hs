@@ -36,6 +36,21 @@ stop n = n <= mask
 mkTheGen :: Int -> TFGen
 mkTheGen = mkTFGen
 
+split3 :: QCGen -> (QCGen, QCGen, QCGen)
+split3 (QCGen tf) = (QCGen (f 0), QCGen (f 1), QCGen (f 2))
+  where
+    f = splitn tf 2
+
+split4 :: QCGen -> (QCGen, QCGen, QCGen, QCGen)
+split4 (QCGen tf) = (QCGen (f 0), QCGen (f 1), QCGen (f 2), QCGen (f 3))
+  where
+    f = splitn tf 2
+
+split5 :: QCGen -> (QCGen, QCGen, QCGen, QCGen, QCGen)
+split5 (QCGen tf) = (QCGen (f 0), QCGen (f 1), QCGen (f 2), QCGen (f 3), QCGen (f 4))
+  where
+    f = splitn tf 3
+
 #else
 import System.Random
 
@@ -55,6 +70,30 @@ chop n = n `div` 2
 
 stop :: Integral a => a -> Bool
 stop n = n <= 1
+
+split3 :: QCGen -> (QCGen, QCGen, QCGen)
+split3 gen =
+  case split gen of {
+    (gen1, gen') ->
+  case split gen' of {
+    (gen2, gen3) -> (gen1, gen2, gen3) }}
+
+split4 :: QCGen -> (QCGen, QCGen, QCGen, QCGen)
+split4 gen =
+  case split gen of {
+    (gen', gen'') ->
+  case split gen' of {
+    (gen1, gen2) ->
+  case split gen'' of {
+    (gen3, gen4) -> (gen1, gen2, gen3, gen4)}}}
+
+split5 :: QCGen -> (QCGen, QCGen, QCGen, QCGen, QCGen)
+split5 gen =
+  case split gen of {
+   (gen1, gen') ->
+  case split4 gen' of {
+    (gen2, gen3, gen4, gen5) -> (gen1, gen2, gen3, gen4, gen5)}}
+
 #endif
 
 -- | The "standard" QuickCheck random number generator.

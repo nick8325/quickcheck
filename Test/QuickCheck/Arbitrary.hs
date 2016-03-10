@@ -111,14 +111,6 @@ import Data.Maybe (mapMaybe)
 
 import Data.Version (Version (..))
 
-import Control.Monad
-  ( liftM
-  , liftM2
-  , liftM3
-  , liftM4
-  , liftM5
-  )
-
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 
@@ -341,13 +333,13 @@ instance Arbitrary Ordering where
   shrink EQ = []
 
 instance Arbitrary a => Arbitrary (Maybe a) where
-  arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
+  arbitrary = frequency [(1, return Nothing), (3, fmap Just arbitrary)]
 
   shrink (Just x) = Nothing : [ Just x' | x' <- shrink x ]
   shrink _        = []
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (Either a b) where
-  arbitrary = oneof [liftM Left arbitrary, liftM Right arbitrary]
+  arbitrary = oneof [fmap Left arbitrary, fmap Right arbitrary]
 
   shrink (Left x)  = [ Left  x' | x' <- shrink x ]
   shrink (Right y) = [ Right y' | y' <- shrink y ]
@@ -358,7 +350,7 @@ instance Arbitrary a => Arbitrary [a] where
 
 #ifndef NO_NONEMPTY
 instance Arbitrary a => Arbitrary (NonEmpty a) where
-  arbitrary = liftM2 (:|) arbitrary arbitrary
+  arbitrary = liftA2 (:|) arbitrary arbitrary
   shrink (x :| xs) = mapMaybe nonEmpty . shrinkList shrink $ x : xs
 #endif
 
@@ -394,7 +386,7 @@ instance Integral a => Arbitrary (Ratio a) where
   shrink    = shrinkRealFracToInteger
 
 instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
-  arbitrary = liftM2 (:+) arbitrary arbitrary
+  arbitrary = liftA2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
 
@@ -407,7 +399,7 @@ instance HasResolution a => Arbitrary (Fixed a) where
 instance (Arbitrary a, Arbitrary b)
       => Arbitrary (a,b)
  where
-  arbitrary = liftM2 (,) arbitrary arbitrary
+  arbitrary = liftA2 (,) arbitrary arbitrary
 
   shrink (x, y) =
        [ (x', y) | x' <- shrink x ]
@@ -416,7 +408,7 @@ instance (Arbitrary a, Arbitrary b)
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
       => Arbitrary (a,b,c)
  where
-  arbitrary = liftM3 (,,) arbitrary arbitrary arbitrary
+  arbitrary = liftA3Gen (,,) arbitrary arbitrary arbitrary
 
   shrink (x, y, z) =
     [ (x', y', z')
@@ -425,7 +417,7 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c)
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
       => Arbitrary (a,b,c,d)
  where
-  arbitrary = liftM4 (,,,) arbitrary arbitrary arbitrary arbitrary
+  arbitrary = liftA4Gen (,,,) arbitrary arbitrary arbitrary arbitrary
 
   shrink (w, x, y, z) =
     [ (w', x', y', z')
@@ -434,7 +426,7 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
 instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e)
       => Arbitrary (a,b,c,d,e)
  where
-  arbitrary = liftM5 (,,,,) arbitrary arbitrary arbitrary arbitrary arbitrary
+  arbitrary = liftA5Gen (,,,,) arbitrary arbitrary arbitrary arbitrary arbitrary
 
   shrink (v, w, x, y, z) =
     [ (v', w', x', y', z')
@@ -708,9 +700,9 @@ arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n ->
     let n' = toInteger n in
-      do a <- choose ((-n') * precision, n' * precision)
-         b <- choose (1, precision)
-         return (fromRational (a % b))
+      (\a b -> fromRational (a % b)) <$>
+      (choose ((-n') * precision, n' * precision)) <*>
+      (choose (1, precision))
  where
   precision = 9999999999999 :: Integer
 
@@ -725,8 +717,7 @@ withBounds k = k minBound maxBound
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral =
   withBounds $ \mn mx ->
-  do n <- choose (toInteger mn, toInteger mx)
-     return (fromInteger n)
+    fromInteger <$> choose (toInteger mn, toInteger mx)
 
 -- | Generates an element of a bounded type. The element is
 -- chosen from the entire range of the type.
@@ -737,8 +728,7 @@ arbitraryBoundedRandom = choose (minBound,maxBound)
 arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a
 arbitraryBoundedEnum =
   withBounds $ \mn mx ->
-  do n <- choose (fromEnum mn, fromEnum mx)
-     return (toEnum n)
+    toEnum <$> choose (fromEnum mn, fromEnum mx)
 
 -- | Generates an integral number from a bounded domain. The number is
 -- chosen from the entire range of the type, but small numbers are
@@ -748,11 +738,11 @@ arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
   withBounds $ \mn mx ->
   sized $ \s ->
-    do let bits n | n `quot` 2 == 0 = 0
-                  | otherwise = 1 + bits (n `quot` 2)
-           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
-       n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
-       return (fromInteger n)
+    let bits n | n `quot` 2 == 0 = 0
+               | otherwise = 1 + bits (n `quot` 2)
+        k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
+    in
+       fromInteger <$> choose (toInteger mn `max` (-k), toInteger mx `min` k)
 
 -- ** Helper functions for implementing shrink
 
