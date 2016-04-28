@@ -748,9 +748,9 @@ arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
   withBounds $ \mn mx ->
   sized $ \s ->
-    do let bits n | n `quot` 2 == 0 = 0
+    do let bits n | n == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
-           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
+           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 80)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
        return (fromInteger n)
 
