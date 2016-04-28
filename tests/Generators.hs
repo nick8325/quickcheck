@@ -128,12 +128,19 @@ prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
 prop_nonnegative = pathInt getNonNegative (>= 0)
 prop_nonnegative_bound = somePathInt getNonNegative (== 0)
 
-prop_version_roundtrip x = Just x === parseVersion' (showVersion x)
-  where
-    parseVersion' s = case filter (null . snd) $ readP_to_S parseVersion s of
-        [(y, "")] -> Just y
-        _         -> Nothing
+reachesBound :: (Bounded a, Integral a, Arbitrary a) =>
+  a -> Property
+reachesBound x = expectFailure (x < 3 * (maxBound `div` 4))
 
+prop_reachesBound_Int8 = reachesBound :: Int8 -> Property
+prop_reachesBound_Int16 = reachesBound :: Int16 -> Property
+prop_reachesBound_Int32 = reachesBound :: Int32 -> Property
+prop_reachesBound_Int64 = reachesBound :: Int64 -> Property
+prop_reachesBound_Word = reachesBound :: Word -> Property
+prop_reachesBound_Word8 = reachesBound :: Word8 -> Property
+prop_reachesBound_Word16 = reachesBound :: Word16 -> Property
+prop_reachesBound_Word32 = reachesBound :: Word32 -> Property
+prop_reachesBound_Word64 = reachesBound :: Word64 -> Property
 
 return []
 main = $quickCheckAll >>= print
