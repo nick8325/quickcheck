@@ -184,6 +184,7 @@ module Test.QuickCheck
     -- *** Controlling property execution
   , verbose
   , once
+  , again
   , within
   , noShrinking
     -- *** Conjunction and disjunction
