@@ -47,6 +47,27 @@ import Data.List( intersperse )
 import Data.Maybe( fromJust )
 import Data.Ratio
 import Control.Arrow( (&&&) )
+import qualified Data.IntMap as IntMap
+import qualified Data.IntSet as IntSet
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Sequence as Sequence
+import Data.Int
+import Data.Word
+import Data.Complex
+import Data.Foldable(toList)
+
+#ifndef NO_FIXED
+import Data.Fixed
+#endif
+
+#ifndef NO_NATURALS
+import Numeric.Natural
+#endif
+
+#ifndef NO_NONEMPTY
+import Data.List.NonEmpty(NonEmpty(..))
+#endif
 
 --------------------------------------------------------------------------
 -- concrete functions
@@ -108,11 +129,32 @@ class Function a where
 
 -- basic instances
 
+-- | Provides a 'Function' instance for types with 'Bounded' and 'Enum'.
+-- Use only for small types (i.e. not integers): creates
+-- the list @['minBound'..'maxBound']@!
+functionBoundedEnum :: (Eq a, Bounded a, Enum a) => (a->b) -> (a:->b)
+functionBoundedEnum f = Table [(x,f x) | x <- [minBound..maxBound]]
+
+-- | Provides a 'Function' instance for types with 'RealFrac'.
+functionRealFrac :: RealFrac a => (a->b) -> (a:->b)
+functionRealFrac = functionMap toRational fromRational
+
+-- | Provides a 'Function' instance for types with 'Integral'.
+functionIntegral :: Integral a => (a->b) -> (a:->b)
+functionIntegral = functionMap fromIntegral fromInteger
+
+-- | Provides a 'Function' instance for types with 'Show' and 'Read'.
+functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
+functionShow f = functionMap show read f
+
+-- | The basic building block for 'Function' instances.
+-- Provides a 'Function' instance by mapping to and from a type that
+-- already has a 'Function' instance.
+functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
+functionMap g h f = Map g h (function (\b -> f (h b)))
+
 instance Function () where
   function f = Unit (f ())
-
-instance Function Word8 where
-  function f = Table [(x,f x) | x <- [0..255]]
 
 instance (Function a, Function b) => Function (a,b) where
   function f = Pair (function `fmap` function (curry f))
@@ -138,12 +180,6 @@ instance (Function a, Function b, Function c, Function d, Function e, Function f
   function = functionMap (\(a,b,c,d,e,f,g) -> (a,(b,c,d,e,f,g))) (\(a,(b,c,d,e,f,g)) -> (a,b,c,d,e,f,g))
 
 -- other instances
-
-functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
-functionMap g h f = Map g h (function (\b -> f (h b)))
-
-functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
-functionShow f = functionMap show read f
 
 instance Function a => Function [a] where
   function = functionMap g h
@@ -188,16 +224,98 @@ instance Function Integer where
     hNatural (w:ws) = fromIntegral w + 256 * hNatural ws
 
 instance Function Int where
-  function = functionMap fromIntegral fromInteger
+  function = functionIntegral
 
 instance Function Char where
-  function = functionMap ord' chr'
-   where
-    ord' c = fromIntegral (ord c) :: Word8
-    chr' n = chr (fromIntegral n)
+  function = functionMap ord chr
 
-instance (Function a, Integral a) => Function (Ratio a) where
-  function = functionMap (numerator &&& denominator) (uncurry (%))
+instance Function Float where
+  function = functionRealFrac
+
+instance Function Double where
+  function = functionRealFrac
+
+-- instances for assorted types in the base package
+
+instance Function Ordering where
+  function = functionMap g h
+    where
+      g LT = Left False
+      g EQ = Left True
+      g GT = Right ()
+
+      h (Left False) = LT
+      h (Left True)  = EQ
+      h (Right _)    = GT
+
+#ifndef NO_NONEMPTY
+instance Function a => Function (NonEmpty a) where
+  function = functionMap g h
+   where
+     g (x :| xs) = (x,   xs)
+     h (x,   xs) =  x :| xs
+#endif
+
+instance (Integral a, Function a) => Function (Ratio a) where
+  function = functionMap g h
+   where
+     g r = (numerator r, denominator r)
+     h (n, d) = n % d
+
+#ifndef NO_FIXED
+instance HasResolution a => Function (Fixed a) where
+  function = functionRealFrac
+#endif
+
+instance (RealFloat a, Function a) => Function (Complex a) where
+  function = functionMap g h
+   where
+     g (x :+ y) = (x,   y)
+     h (x,   y) =  x :+ y
+
+instance (Ord a, Function a) => Function (Set.Set a) where
+  function = functionMap Set.toList Set.fromList
+
+instance (Ord a, Function a, Function b) => Function (Map.Map a b) where
+  function = functionMap Map.toList Map.fromList
+
+instance Function IntSet.IntSet where
+  function = functionMap IntSet.toList IntSet.fromList
+
+instance Function a => Function (IntMap.IntMap a) where
+  function = functionMap IntMap.toList IntMap.fromList
+
+instance Function a => Function (Sequence.Seq a) where
+  function = functionMap toList Sequence.fromList
+
+#ifndef NO_NATURALS
+instance Function Natural where
+  function = functionIntegral
+#endif
+
+instance Function Int8 where
+  function = functionBoundedEnum
+
+instance Function Int16 where
+  function = functionIntegral
+
+instance Function Int32 where
+  function = functionIntegral
+
+instance Function Int64 where
+  function = functionIntegral
+
+instance Function Word8 where
+  function = functionBoundedEnum
+
+instance Function Word16 where
+  function = functionIntegral
+
+instance Function Word32 where
+  function = functionIntegral
+
+instance Function Word64 where
+  function = functionIntegral
 
 -- poly instances
 
