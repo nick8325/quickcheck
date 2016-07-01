@@ -235,7 +235,7 @@ succeeded, failed, rejected :: Result
       , expect       = True
       , reason       = ""
       , theException = Nothing
-      , abort        = False
+      , abort        = True
       , labels       = Map.empty
       , stamp        = Set.empty
       , callbacks    = []
@@ -340,6 +340,10 @@ expectFailure = mapTotalResult (\res -> res{ expect = False })
 once :: Testable prop => prop -> Property
 once = mapTotalResult (\res -> res{ abort = True })
 
+-- | Undoes the effect of 'once'.
+again :: Testable prop => prop -> Property
+again = mapTotalResult (\res -> res{ abort = False })
+
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
 label :: Testable prop => String -> prop -> Property
@@ -413,6 +417,7 @@ forAll gen pf =
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
 forAllShrink gen shrinker pf =
+  again $
   MkProperty $
   gen >>= \x ->
     unProperty $
@@ -424,6 +429,7 @@ forAllShrink gen shrinker pf =
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
+  again $
   MkProperty $
   arbitrary >>= \b ->
     unProperty $
@@ -437,6 +443,7 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (conj id roses))
@@ -473,6 +480,7 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
