@@ -117,6 +117,11 @@ morallyDubiousIOProperty = ioProperty -- Silly names aren't all they're cracked 
 --
 -- For more advanced monadic testing you may want to look at
 -- "Test.QuickCheck.Monadic".
+--
+-- Note that if you use 'ioProperty' on a property of type @IO Bool@,
+-- or more generally a property that does no quantification, the property
+-- will only be executed once. To test the property repeatedly you must
+-- use the 'again' combinator.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
 
