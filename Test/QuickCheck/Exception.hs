@@ -6,37 +6,13 @@
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Exception where
 
-#if !defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 609)
+#if !defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 700)
 #define OLD_EXCEPTIONS
 #endif
 
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 607
-#define GHC_INTERRUPT
-
-#if __GLASGOW_HASKELL__ < 613
-#define GHCI_INTERRUPTED_EXCEPTION
-#endif
-
-#if __GLASGOW_HASKELL__ >= 700
-#define NO_BASE_3
-#endif
-#endif
-
 #if defined(NO_EXCEPTIONS)
-#elif defined(OLD_EXCEPTIONS) || defined(NO_BASE_3)
-import qualified Control.Exception as E
 #else
-import qualified Control.Exception.Extensible as E
-#endif
-
-#if defined(GHC_INTERRUPT)
-#if defined(GHCI_INTERRUPTED_EXCEPTION)
-import Panic(GhcException(Interrupted))
-#endif
-import Data.Typeable
-#if defined(OLD_EXCEPTIONS)
-import Data.Dynamic
-#endif
+import qualified Control.Exception as E
 #endif
 
 #if defined(NO_EXCEPTIONS)
@@ -90,19 +66,10 @@ evaluate = E.evaluate
 -- QuickCheck won't try to shrink an interrupted test case.
 isInterrupt :: AnException -> Bool
 
-#if defined(GHC_INTERRUPT)
 #if defined(OLD_EXCEPTIONS)
-isInterrupt (E.DynException e) = fromDynamic e == Just Interrupted
 isInterrupt _ = False
-#elif defined(GHCI_INTERRUPTED_EXCEPTION)
-isInterrupt e =
-  E.fromException e == Just Interrupted || E.fromException e == Just E.UserInterrupt
 #else
 isInterrupt e = E.fromException e == Just E.UserInterrupt
-#endif
-
-#else /* !defined(GHC_INTERRUPT) */
-isInterrupt _ = False
 #endif
 
 -- | A special exception that makes QuickCheck discard the test case.
@@ -120,8 +87,8 @@ isDiscard :: AnException -> Bool
   isDiscard (E.ErrorCall msg') = msg' == msg
   isDiscard _ = False
 #else
-  isDiscard (E.SomeException e) =
-    case cast e of
+  isDiscard e =
+    case E.fromException e of
       Just (E.ErrorCall msg') -> msg' == msg
       _ -> False
 #endif
