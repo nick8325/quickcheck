@@ -83,10 +83,6 @@ newtype Property = MkProperty { unProperty :: Gen Prop }
 class Testable prop where
   -- | Convert the thing to a property.
   property :: prop -> Property
-  -- | If true, the property will only be tested once.
-  -- However, if used inside a quantifier, it will be tested normally.
-  exhaustive :: prop -> Bool
-  exhaustive _ = False
 
 -- | If a property returns 'Discard', the current test case is discarded,
 -- the same as if a precondition was false.
@@ -94,19 +90,15 @@ data Discard = Discard
 
 instance Testable Discard where
   property _ = property rejected
-  exhaustive _ = True
 
 instance Testable Bool where
   property = property . liftBool
-  exhaustive _ = True
 
 instance Testable Result where
   property = MkProperty . return . MkProp . protectResults . return
-  exhaustive _ = True
 
 instance Testable Prop where
   property (MkProp r) = MkProperty . return . MkProp . ioRose . return $ r
-  exhaustive _ = True
 
 instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (property p)
