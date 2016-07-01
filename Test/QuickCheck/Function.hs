@@ -4,6 +4,10 @@
 {-# LANGUAGE PatternSynonyms #-}
 #endif
 
+#ifndef NO_GENERICS
+{-# LANGUAGE DefaultSignatures, FlexibleContexts #-}
+#endif
+
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
 --
@@ -29,6 +33,9 @@ module Test.QuickCheck.Function
   , Function(..)
   , functionMap
   , functionShow
+  , functionIntegral
+  , functionRealFrac
+  , functionBoundedEnum
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
   , pattern Fn
 #endif
@@ -67,6 +74,10 @@ import Numeric.Natural
 
 #ifndef NO_NONEMPTY
 import Data.List.NonEmpty(NonEmpty(..))
+#endif
+
+#ifndef NO_GENERICS
+import GHC.Generics hiding (C)
 #endif
 
 --------------------------------------------------------------------------
@@ -126,6 +137,10 @@ table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 
 class Function a where
   function :: (a->b) -> (a:->b)
+#ifndef NO_GENERICS
+  default function :: (Generic a, GFunction (Rep a)) => (a->b) -> (a:->b)
+  function = genericFunction
+#endif
 
 -- basic instances
 
@@ -151,16 +166,25 @@ functionShow f = functionMap show read f
 -- Provides a 'Function' instance by mapping to and from a type that
 -- already has a 'Function' instance.
 functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
-functionMap g h f = Map g h (function (\b -> f (h b)))
+functionMap = functionMapWith function
+
+functionMapWith :: ((b->c) -> (b:->c)) -> (a->b) -> (b->a) -> (a->c) -> (a:->c)
+functionMapWith function g h f = Map g h (function (\b -> f (h b)))
 
 instance Function () where
   function f = Unit (f ())
 
 instance (Function a, Function b) => Function (a,b) where
-  function f = Pair (function `fmap` function (curry f))
+  function = functionPairWith function function
+
+functionPairWith :: ((a->b->c) -> (a:->(b->c))) -> ((b->c) -> (b:->c)) -> ((a,b)->c) -> ((a,b):->c)
+functionPairWith func1 func2 f = Pair (func2 `fmap` func1 (curry f))
 
 instance (Function a, Function b) => Function (Either a b) where
-  function f = function (f . Left) :+: function (f . Right)
+  function = functionEitherWith function function
+
+functionEitherWith :: ((a->c) -> (a:->c)) -> ((b->c) -> (b:->c)) -> (Either a b->c) -> (Either a b:->c)
+functionEitherWith func1 func2 f = func1 (f . Left) :+: func2 (f . Right)
 
 -- tuple convenience instances
 
@@ -342,6 +366,41 @@ instance Function OrdC where
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (a:->b) where
   arbitrary = function `fmap` arbitrary
   shrink    = shrinkFun shrink
+
+--------------------------------------------------------------------------
+-- generic function instances
+
+#ifndef NO_GENERICS
+-- | Generic 'Function' implementation.
+genericFunction :: (Generic a, GFunction (Rep a)) => (a->b) -> (a:->b)
+genericFunction = functionMapWith gFunction from to
+
+class GFunction f where
+  gFunction :: (f a -> b) -> (f a :-> b)
+
+instance GFunction U1 where
+  gFunction = functionMap (\U1 -> ()) (\() -> U1)
+
+instance (GFunction f, GFunction g) => GFunction (f :*: g) where
+  gFunction = functionMapWith (functionPairWith gFunction gFunction) g h
+   where
+     g (x :*: y) = (x, y)
+     h (x, y) = x :*: y
+
+instance (GFunction f, GFunction g) => GFunction (f :+: g) where
+  gFunction = functionMapWith (functionEitherWith gFunction gFunction) g h
+   where
+     g (L1 x) = Left x
+     g (R1 x) = Right x
+     h (Left x) = L1 x
+     h (Right x) = R1 x
+
+instance GFunction f => GFunction (M1 i c f) where
+  gFunction = functionMapWith gFunction (\(M1 x) -> x) M1
+
+instance Function a => GFunction (K1 i a) where
+  gFunction = functionMap (\(K1 x) -> x) K1
+#endif
 
 --------------------------------------------------------------------------
 -- shrinking
