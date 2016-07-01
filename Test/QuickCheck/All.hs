@@ -83,7 +83,7 @@ isVar = let isVar' (c:_) = not (isUpper c || c `elem` ":[")
         in isVar' . nameBase
 
 infoType :: Info -> Type
-#if __GLASGOW_HASKELL__ >= 711
+#if MIN_VERSION_template_haskell(2,11,0)
 infoType (ClassOpI _ ty _) = ty
 infoType (DataConI _ ty _) = ty
 infoType (VarI _ ty _) = ty
@@ -96,7 +96,7 @@ infoType (VarI _ ty _ _) = ty
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
   let plain (PlainTV  _)       = True
-#if __GLASGOW_HASKELL__ >= 706
+#if MIN_VERSION_template_haskell(2,8,0)
       plain (KindedTV _ StarT) = True
 #else
       plain (KindedTV _ StarK) = True
@@ -129,7 +129,7 @@ forAllProperties = do
   ls <- runIO (fmap lines (readUTF8File filename))
   let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_' || c == '\'') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
-#if __GLASGOW_HASKELL__ > 705
+#if MIN_VERSION_template_haskell(2,8,0)
       warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
 #else
       warning x = report False ("Name " ++ x ++ " found in source file but was not in scope")
