@@ -17,7 +17,13 @@ import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
 import System.Random(split)
+#if defined(MIN_VERSION_containers)
+#if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
+#else
+import qualified Data.Map as Map
+#endif
+#endif
 import qualified Data.Set as Set
 
 import Data.Char
