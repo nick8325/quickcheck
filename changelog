@@ -1,3 +1,18 @@
+QuickCheck 2.9 (released ???)
+	* Arbitrary, CoArbitrary and Function instances for more types
+	* Generics for automatic Function instances
+	* A new combinator "again" which undoes the effect of "once"
+	* Remove "exhaustive" from Testable typeclass;
+	  instead, combinators which are nonexhaustive (such as forAll)
+	  call "again", which should be more robust
+
+	* Drop support for GHC 6.x
+
+	* Fixed bugs:
+		* arbitrarySizedBoundedIntegral wasn't generating huge integers
+		* verboseCheck failed with Test.QuickCheck.Function
+		* label had a space leak
+
 QuickCheck 2.8.2 (released 2016-01-15)
 	* GHC 8 support
 	* Add Arbitrary and CoArbitrary instances for types in
