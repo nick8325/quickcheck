@@ -9,7 +9,7 @@ Copyright: 2000-2016 Koen Claessen, 2006-2008 Björn Bringert, 2009-2016 Nick Sm
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
-Tested-with: GHC >=6.10, Hugs, UHC
+Tested-with: GHC >= 7
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
