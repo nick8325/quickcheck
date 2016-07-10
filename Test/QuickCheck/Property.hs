@@ -414,6 +414,7 @@ within n = mapRoseResult f
 forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf =
+  again $
   MkProperty $
   gen >>= \x ->
     unProperty (counterexample (show x) (pf x))
