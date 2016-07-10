@@ -69,8 +69,7 @@ library
   else
     cpp-options: -DNO_TRANSFORMERS
 
-  if impl(ghc) && flag(templateHaskell)
-    -- && !impl(haste)
+  if impl(ghc) && flag(templateHaskell) && !impl(haste)
     Build-depends: template-haskell >= 2.4
     Other-Extensions: TemplateHaskell
     Exposed-Modules: Test.QuickCheck.All
@@ -89,8 +88,7 @@ library
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc)
-    -- && !impl(haste)
+  if impl(ghc) && !impl(haste)
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
@@ -139,8 +137,7 @@ Test-Suite test-quickcheck
       QuickCheck == 2.9,
       template-haskell >= 2.4,
       test-framework >= 0.4 && < 0.9
-    if flag(templateHaskell)
-        -- && !impl(haste)
+    if flag(templateHaskell) && !impl(haste)
         Buildable: True
     else
         Buildable: False
@@ -160,8 +157,7 @@ Test-Suite test-quickcheck-generators
     hs-source-dirs: tests
     main-is: Generators.hs
     build-depends: base, QuickCheck == 2.9
-    if !flag(templateHaskell)
-       -- || impl(haste)
+    if !flag(templateHaskell) || impl(haste)
         Buildable: False
 
 Test-Suite test-quickcheck-gshrink
