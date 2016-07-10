@@ -1,4 +1,4 @@
-QuickCheck 2.9 (released ???)
+QuickCheck 2.9 (released 2016-07-10)
 	* Arbitrary, CoArbitrary and Function instances for more types
 	* Generics for automatic Function instances
 	* A new combinator "again" which undoes the effect of "once"
