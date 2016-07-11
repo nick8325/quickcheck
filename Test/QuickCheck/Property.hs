@@ -413,10 +413,7 @@ within n = mapRoseResult f
 -- test case generator.
 forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
-forAll gen pf =
-  MkProperty $
-  gen >>= \x ->
-    unProperty (counterexample (show x) (pf x))
+forAll gen pf = forAllShrink gen (\_ -> []) pf
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
