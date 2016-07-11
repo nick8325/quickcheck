@@ -1,5 +1,5 @@
 Name: QuickCheck
-Version: 2.9
+Version: 2.9.1
 Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
@@ -37,7 +37,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.9
+  tag:      2.9.1
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
@@ -134,7 +134,7 @@ Test-Suite test-quickcheck
     build-depends:
       base,
       containers,
-      QuickCheck == 2.9,
+      QuickCheck == 2.9.1,
       template-haskell >= 2.4,
       test-framework >= 0.4 && < 0.9
     if flag(templateHaskell) && !impl(haste)
@@ -146,7 +146,7 @@ Test-Suite test-quickcheck-gcoarbitrary
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
     main-is: GCoArbitraryExample.hs
-    build-depends: base, QuickCheck == 2.9
+    build-depends: base, QuickCheck == 2.9.1
     if impl(ghc < 7.2)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
@@ -156,7 +156,7 @@ Test-Suite test-quickcheck-generators
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
     main-is: Generators.hs
-    build-depends: base, QuickCheck == 2.9
+    build-depends: base, QuickCheck == 2.9.1
     if !flag(templateHaskell) || impl(haste)
         Buildable: False
 
@@ -164,7 +164,7 @@ Test-Suite test-quickcheck-gshrink
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
     main-is: GShrinkExample.hs
-    build-depends: base, QuickCheck == 2.9
+    build-depends: base, QuickCheck == 2.9.1
     if impl(ghc < 7.2)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)

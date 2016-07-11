@@ -1,3 +1,6 @@
+QuickCheck 2.9.1 (released 2016-07-11)
+	* 'again' was only used in forAllShrink, not forAll
+
 QuickCheck 2.9 (released 2016-07-10)
 	* Arbitrary, CoArbitrary and Function instances for more types
 	* Generics for automatic Function instances
