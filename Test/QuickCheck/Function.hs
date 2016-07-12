@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeOperators, GADTs, CPP #-}
-
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 #endif
