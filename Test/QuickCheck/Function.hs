@@ -472,6 +472,12 @@ shrinkFun shr (Map g h p) =
 --------------------------------------------------------------------------
 -- the Fun modifier
 
+-- | Generation of random shrinkable, showable functions.
+--
+-- To generate random values of type @'Fun' a b@,
+-- you must have an instance @'Function' a@.
+--
+-- See also 'apply' (and 'Fn' with GHC >= 7.8)
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
 #if __GLASGOW_HASKELL__ >= 800
@@ -520,6 +526,10 @@ mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 -- | Extracts the function value.
 --
 -- 'Fn' is the pattern equivalent of this function.
+--
+-- > prop :: Fun String Integer -> Bool
+-- > prop f = apply f "banana" == apply f "monkey"
+-- >       || apply f "banana" == apply f "elephant"
 apply :: Fun a b -> (a -> b)
 apply (Fun _ f) = f
 
