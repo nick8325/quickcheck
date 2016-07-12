@@ -1,4 +1,11 @@
 {-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+#if !defined(NO_ST_MONAD) && !(MIN_VERSION_base(4,8,0))
+{-# LANGUAGE Trustworthy #-}
+#else
+{-# LANGUAGE Safe #-}
+#endif
+#endif
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
 #endif
