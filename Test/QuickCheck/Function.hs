@@ -34,10 +34,14 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
+<<<<<<< HEAD
 #if __GLASGOW_HASKELL__ >= 800
   , Fun2
   , Fun3
 #endif
+=======
+  , appFun
+>>>>>>> 2890938... Add appFun
   , apply
   , apply2
   , apply3
@@ -523,15 +527,19 @@ curry3 f a b c = f (a, b, c)
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
--- | Extracts the function value.
+-- | Alias to 'appFun'.
+apply :: Fun a b -> (a -> b)
+apply = appFun
+
+-- | Extracts the function value. 
 --
 -- 'Fn' is the pattern equivalent of this function.
 --
 -- > prop :: Fun String Integer -> Bool
--- > prop f = apply f "banana" == apply f "monkey"
--- >       || apply f "banana" == apply f "elephant"
-apply :: Fun a b -> (a -> b)
-apply (Fun _ f) = f
+-- > prop f = appFun f "banana" == appFun f "monkey"
+-- >       || appFun f "banana" == appFun f "elephant"
+appFun :: Fun a b -> (a -> b)
+appFun (Fun _ f) = f
 
 -- | Extracts the binary function value.
 --
