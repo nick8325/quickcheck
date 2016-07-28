@@ -11,6 +11,7 @@ module Test.QuickCheck.Gen where
 import System.Random
   ( Random
   , StdGen
+  , random
   , randomR
   , split
   , newStdGen
@@ -89,6 +90,10 @@ scale f g = sized (\n -> resize (f n) g)
 -- | Generates a random element in the given inclusive range.
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
+
+-- | Generates a random element over the natural range of `a`.
+chooseAny :: Random a => Gen a
+chooseAny = MkGen (\r _ -> let (x,_) = random r in x)
 
 -- | Run a generator. The size passed to the generator is always 30;
 -- if you want another size then you should explicitly use 'resize'.
