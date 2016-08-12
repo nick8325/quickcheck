@@ -51,6 +51,7 @@ library
     Test.QuickCheck,
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Gen,
+    Test.QuickCheck.Gen.Class,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
     Test.QuickCheck.Modifiers,
@@ -61,6 +62,8 @@ library
     Test.QuickCheck.State,
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception
+
+  Other-Extensions: CPP
 
   -- GHC-specific modules.
   if impl(ghc)
