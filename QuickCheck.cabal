@@ -63,8 +63,6 @@ library
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception
 
-  Other-Extensions: CPP
-
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
