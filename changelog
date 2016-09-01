@@ -1,3 +1,8 @@
+QuickCheck 2.9.2
+        * 'apply2', 'apply3' and 'Fn2', 'Fn3' added to
+	Test.QuickCheck.Function for testing functions of more than one
+	argument
+
 QuickCheck 2.9.1 (released 2016-07-11)
 	* 'again' was only used in forAllShrink, not forAll
 
