@@ -28,6 +28,10 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
+#if __GLASGOW_HASKELL__ >= 800
+  , Fun2
+  , Fun3
+#endif
   , apply
   , apply2
   , apply3
@@ -42,8 +46,6 @@ module Test.QuickCheck.Function
   , pattern Fn
   , pattern Fn2
   , pattern Fn3
-  , Fun2
-  , Fun3
 #endif
   )
  where
@@ -459,7 +461,7 @@ data Fun a b = Fun (a :-> b, b, Bool) (a -> b)
 #if __GLASGOW_HASKELL__ >= 800
 type Fun2 a b   = Fun (a, b)
 type Fun3 a b c = Fun (a, b, c)
-#endif __GLASGOW_HASKELL__ >= 800
+#endif
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A modifier for testing functions.
@@ -469,7 +471,7 @@ type Fun3 a b c = Fun (a, b, c)
 -- >            || f "banana" == f "elephant"
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn :: (a -> b) -> Fun a b
-#endif __GLASGOW_HASKELL__ >= 800
+#endif
 pattern Fn f <- Fun _ f
 
 -- | A modifier for testing binary functions.
@@ -484,13 +486,13 @@ pattern Fn f <- Fun _ f
 -- 
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
-#endif __GLASGOW_HASKELL__ >= 800
+#endif
 pattern Fn2 f <- Fun _ (curry -> f)
 
 -- | A modifier for testing functions of three arguments.
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn3 :: (a -> b -> c -> d) -> Fun3 a b c d
-#endif __GLASGOW_HASKELL__ >= 800
+#endif
 pattern Fn3 f <- Fun _ (curry3 -> f)
 
 curry3 f a b c = f (a, b, c)
