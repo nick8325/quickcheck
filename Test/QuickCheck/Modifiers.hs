@@ -175,7 +175,7 @@ newtype NonZero a = NonZero {getNonZero :: a}
 instance Functor NonZero where
   fmap f (NonZero x) = NonZero (f x)
 
-instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonZero a) where
+instance (Num a, Eq a, Arbitrary a) => Arbitrary (NonZero a) where
   arbitrary = fmap NonZero $ arbitrary `suchThat` (/= 0)
 
   shrink (NonZero x) = [ NonZero x' | x' <- shrink x, x' /= 0 ]

@@ -3,7 +3,7 @@
 {-# LANGUAGE Rank2Types #-}
 #endif
 -- | Unsafe combinators for the 'Gen' monad.
--- 
+--
 -- 'Gen' is only morally a monad: two generators that are supposed
 -- to be equal will give the same probability distribution, but they
 -- might be different as functions from random number seeds to values.

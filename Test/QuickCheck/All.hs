@@ -2,6 +2,7 @@
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
+
 -- | Test all properties in the current module, using Template Haskell.
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
@@ -66,21 +67,41 @@ monomorphic t = do
   let err msg = error $ msg ++ ": " ++ pprint ty0
   (polys, ctx, ty) <- deconstructType err ty0
   case polys of
-    [] -> return (VarE t)
+    [] -> return (expName t)
     _ -> do
       integer <- [t| Integer |]
       ty' <- monomorphiseType err integer ty
-      return (SigE (VarE t) ty')
+      return (SigE (expName t) ty')
+
+expName :: Name -> Exp
+expName n = if isVar n then VarE n else ConE n
+
+-- See section 2.4 of the Haskell 2010 Language Report, plus support for "[]"
+isVar :: Name -> Bool
+isVar = let isVar' (c:_) = not (isUpper c || c `elem` ":[")
+            isVar' _     = True
+        in isVar' . nameBase
 
 infoType :: Info -> Type
+#if MIN_VERSION_template_haskell(2,11,0)
+infoType (ClassOpI _ ty _) = ty
+infoType (DataConI _ ty _) = ty
+infoType (VarI _ ty _) = ty
+#else
 infoType (ClassOpI _ ty _ _) = ty
 infoType (DataConI _ ty _ _) = ty
 infoType (VarI _ ty _ _) = ty
+#endif
 
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
 deconstructType err ty0@(ForallT xs ctx ty) = do
-  let plain (PlainTV _) = True
-      plain _ = False
+  let plain (PlainTV  _)       = True
+#if MIN_VERSION_template_haskell(2,8,0)
+      plain (KindedTV _ StarT) = True
+#else
+      plain (KindedTV _ StarK) = True
+#endif
+      plain _                  = False
   unless (all plain xs) $ err "Higher-kinded type variables in type"
   return (map (\(PlainTV x) -> x) xs, ctx, ty)
 deconstructType _ ty = return ([], [], ty)
@@ -108,7 +129,7 @@ forAllProperties = do
   ls <- runIO (fmap lines (readUTF8File filename))
   let prefixes = map (takeWhile (\c -> isAlphaNum c || c == '_' || c == '\'') . dropWhile (\c -> isSpace c || c == '>')) ls
       idents = nubBy (\x y -> snd x == snd y) (filter (("prop_" `isPrefixOf`) . snd) (zip [1..] prefixes))
-#if __GLASGOW_HASKELL__ > 705
+#if MIN_VERSION_template_haskell(2,8,0)
       warning x = reportWarning ("Name " ++ x ++ " found in source file but was not in scope")
 #else
       warning x = report False ("Name " ++ x ++ " found in source file but was not in scope")
@@ -177,3 +198,4 @@ runQuickCheckAll ps qc =
       Failure { } -> False
       NoExpectedFailure { } -> False
       GaveUp { } -> False
+      InsufficientCoverage { } -> False

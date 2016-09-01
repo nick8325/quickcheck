@@ -2,7 +2,11 @@
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms #-}
-#endif 
+#endif
+
+#ifndef NO_GENERICS
+{-# LANGUAGE DefaultSignatures, FlexibleContexts #-}
+#endif
 
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
@@ -29,8 +33,11 @@ module Test.QuickCheck.Function
   , Function(..)
   , functionMap
   , functionShow
+  , functionIntegral
+  , functionRealFrac
+  , functionBoundedEnum
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
-  , pattern Fn 
+  , pattern Fn
 #endif
   )
  where
@@ -45,11 +52,38 @@ import Data.Char
 import Data.Word
 import Data.List( intersperse )
 import Data.Maybe( fromJust )
+import Data.Ratio
+import Control.Arrow( (&&&) )
+import qualified Data.IntMap as IntMap
+import qualified Data.IntSet as IntSet
+import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Sequence as Sequence
+import Data.Int
+import Data.Word
+import Data.Complex
+import Data.Foldable(toList)
+
+#ifndef NO_FIXED
+import Data.Fixed
+#endif
+
+#ifndef NO_NATURALS
+import Numeric.Natural
+#endif
+
+#ifndef NO_NONEMPTY
+import Data.List.NonEmpty(NonEmpty(..))
+#endif
+
+#ifndef NO_GENERICS
+import GHC.Generics hiding (C)
+#endif
 
 --------------------------------------------------------------------------
 -- concrete functions
 
--- the type of possibly partial concrete functions
+-- | The type of possibly partial concrete functions
 data a :-> c where
   Pair  :: (a :-> (b :-> c)) -> ((a,b) :-> c)
   (:+:) :: (a :-> c) -> (b :-> c) -> (Either a b :-> c)
@@ -103,20 +137,54 @@ table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 
 class Function a where
   function :: (a->b) -> (a:->b)
+#ifndef NO_GENERICS
+  default function :: (Generic a, GFunction (Rep a)) => (a->b) -> (a:->b)
+  function = genericFunction
+#endif
 
 -- basic instances
+
+-- | Provides a 'Function' instance for types with 'Bounded' and 'Enum'.
+-- Use only for small types (i.e. not integers): creates
+-- the list @['minBound'..'maxBound']@!
+functionBoundedEnum :: (Eq a, Bounded a, Enum a) => (a->b) -> (a:->b)
+functionBoundedEnum f = Table [(x,f x) | x <- [minBound..maxBound]]
+
+-- | Provides a 'Function' instance for types with 'RealFrac'.
+functionRealFrac :: RealFrac a => (a->b) -> (a:->b)
+functionRealFrac = functionMap toRational fromRational
+
+-- | Provides a 'Function' instance for types with 'Integral'.
+functionIntegral :: Integral a => (a->b) -> (a:->b)
+functionIntegral = functionMap fromIntegral fromInteger
+
+-- | Provides a 'Function' instance for types with 'Show' and 'Read'.
+functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
+functionShow f = functionMap show read f
+
+-- | The basic building block for 'Function' instances.
+-- Provides a 'Function' instance by mapping to and from a type that
+-- already has a 'Function' instance.
+functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
+functionMap = functionMapWith function
+
+functionMapWith :: ((b->c) -> (b:->c)) -> (a->b) -> (b->a) -> (a->c) -> (a:->c)
+functionMapWith function g h f = Map g h (function (\b -> f (h b)))
 
 instance Function () where
   function f = Unit (f ())
 
-instance Function Word8 where
-  function f = Table [(x,f x) | x <- [0..255]]
-
 instance (Function a, Function b) => Function (a,b) where
-  function f = Pair (function `fmap` function (curry f))
+  function = functionPairWith function function
+
+functionPairWith :: ((a->b->c) -> (a:->(b->c))) -> ((b->c) -> (b:->c)) -> ((a,b)->c) -> ((a,b):->c)
+functionPairWith func1 func2 f = Pair (func2 `fmap` func1 (curry f))
 
 instance (Function a, Function b) => Function (Either a b) where
-  function f = function (f . Left) :+: function (f . Right)
+  function = functionEitherWith function function
+
+functionEitherWith :: ((a->c) -> (a:->c)) -> ((b->c) -> (b:->c)) -> (Either a b->c) -> (Either a b:->c)
+functionEitherWith func1 func2 f = func1 (f . Left) :+: func2 (f . Right)
 
 -- tuple convenience instances
 
@@ -136,12 +204,6 @@ instance (Function a, Function b, Function c, Function d, Function e, Function f
   function = functionMap (\(a,b,c,d,e,f,g) -> (a,(b,c,d,e,f,g))) (\(a,(b,c,d,e,f,g)) -> (a,b,c,d,e,f,g))
 
 -- other instances
-
-functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
-functionMap g h f = Map g h (function (\b -> f (h b)))
-
-functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
-functionShow f = functionMap show read f
 
 instance Function a => Function [a] where
   function = functionMap g h
@@ -186,13 +248,98 @@ instance Function Integer where
     hNatural (w:ws) = fromIntegral w + 256 * hNatural ws
 
 instance Function Int where
-  function = functionMap fromIntegral fromInteger
+  function = functionIntegral
 
 instance Function Char where
-  function = functionMap ord' chr'
+  function = functionMap ord chr
+
+instance Function Float where
+  function = functionRealFrac
+
+instance Function Double where
+  function = functionRealFrac
+
+-- instances for assorted types in the base package
+
+instance Function Ordering where
+  function = functionMap g h
+    where
+      g LT = Left False
+      g EQ = Left True
+      g GT = Right ()
+
+      h (Left False) = LT
+      h (Left True)  = EQ
+      h (Right _)    = GT
+
+#ifndef NO_NONEMPTY
+instance Function a => Function (NonEmpty a) where
+  function = functionMap g h
    where
-    ord' c = fromIntegral (ord c) :: Word8
-    chr' n = chr (fromIntegral n)
+     g (x :| xs) = (x,   xs)
+     h (x,   xs) =  x :| xs
+#endif
+
+instance (Integral a, Function a) => Function (Ratio a) where
+  function = functionMap g h
+   where
+     g r = (numerator r, denominator r)
+     h (n, d) = n % d
+
+#ifndef NO_FIXED
+instance HasResolution a => Function (Fixed a) where
+  function = functionRealFrac
+#endif
+
+instance (RealFloat a, Function a) => Function (Complex a) where
+  function = functionMap g h
+   where
+     g (x :+ y) = (x,   y)
+     h (x,   y) =  x :+ y
+
+instance (Ord a, Function a) => Function (Set.Set a) where
+  function = functionMap Set.toList Set.fromList
+
+instance (Ord a, Function a, Function b) => Function (Map.Map a b) where
+  function = functionMap Map.toList Map.fromList
+
+instance Function IntSet.IntSet where
+  function = functionMap IntSet.toList IntSet.fromList
+
+instance Function a => Function (IntMap.IntMap a) where
+  function = functionMap IntMap.toList IntMap.fromList
+
+instance Function a => Function (Sequence.Seq a) where
+  function = functionMap toList Sequence.fromList
+
+#ifndef NO_NATURALS
+instance Function Natural where
+  function = functionIntegral
+#endif
+
+instance Function Int8 where
+  function = functionBoundedEnum
+
+instance Function Int16 where
+  function = functionIntegral
+
+instance Function Int32 where
+  function = functionIntegral
+
+instance Function Int64 where
+  function = functionIntegral
+
+instance Function Word8 where
+  function = functionBoundedEnum
+
+instance Function Word16 where
+  function = functionIntegral
+
+instance Function Word32 where
+  function = functionIntegral
+
+instance Function Word64 where
+  function = functionIntegral
 
 -- poly instances
 
@@ -219,6 +366,41 @@ instance Function OrdC where
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (a:->b) where
   arbitrary = function `fmap` arbitrary
   shrink    = shrinkFun shrink
+
+--------------------------------------------------------------------------
+-- generic function instances
+
+#ifndef NO_GENERICS
+-- | Generic 'Function' implementation.
+genericFunction :: (Generic a, GFunction (Rep a)) => (a->b) -> (a:->b)
+genericFunction = functionMapWith gFunction from to
+
+class GFunction f where
+  gFunction :: (f a -> b) -> (f a :-> b)
+
+instance GFunction U1 where
+  gFunction = functionMap (\U1 -> ()) (\() -> U1)
+
+instance (GFunction f, GFunction g) => GFunction (f :*: g) where
+  gFunction = functionMapWith (functionPairWith gFunction gFunction) g h
+   where
+     g (x :*: y) = (x, y)
+     h (x, y) = x :*: y
+
+instance (GFunction f, GFunction g) => GFunction (f :+: g) where
+  gFunction = functionMapWith (functionEitherWith gFunction gFunction) g h
+   where
+     g (L1 x) = Left x
+     g (R1 x) = Right x
+     h (Left x) = L1 x
+     h (Right x) = R1 x
+
+instance GFunction f => GFunction (M1 i c f) where
+  gFunction = functionMapWith gFunction (\(M1 x) -> x) M1
+
+instance Function a => GFunction (K1 i a) where
+  gFunction = functionMap (\(K1 x) -> x) K1
+#endif
 
 --------------------------------------------------------------------------
 -- shrinking
@@ -267,25 +449,26 @@ shrinkFun shr (Map g h p) =
 --------------------------------------------------------------------------
 -- the Fun modifier
 
-data Fun a b = Fun (a :-> b, b) (a -> b)
+data Fun a b = Fun (a :-> b, b, Bool) (a -> b)
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A pattern for matching against the function only:
--- 
+--
 -- > prop :: Fun String Integer -> Bool
--- > prop (Fn f) = f "banana" == f "monkey" 
---              || f "banana" == f "elephant"
+-- > prop (Fn f) = f "banana" == f "monkey"
+-- >            || f "banana" == f "elephant"
 pattern Fn f <- Fun _ f
-#endif 
+#endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
-mkFun p d = Fun (p,d) (abstract p d)
+mkFun p d = Fun (p, d, False) (abstract p d)
 
 apply :: Fun a b -> (a -> b)
 apply (Fun _ f) = f
 
 instance (Show a, Show b) => Show (Fun a b) where
-  show (Fun (p,d) _) = showFunction p (Just d)
+  show (Fun (_, _, False) _) = "<fun>"
+  show (Fun (p, d, True) _)  = showFunction p (Just d)
 
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
   arbitrary =
@@ -293,8 +476,9 @@ instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
        d <- arbitrary
        return (mkFun p d)
 
-  shrink (Fun (p,d) _) =
-    [ mkFun p' d' | (p', d') <- shrink (p, d) ]
+  shrink (Fun (p, d, b) f) =
+    [ mkFun p' d' | (p', d') <- shrink (p, d) ] ++
+    [ Fun (p, d, True) f | not b ]
 
 --------------------------------------------------------------------------
 -- the end.

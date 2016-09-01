@@ -6,19 +6,18 @@ tend to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
 for @Integer@s one might write:
 
 @
-    import Test.QuickCheck
+import Test.QuickCheck
 
-    prop_commutativeAdd :: Integer -> Integer -> Bool
-    prop_commutativeAdd n m = n + m == m + n
+prop_commutativeAdd :: Integer -> Integer -> Bool
+prop_commutativeAdd n m = n + m == m + n
 @
 
 and testing:
 
->>> quickcheck prop_commutativeAdd
+>>> quickCheck prop_commutativeAdd
 +++ OK, passed 100 tests.
 
-which generates 200 @Integer@s and checks that @prop_commutativeAdd@
-holds for them.
+which tests @prop_commutativeAdd@ on 100 random @(Integer, Integer)@ pairs.
 
 'verboseCheck' can be used to see the actual values generated:
 
@@ -42,19 +41,19 @@ To let QuickCheck generate values of your own data type an 'Arbitrary'
 instance must be defined:
 
 @
-    data Point = MkPoint Int Int deriving Eq
-    
-    instance Arbitrary Point where
-      arbitrary = do
-        x <- 'arbitrary'
-        y <- arbitrary
-        return (MkPoint x y)
-    
-    swapPoint :: Point -> Point
-    swapPoint (MkPoint x y) = MkPoint y x
+data Point = MkPoint Int Int deriving Eq
 
-    -- swapPoint . swapPoint = id
-    prop_swapInvolution point = swapPoint (swapPoint point) == point
+instance Arbitrary Point where
+  arbitrary = do
+    x <- 'arbitrary'
+    y <- arbitrary
+    return (MkPoint x y)
+
+swapPoint :: Point -> Point
+swapPoint (MkPoint x y) = MkPoint y x
+
+-- swapPoint . swapPoint = id
+prop_swapInvolution point = swapPoint (swapPoint point) == point
 @
 
 >>> quickCheck prop_swapInvolution
@@ -105,12 +104,15 @@ module Test.QuickCheck
   , growingElements
   , sized
   , resize
+  , scale
   , suchThat
   , suchThatMaybe
   , listOf
   , listOf1
   , vectorOf
   , infiniteListOf
+  , shuffle
+  , sublistOf
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
@@ -127,6 +129,7 @@ module Test.QuickCheck
 
     -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral
+  , arbitrarySizedNatural
   , arbitrarySizedFractional
   , arbitrarySizedBoundedIntegral
   , arbitraryBoundedIntegral
@@ -134,6 +137,7 @@ module Test.QuickCheck
   , arbitraryBoundedEnum
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
+  , genericCoarbitrary
   , genericShrink
   , subterms
   , recursivelyShrink
@@ -180,6 +184,7 @@ module Test.QuickCheck
     -- *** Controlling property execution
   , verbose
   , once
+  , again
   , within
   , noShrinking
     -- *** Conjunction and disjunction

@@ -35,6 +35,7 @@ import System.IO
   , BufferMode (..)
   , hGetBuffering
   , hSetBuffering
+  , hIsTerminalDevice
   )
 
 import Data.IORef
@@ -85,15 +86,13 @@ bold s = s -- for now
 -- putting strings
 
 data Terminal
-  = MkTerminal (IORef (IO ())) Output Output
+  = MkTerminal (IORef String) (IORef Int) (String -> IO ()) (String -> IO ())
 
-data Output
-  = Output (String -> IO ()) (IORef String)
-
-newTerminal :: Output -> Output -> IO Terminal
+newTerminal :: (String -> IO ()) -> (String -> IO ()) -> IO Terminal
 newTerminal out err =
-  do ref <- newIORef (return ())
-     return (MkTerminal ref out err)
+  do res <- newIORef ""
+     tmp <- newIORef 0
+     return (MkTerminal res tmp out err)
 
 withBuffering :: IO a -> IO a
 withBuffering action = do
@@ -105,64 +104,48 @@ withBuffering action = do
 
 withStdioTerminal :: (Terminal -> IO a) -> IO a
 withStdioTerminal action = do
-  out <- output (handle stdout)
-  err <- output (handle stderr)
-  withBuffering (newTerminal out err >>= action)
+  isatty <- hIsTerminalDevice stderr
+  let err = if isatty then handle stderr else const (return ())
+  withBuffering (newTerminal (handle stdout) err >>= action)
 
 withNullTerminal :: (Terminal -> IO a) -> IO a
-withNullTerminal action = do
-  out <- output (const (return ()))
-  err <- output (const (return ()))
-  newTerminal out err >>= action
+withNullTerminal action =
+  newTerminal (const (return ())) (const (return ())) >>= action
 
 terminalOutput :: Terminal -> IO String
-terminalOutput (MkTerminal _ out _) = get out
+terminalOutput (MkTerminal res _ _ _) = readIORef res
 
 handle :: Handle -> String -> IO ()
 handle h s = do
   hPutStr h s
   hFlush h
 
-output :: (String -> IO ()) -> IO Output
-output f = do
-  r <- newIORef ""
-  return (Output f r)
-
-put :: Output -> String -> IO ()
-put (Output f r) s = do
-  f s
-  modifyIORef r (++ s)
-
-get :: Output -> IO String
-get (Output _ r) = readIORef r
-
 flush :: Terminal -> IO ()
-flush (MkTerminal ref _ _) =
-  do io <- readIORef ref
-     writeIORef ref (return ())
-     io
-
-postpone :: Terminal -> IO () -> IO ()
-postpone (MkTerminal ref _ _) io' =
-  do io <- readIORef ref
-     writeIORef ref (io >> io')
+flush (MkTerminal _ tmp _ err) =
+  do n <- readIORef tmp
+     writeIORef tmp 0
+     err (replicate n ' ' ++ replicate n '\b')
 
 putPart, putTemp, putLine :: Terminal -> String -> IO ()
-putPart tm@(MkTerminal _ out _) s =
+putPart tm@(MkTerminal res _ out _) s =
   do flush tm
-     put out s
+     force s
+     out s
+     modifyIORef res (++ s)
+  where
+    force :: [a] -> IO ()
+    force = evaluate . seqList
 
-putTemp tm@(MkTerminal _ _ err) s =
-  do flush tm
-     put err (s ++ [ '\b' | _ <- s ])
-     postpone tm $
-       put err ( [ ' ' | _ <- s ]
-              ++ [ '\b' | _ <- s ]
-               )
+    seqList :: [a] -> ()
+    seqList [] = ()
+    seqList (x:xs) = x `seq` seqList xs
 
-putLine tm@(MkTerminal _ out _) s =
+putLine tm s = putPart tm (s ++ "\n")
+
+putTemp tm@(MkTerminal _ tmp _ err) s =
   do flush tm
-     put out (s ++ "\n")
+     err (s ++ [ '\b' | _ <- s ])
+     modifyIORef tmp (+ length s)
 
 --------------------------------------------------------------------------
 -- the end.

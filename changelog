@@ -1,3 +1,57 @@
+QuickCheck 2.9.1 (released 2016-07-11)
+	* 'again' was only used in forAllShrink, not forAll
+
+QuickCheck 2.9 (released 2016-07-10)
+	* Arbitrary, CoArbitrary and Function instances for more types
+	* Generics for automatic Function instances
+	* A new combinator "again" which undoes the effect of "once"
+	* Remove "exhaustive" from Testable typeclass;
+	  instead, combinators which are nonexhaustive (such as forAll)
+	  call "again", which should be more robust
+
+	* Drop support for GHC 6.x
+
+	* Fixed bugs:
+		* arbitrarySizedBoundedIntegral wasn't generating huge integers
+		* verboseCheck failed with Test.QuickCheck.Function
+		* label had a space leak
+
+QuickCheck 2.8.2 (released 2016-01-15)
+	* GHC 8 support
+	* Add Arbitrary and CoArbitrary instances for types in
+	  containers package
+	* Improve speed of shuffle combinator
+	* Only print to stderr if it's a terminal.
+	* Small changes: slightly improve documentation,
+	  remove redundant constraints from some functions' types,
+	  small improvements to Test.QuickCheck.All.
+
+QuickCheck 2.8.1 (released 2015-04-03)
+	* Fix bug where exceptions thrown printing counterexamples weren't
+	  being caught when terminal output was disabled
+	* Don't export Test.QuickCheck.Property.result
+
+QuickCheck 2.8 (released 2015-03-18)
+	* New features:
+		* Support for GHC 7.10
+		* Arbitrary instance for Natural
+		* New generators shuffle and sublistOf
+		* Support for generic coarbitrary
+		* When using the cover combinator, insufficient coverage now
+		  causes the property to fail
+
+	* API changes:
+		* Test.QuickCheck.Function: new pattern synonym Fn
+		* genericShrink no longer requires Typeable
+		* Result has a new constructor InsufficientCoverage
+		* resize throws an error if the size is negative
+
+	* Bug fixes:
+		* Fix memory leaks
+		* Exceptions thrown by callbacks now cause the test to fail
+		* Fixed a bug where the cover combinator wouldn't give a
+		  warning if coverage was 0%
+
 QuickCheck 2.7.3 (released 2014-03-24)
 	* Add annotations for Safe Haskell.
 

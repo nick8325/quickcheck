@@ -11,6 +11,7 @@ module Test.QuickCheck.Gen where
 import System.Random
   ( Random
   , StdGen
+  , random
   , randomR
   , split
   , newStdGen
@@ -20,13 +21,21 @@ import Control.Monad
   ( liftM
   , ap
   , replicateM
+  , filterM
   )
 
 import Control.Applicative
   ( Applicative(..)
+  , (<$>)
+  )
+
+import Control.Arrow
+  ( second
   )
 
 import Test.QuickCheck.Random
+import Data.List
+import Data.Ord
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -70,13 +79,24 @@ sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
 resize :: Int -> Gen a -> Gen a
-resize n (MkGen m) = MkGen (\r _ -> m r n)
+resize n _ | n < 0 = error "Test.QuickCheck.resize: negative size"
+resize n (MkGen g) = MkGen (\r _ -> g r n)
+
+-- | Adjust the size parameter, by transforming it with the given
+-- function.
+scale :: (Int -> Int) -> Gen a -> Gen a
+scale f g = sized (\n -> resize (f n) g)
 
 -- | Generates a random element in the given inclusive range.
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
--- | Run a generator.
+-- | Generates a random element over the natural range of `a`.
+chooseAny :: Random a => Gen a
+chooseAny = MkGen (\r _ -> let (x,_) = random r in x)
+
+-- | Run a generator. The size passed to the generator is always 30;
+-- if you want another size then you should explicitly use 'resize'.
 generate :: Gen a -> IO a
 generate (MkGen g) =
   do r <- newQCGen
@@ -135,6 +155,16 @@ frequency xs0 = choose (1, tot) >>= (`pick` xs0)
 elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
+
+-- | Generates a random subsequence of the given list.
+sublistOf :: [a] -> Gen [a]
+sublistOf xs = filterM (\_ -> choose (False, True)) xs
+
+-- | Generates a random permutation of the given list.
+shuffle :: [a] -> Gen [a]
+shuffle xs = do
+  ns <- vectorOf (length xs) (choose (minBound :: Int, maxBound))
+  return (map snd (sortBy (comparing fst) (zip ns xs)))
 
 -- | Takes a list of elements of increasing size, and chooses
 -- among an initial segment of the list. The size of this initial

@@ -3,7 +3,10 @@
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses, OverlappingInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+#if __GLASGOW_HASKELL__ < 710
+{-# LANGUAGE OverlappingInstances  #-}
+#endif
 #endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
@@ -16,6 +19,7 @@ module Test.QuickCheck.Arbitrary
 
   -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
+  , arbitrarySizedNatural         -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedFractional      -- :: Fractional a => Gen a
@@ -52,6 +56,7 @@ module Test.QuickCheck.Arbitrary
 -- imports
 
 import Control.Applicative
+import Data.Foldable(toList)
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Gen.Unsafe
@@ -81,6 +86,10 @@ import Data.Fixed
   )
 #endif
 
+#ifndef NO_NATURALS
+import Numeric.Natural
+#endif
+
 import Data.Ratio
   ( Ratio
   , (%)
@@ -96,6 +105,13 @@ import Data.List
   , nub
   )
 
+#ifndef NO_NONEMPTY
+import Data.List.NonEmpty (NonEmpty (..), nonEmpty)
+import Data.Maybe (mapMaybe)
+#endif
+
+import Data.Version (Version (..))
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -110,6 +126,17 @@ import Data.Word(Word, Word8, Word16, Word32, Word64)
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
+
+import qualified Data.Set as Set
+import qualified Data.Map as Map
+import qualified Data.IntSet as IntSet
+import qualified Data.IntMap as IntMap
+import qualified Data.Sequence as Sequence
+
+import qualified Data.Monoid as Monoid
+
+import Data.Functor.Identity
+import Data.Functor.Constant
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -315,7 +342,7 @@ genericArbitrary = to <$> gArbitrary
 
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
-genericShrink :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
+genericShrink :: (Generic a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
 genericShrink x = subterms x ++ recursivelyShrink x
 
 
@@ -350,7 +377,7 @@ instance RecursivelyShrink V1 where
 
 
 -- | All immediate subterms of a term.
-subterms :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
+subterms :: (Generic a, GSubterms (Rep a) a) => a -> [a]
 subterms = gSubterms . from
 
 
@@ -413,10 +440,10 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
   gSubtermsIncl (M1 x) = gSubtermsIncl x
 
 -- This is the important case: We've found a term of the same type.
-instance Arbitrary a => GSubtermsIncl (K1 i a) a where
+instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
-instance GSubtermsIncl (K1 i a) b where
+instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
 #endif
@@ -453,11 +480,14 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Either a b) where
   shrink (Right y) = [ Right y' | y' <- shrink y ]
 
 instance Arbitrary a => Arbitrary [a] where
-  arbitrary = sized $ \n ->
-    do k <- choose (0,n)
-       sequence [ arbitrary | _ <- [1..k] ]
-
+  arbitrary = listOf arbitrary
   shrink xs = shrinkList shrink xs
+
+#ifndef NO_NONEMPTY
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = liftM2 (:|) arbitrary arbitrary
+  shrink (x :| xs) = mapMaybe nonEmpty . shrinkList shrink $ x : xs
+#endif
 
 -- | Shrink a list of values given a shrinking function for individual values.
 shrinkList :: (a -> [a]) -> [a] -> [[a]]
@@ -486,7 +516,7 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
                ++ [ x':xs | x'  <- shrink x ]
 -}
 
-instance (Integral a, Arbitrary a) => Arbitrary (Ratio a) where
+instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFracToInteger
 
@@ -537,11 +567,87 @@ instance (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e)
     [ (v', w', x', y', z')
     | (v', (w', (x', (y', z')))) <- shrink (v, (w, (x, (y, z)))) ]
 
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f
+         )
+      => Arbitrary (a,b,c,d,e,f)
+ where
+  arbitrary = return (,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary
+
+  shrink (u, v, w, x, y, z) =
+    [ (u', v', w', x', y', z')
+    | (u', (v', (w', (x', (y', z'))))) <- shrink (u, (v, (w, (x, (y, z))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g
+         )
+      => Arbitrary (a,b,c,d,e,f,g)
+ where
+  arbitrary = return (,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary
+
+  shrink (t, u, v, w, x, y, z) =
+    [ (t', u', v', w', x', y', z')
+    | (t', (u', (v', (w', (x', (y', z')))))) <- shrink (t, (u, (v, (w, (x, (y, z)))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h)
+ where
+  arbitrary = return (,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+
+  shrink (s, t, u, v, w, x, y, z) =
+    [ (s', t', u', v', w', x', y', z')
+    | (s', (t', (u', (v', (w', (x', (y', z')))))))
+      <- shrink (s, (t, (u, (v, (w, (x, (y, z))))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h,i)
+ where
+  arbitrary = return (,,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary
+
+  shrink (r, s, t, u, v, w, x, y, z) =
+    [ (r', s', t', u', v', w', x', y', z')
+    | (r', (s', (t', (u', (v', (w', (x', (y', z'))))))))
+      <- shrink (r, (s, (t, (u, (v, (w, (x, (y, z)))))))) ]
+
+instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
+         , Arbitrary f, Arbitrary g, Arbitrary h, Arbitrary i, Arbitrary j
+         )
+      => Arbitrary (a,b,c,d,e,f,g,h,i,j)
+ where
+  arbitrary = return (,,,,,,,,,)
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary <*> arbitrary <*> arbitrary
+          <*> arbitrary <*> arbitrary
+
+  shrink (q, r, s, t, u, v, w, x, y, z) =
+    [ (q', r', s', t', u', v', w', x', y', z')
+    | (q', (r', (s', (t', (u', (v', (w', (x', (y', z')))))))))
+      <- shrink (q, (r, (s, (t, (u, (v, (w, (x, (y, z))))))))) ]
+
 -- typical instance for primitive (numerical) types
 
 instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
+
+#ifndef NO_NATURALS
+instance Arbitrary Natural where
+  arbitrary = arbitrarySizedNatural
+  shrink    = shrinkIntegral
+#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -609,6 +715,101 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
+-- Arbitrary instances for container types
+instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
+  arbitrary = fmap Set.fromList arbitrary
+  shrink = map Set.fromList . shrink . Set.toList
+instance (Ord k, Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
+  arbitrary = fmap Map.fromList arbitrary
+  shrink = map Map.fromList . shrink . Map.toList
+instance Arbitrary IntSet.IntSet where
+  arbitrary = fmap IntSet.fromList arbitrary
+  shrink = map IntSet.fromList . shrink . IntSet.toList
+instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
+  arbitrary = fmap IntMap.fromList arbitrary
+  shrink = map IntMap.fromList . shrink . IntMap.toList
+instance Arbitrary a => Arbitrary (Sequence.Seq a) where
+  arbitrary = fmap Sequence.fromList arbitrary
+  shrink = map Sequence.fromList . shrink . toList
+
+-- Arbitrary instance for Ziplist
+instance Arbitrary a => Arbitrary (ZipList a) where
+  arbitrary = fmap ZipList arbitrary
+  shrink = map ZipList . shrink . getZipList
+
+-- Arbitrary instance for transformers' Functors
+instance Arbitrary a => Arbitrary (Identity a) where
+  arbitrary = fmap Identity arbitrary
+  shrink = map Identity . shrink . runIdentity
+
+instance Arbitrary a => Arbitrary (Constant a b) where
+  arbitrary = fmap Constant arbitrary
+  shrink = map Constant . shrink . getConstant
+
+-- Arbitrary instance for Const
+instance Arbitrary a => Arbitrary (Const a b) where
+  arbitrary = fmap Const arbitrary
+  shrink = map Const . shrink . getConst
+
+-- Arbitrary instances for Monoid
+instance Arbitrary a => Arbitrary (Monoid.Dual a) where
+  arbitrary = fmap Monoid.Dual arbitrary
+  shrink = map Monoid.Dual . shrink . Monoid.getDual
+
+instance (Arbitrary a, CoArbitrary a) => Arbitrary (Monoid.Endo a) where
+  arbitrary = fmap Monoid.Endo arbitrary
+  shrink = map Monoid.Endo . shrink . Monoid.appEndo
+
+instance Arbitrary Monoid.All where
+  arbitrary = fmap Monoid.All arbitrary
+  shrink = map Monoid.All . shrink . Monoid.getAll
+
+instance Arbitrary Monoid.Any where
+  arbitrary = fmap Monoid.Any arbitrary
+  shrink = map Monoid.Any . shrink . Monoid.getAny
+
+instance Arbitrary a => Arbitrary (Monoid.Sum a) where
+  arbitrary = fmap Monoid.Sum arbitrary
+  shrink = map Monoid.Sum . shrink . Monoid.getSum
+
+instance Arbitrary a => Arbitrary (Monoid.Product a) where
+  arbitrary = fmap Monoid.Product  arbitrary
+  shrink = map Monoid.Product  . shrink . Monoid.getProduct
+
+instance Arbitrary a => Arbitrary (Monoid.First a) where
+  arbitrary = fmap Monoid.First arbitrary
+  shrink = map Monoid.First . shrink . Monoid.getFirst
+
+instance Arbitrary a => Arbitrary (Monoid.Last a) where
+  arbitrary = fmap Monoid.Last arbitrary
+  shrink = map Monoid.Last . shrink . Monoid.getLast
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,8,0)
+instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
+  arbitrary = fmap Monoid.Alt arbitrary
+  shrink = map Monoid.Alt . shrink . Monoid.getAlt
+#endif
+#endif
+
+-- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
+instance Arbitrary Version where
+  arbitrary = sized $ \n ->
+    do k <- choose (0, log2 n)
+       xs <- vectorOf (k+1) arbitrarySizedNatural
+       return (Version xs [])
+    where
+      log2 :: Int -> Int
+      log2 n | n <= 1 = 0
+             | otherwise = 1 + log2 (n `div` 2)
+
+  shrink (Version xs _) =
+    [ Version xs' []
+    | xs' <- shrink xs
+    , length xs' > 0
+    , all (>=0) xs'
+    ]
+
 -- ** Helper functions for implementing arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
@@ -617,6 +818,13 @@ arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
   inBounds fromInteger (choose (-toInteger n, toInteger n))
+
+-- | Generates a natural number. The number's maximum value depends on
+-- the size parameter.
+arbitrarySizedNatural :: Integral a => Gen a
+arbitrarySizedNatural =
+  sized $ \n ->
+  inBounds fromInteger (choose (0, toInteger n))
 
 inBounds :: Integral a => (Integer -> a) -> Gen Integer -> Gen a
 inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger (fi x) == x))
@@ -667,9 +875,9 @@ arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
   withBounds $ \mn mx ->
   sized $ \s ->
-    do let bits n | n `quot` 2 == 0 = 0
+    do let bits n | n == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
-           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 100)
+           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 80)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
        return (fromInteger n)
 
@@ -723,10 +931,19 @@ shrinkRealFrac x =
 #ifndef NO_GENERICS
 -- | Used for random generation of functions.
 --
--- As in 'Arbitrary', a default definition is provided using "GHC.Generics".
--- Use it with:
+-- If you are using a recent GHC, there is a default definition of
+-- 'coarbitrary' using 'genericCoarbitrary', so if your type has a
+-- 'Generic' instance it's enough to say
 --
--- >instance CoArbitrary Mydatatype
+-- > instance CoArbitrary MyType
+--
+-- You should only use 'genericCoarbitrary' for data types where
+-- equality is structural, i.e. if you can't have two different
+-- representations of the same value. An example where it's not
+-- safe is sets implemented using binary search trees: the same
+-- set can be represented as several different trees.
+-- Here you would have to explicitly define
+-- @coarbitrary s = coarbitrary (toList s)@.
 #else
 -- | Used for random generation of functions.
 #endif
@@ -742,31 +959,14 @@ class CoArbitrary a where
   --   coarbitrary []     = 'variant' 0
   --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
   -- @
-  --
-  -- In order to generate arbitrary /functions/ of type
-  -- `a1 -> ... -> an -> b`, we must be able to generate arbitrary
-  -- `b`s, and each `ai` given must perturb the `b` created by the
-  -- function. This is what `CoArbitrary` is for.
-  --
-  -- The extension to functions of multiple arguments is done via
-  -- the `instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b)`.
-  --
-  -- The actual generation of arbitrary functions is implemented
-  -- in the `instance (CoArbitrary a, Arbitrary b) => Arbitrary (a -> b)`.
-  --
-  -- For writing properties over functions, see "Test.QuickCheck.Function".
-
   coarbitrary :: a -> Gen b -> Gen b
 #ifndef NO_GENERICS
   default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
   coarbitrary = genericCoarbitrary
-#endif
-
 
 -- | Generic CoArbitrary implementation.
 genericCoarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
 genericCoarbitrary = gCoarbitrary . from
-
 
 class GCoArbitrary f where
   gCoarbitrary :: f a -> Gen b -> Gen b
@@ -788,7 +988,7 @@ instance GCoArbitrary f => GCoArbitrary (M1 i c f) where
 
 instance CoArbitrary a => GCoArbitrary (K1 i a) where
   gCoarbitrary (K1 x) = coarbitrary x
-
+#endif
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
 -- | Combine two generator perturbing functions, for example the
@@ -824,6 +1024,11 @@ instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Either a b) where
 instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
+
+#ifndef NO_NONEMPTY
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (x :| xs) = coarbitrary (x, xs)
+#endif
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
@@ -871,6 +1076,11 @@ instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrar
 instance CoArbitrary Integer where
   coarbitrary = coarbitraryIntegral
 
+#ifndef NO_NATURALS
+instance CoArbitrary Natural where
+  coarbitrary = coarbitraryIntegral
+#endif
+
 instance CoArbitrary Int where
   coarbitrary = coarbitraryIntegral
 
@@ -910,6 +1120,68 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
+-- Coarbitrary instances for container types
+instance CoArbitrary a => CoArbitrary (Set.Set a) where
+  coarbitrary = coarbitrary. Set.toList
+instance (CoArbitrary k, CoArbitrary v) => CoArbitrary (Map.Map k v) where
+  coarbitrary = coarbitrary . Map.toList
+instance CoArbitrary IntSet.IntSet where
+  coarbitrary = coarbitrary . IntSet.toList
+instance CoArbitrary a => CoArbitrary (IntMap.IntMap a) where
+  coarbitrary = coarbitrary . IntMap.toList
+instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
+  coarbitrary = coarbitrary . toList
+
+-- CoArbitrary instance for Ziplist
+instance CoArbitrary a => CoArbitrary (ZipList a) where
+  coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for transformers' Functors
+instance CoArbitrary a => CoArbitrary (Identity a) where
+  coarbitrary = coarbitrary . runIdentity
+
+instance CoArbitrary a => CoArbitrary (Constant a b) where
+  coarbitrary = coarbitrary . getConstant
+
+-- CoArbitrary instance for Const
+instance CoArbitrary a => CoArbitrary (Const a b) where
+  coarbitrary = coarbitrary . getConst
+
+-- CoArbitrary instances for Monoid
+instance CoArbitrary a => CoArbitrary (Monoid.Dual a) where
+  coarbitrary = coarbitrary . Monoid.getDual
+
+instance (Arbitrary a, CoArbitrary a) => CoArbitrary (Monoid.Endo a) where
+  coarbitrary = coarbitrary . Monoid.appEndo
+
+instance CoArbitrary Monoid.All where
+  coarbitrary = coarbitrary . Monoid.getAll
+
+instance CoArbitrary Monoid.Any where
+  coarbitrary = coarbitrary . Monoid.getAny
+
+instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
+  coarbitrary = coarbitrary . Monoid.getSum
+
+instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
+  coarbitrary = coarbitrary . Monoid.getProduct
+
+instance CoArbitrary a => CoArbitrary (Monoid.First a) where
+  coarbitrary = coarbitrary . Monoid.getFirst
+
+instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
+  coarbitrary = coarbitrary . Monoid.getLast
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,8,0)
+instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
+  coarbitrary = coarbitrary . Monoid.getAlt
+#endif
+#endif
+
+instance CoArbitrary Version where
+  coarbitrary (Version a b) = coarbitrary (a, b)
+
 -- ** Helpers for implementing coarbitrary
 
 -- | A 'coarbitrary' implementation for integral numbers.
@@ -937,7 +1209,7 @@ coarbitraryEnum = variant . fromEnum
 vector :: Arbitrary a => Int -> Gen [a]
 vector k = vectorOf k arbitrary
 
--- | Generates an ordered list of a given length.
+-- | Generates an ordered list.
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
 

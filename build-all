@@ -62,9 +62,7 @@ for ghcdir in ${~=ghcdirs}; do
     fi
 
     status "==> GHC $version"
-    cabal install -w $ghc random transformers extensible-exceptions tf-random >& /dev/null || true
-    build-quickcheck "Base-4" -fbase4
-    build-quickcheck "Base-3" -f-base4
+    cabal install -w $ghc --only-dependencies >& /dev/null || true
     build-quickcheck "No options"
     status
 done

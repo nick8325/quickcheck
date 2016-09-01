@@ -4,6 +4,8 @@ import Test.QuickCheck.Gen.Unsafe
 import Data.List
 import Data.Int
 import Data.Word
+import Data.Version (showVersion, parseVersion)
+import Text.ParserCombinators.ReadP (readP_to_S)
 
 newtype Path a = Path [a] deriving (Show, Functor)
 
@@ -16,7 +18,7 @@ instance Arbitrary a => Arbitrary (Path a) where
         fmap (x:) $
         oneof $
           [return []] ++
-          [resize (n-1) (pathFrom y) | y <- shrink x]
+          [resize (n-1) (pathFrom y) | n > 0, y <- shrink x]
 
   shrink (Path xs) = map Path [ ys | ys <- inits xs, length ys > 0 && length ys < length xs ]
 
@@ -126,4 +128,19 @@ prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
 prop_nonnegative = pathInt getNonNegative (>= 0)
 prop_nonnegative_bound = somePathInt getNonNegative (== 0)
 
+reachesBound :: (Bounded a, Integral a, Arbitrary a) =>
+  a -> Property
+reachesBound x = expectFailure (x < 3 * (maxBound `div` 4))
+
+prop_reachesBound_Int8 = reachesBound :: Int8 -> Property
+prop_reachesBound_Int16 = reachesBound :: Int16 -> Property
+prop_reachesBound_Int32 = reachesBound :: Int32 -> Property
+prop_reachesBound_Int64 = reachesBound :: Int64 -> Property
+prop_reachesBound_Word = reachesBound :: Word -> Property
+prop_reachesBound_Word8 = reachesBound :: Word8 -> Property
+prop_reachesBound_Word16 = reachesBound :: Word16 -> Property
+prop_reachesBound_Word32 = reachesBound :: Word32 -> Property
+prop_reachesBound_Word64 = reachesBound :: Word64 -> Property
+
+return []
 main = $quickCheckAll >>= print

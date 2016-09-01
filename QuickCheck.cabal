@@ -1,15 +1,15 @@
 Name: QuickCheck
-Version: 2.7.6
+Version: 2.9.1
 Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
 Extra-source-files: README changelog
-Copyright: 2000-2014 Koen Claessen, 2006-2008 Björn Bringert, 2009-2014 Nick Smallbone
+Copyright: 2000-2016 Koen Claessen, 2006-2008 Björn Bringert, 2009-2016 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
 Bug-reports: mailto:quickcheck@projects.haskell.org
-Tested-with: GHC >=6.8, Hugs, UHC
+Tested-with: GHC >= 7
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
@@ -26,6 +26,9 @@ Description:
   QuickCheck provides combinators to define properties, observe
   the distribution of test data, and define test
   data generators.
+  .
+  You can find a (slightly out-of-date but useful) manual at
+  <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>.
 
 source-repository head
   type:     git
@@ -34,32 +37,21 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.7.6
-
-flag base3
-  Description: Choose the new smaller, split-up base package.
-
-flag base4
-  Description: Choose the even newer base package with extensible exceptions.
+  tag:      2.9.1
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
+  Default: True
 
 library
-  -- Choose which library versions to use.
-  if flag(base4)
-    Build-depends: base >= 4 && < 5, random
-  else
-    if flag(base3)
-      Build-depends: base >= 3 && < 4, random
-    else
-      Build-depends: base < 3
+  Build-depends: base >=4.3 && <5, random, containers
 
   -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Gen,
+    Test.QuickCheck.Gen.Class,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
     Test.QuickCheck.Modifiers,
@@ -74,29 +66,16 @@ library
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-  if impl(ghc >= 7)
     Build-depends: transformers >= 0.2
   else
     cpp-options: -DNO_TRANSFORMERS
-  if impl(ghc >= 6.12) && flag(templateHaskell)
+
+  if impl(ghc) && flag(templateHaskell) && !impl(haste)
     Build-depends: template-haskell >= 2.4
+    Other-Extensions: TemplateHaskell
     Exposed-Modules: Test.QuickCheck.All
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
-
-  -- Compiler-specific tweaks, lots of 'em!
-
-  -- On old versions of GHC use the ghc package to catch ctrl-C.
-  if impl(ghc >= 6.7) && impl(ghc < 6.13)
-      Build-depends: ghc
-
-  -- We want to use extensible-exceptions even if linking against base-3.
-  if impl(ghc >= 6.9) && impl (ghc < 7.0)
-    Build-depends: extensible-exceptions
-
-  -- GHC < 7.0 can't cope with multiple LANGUAGE pragmas in the same file.
-  if impl(ghc < 7)
-    Extensions: GeneralizedNewtypeDeriving, MultiParamTypeClasses, Rank2Types, TypeOperators
 
   -- The new generics appeared in GHC 7.2...
   if impl(ghc < 7.2)
@@ -110,10 +89,24 @@ library
     cpp-options: -DNO_SAFE_HASKELL
 
   -- Use tf-random on newer GHCs.
-  if impl(ghc >= 7) && flag(base4)
+  if impl(ghc) && !impl(haste)
     Build-depends: tf-random >= 0.4
   else
     cpp-options: -DNO_TF_RANDOM
+
+  if impl(ghc)
+    if impl(ghc < 7.10)
+      -- `Numeric.Natural` is available in base only since GHC 7.10 / base 4.8
+      build-depends: nats>=1
+  else
+      cpp-options: -DNO_NATURALS
+
+  if impl(ghc)
+    -- 'Data.List.NonEmpty' is available in base only since GHC 8.0 / base 4.9
+    if impl(ghc < 8.0)
+      build-depends: semigroups >=0.9
+  else
+      cpp-options: -DNO_NONEMPTY
 
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
@@ -144,6 +137,39 @@ Test-Suite test-quickcheck
     main-is: Heap.hs
     build-depends:
       base,
-      QuickCheck == 2.7.6,
+      containers,
+      QuickCheck == 2.9.1,
       template-haskell >= 2.4,
       test-framework >= 0.4 && < 0.9
+    if flag(templateHaskell) && !impl(haste)
+        Buildable: True
+    else
+        Buildable: False
+
+Test-Suite test-quickcheck-gcoarbitrary
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: GCoArbitraryExample.hs
+    build-depends: base, QuickCheck == 2.9.1
+    if impl(ghc < 7.2)
+        buildable: False
+    if impl(ghc >= 7.2) && impl(ghc < 7.6)
+        build-depends: ghc-prim
+
+Test-Suite test-quickcheck-generators
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: Generators.hs
+    build-depends: base, QuickCheck == 2.9.1
+    if !flag(templateHaskell) || impl(haste)
+        Buildable: False
+
+Test-Suite test-quickcheck-gshrink
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: GShrinkExample.hs
+    build-depends: base, QuickCheck == 2.9.1
+    if impl(ghc < 7.2)
+        buildable: False
+    if impl(ghc >= 7.2) && impl(ghc < 7.6)
+        build-depends: ghc-prim

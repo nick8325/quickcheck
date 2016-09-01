@@ -13,7 +13,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( showErr, isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State
+import Test.QuickCheck.State hiding (labels)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -21,6 +21,10 @@ import System.Timeout(timeout)
 import Data.Maybe
 import Control.Applicative
 import Control.Monad
+import qualified Data.Map as Map
+import Data.Map(Map)
+import qualified Data.Set as Set
+import Data.Set(Set)
 
 --------------------------------------------------------------------------
 -- fixities
@@ -63,26 +67,12 @@ infixr 1 .||.
 -- * Property and Testable types
 
 -- | The type of properties.
---
--- Backwards combatibility note: in older versions of QuickCheck
--- 'Property' was a type synonym for @'Gen' 'Prop'@, so you could mix
--- and match property combinators and 'Gen' monad operations. Code
--- that does this will no longer typecheck.
--- However, it is easy to fix: because of the 'Testable' typeclass, any
--- combinator that expects a 'Property' will also accept a @'Gen' 'Property'@.
--- If you have a 'Property' where you need a @'Gen' 'a'@, simply wrap
--- the property combinator inside a 'return' to get a @'Gen' 'Property'@, and
--- all should be well.
 newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of things which can be tested, i.e. turned into a property.
 class Testable prop where
   -- | Convert the thing to a property.
   property :: prop -> Property
-  -- | If true, the property will only be tested once.
-  -- However, if used inside a quantifier, it will be tested normally.
-  exhaustive :: prop -> Bool
-  exhaustive _ = False
 
 -- | If a property returns 'Discard', the current test case is discarded,
 -- the same as if a precondition was false.
@@ -90,19 +80,15 @@ data Discard = Discard
 
 instance Testable Discard where
   property _ = property rejected
-  exhaustive _ = True
 
 instance Testable Bool where
   property = property . liftBool
-  exhaustive _ = True
 
 instance Testable Result where
   property = MkProperty . return . MkProp . protectResults . return
-  exhaustive _ = True
 
 instance Testable Prop where
   property (MkProp r) = MkProperty . return . MkProp . ioRose . return $ r
-  exhaustive _ = True
 
 instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (property p)
@@ -121,6 +107,11 @@ morallyDubiousIOProperty = ioProperty -- Silly names aren't all they're cracked 
 --
 -- For more advanced monadic testing you may want to look at
 -- "Test.QuickCheck.Monadic".
+--
+-- Note that if you use 'ioProperty' on a property of type @IO Bool@,
+-- or more generally a property that does no quantification, the property
+-- will only be executed once. To test the property repeatedly you must
+-- use the 'again' combinator.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
 
@@ -168,23 +159,23 @@ instance Monad Rose where
   -- k must be total
   m >>= k  = joinRose (fmap k m)
 
--- Execute the "IORose" bits of a rose tree, returning a tree
+-- | Execute the "IORose" bits of a rose tree, returning a tree
 -- constructed by MkRose.
 reduceRose :: Rose Result -> IO (Rose Result)
 reduceRose r@(MkRose _ _) = return r
 reduceRose (IORose m) = m >>= reduceRose
 
--- Apply a function to the outermost MkRose constructor of a rose tree.
+-- | Apply a function to the outermost MkRose constructor of a rose tree.
 -- The function must be total!
 onRose :: (a -> [Rose a] -> Rose a) -> Rose a -> Rose a
 onRose f (MkRose x rs) = f x rs
 onRose f (IORose m) = IORose (fmap (onRose f) m)
 
--- Wrap a rose tree in an exception handler.
+-- | Wrap a rose tree in an exception handler.
 protectRose :: IO (Rose Result) -> IO (Rose Result)
 protectRose = protect (return . exception "Exception")
 
--- Wrap all the Results in a rose tree in exception handlers.
+-- | Wrap all the Results in a rose tree in exception handlers.
 protectResults :: Rose Result -> Rose Result
 protectResults = onRose $ \x rs ->
   IORose $ do
@@ -208,20 +199,9 @@ data Result
   , reason       :: String            -- ^ a message indicating what went wrong
   , theException :: Maybe AnException -- ^ the exception thrown, if any
   , abort        :: Bool              -- ^ if True, the test should not be repeated
-  , stamp        :: [(String,Int)]    -- ^ the collected values for this test case
+  , labels       :: Map String Int    -- ^ all labels used by this property
+  , stamp        :: Set String        -- ^ the collected values for this test case
   , callbacks    :: [Callback]        -- ^ the callbacks for this test case
-  }
-
-result :: Result
-result =
-  MkResult
-  { ok           = undefined
-  , expect       = True
-  , reason       = ""
-  , theException = Nothing
-  , abort        = False
-  , stamp        = []
-  , callbacks    = []
   }
 
 exception :: String -> AnException -> Result
@@ -238,14 +218,23 @@ formatException msg err = msg ++ ":" ++ format (show err)
 protectResult :: IO Result -> IO Result
 protectResult = protect (exception "Exception")
 
-succeeded :: Result
-succeeded = result{ ok = Just True }
-
-failed :: Result
-failed = result{ ok = Just False }
-
-rejected :: Result
-rejected = result{ ok = Nothing }
+succeeded, failed, rejected :: Result
+(succeeded, failed, rejected) =
+  (result{ ok = Just True },
+   result{ ok = Just False },
+   result{ ok = Nothing })
+  where
+    result =
+      MkResult
+      { ok           = undefined
+      , expect       = True
+      , reason       = ""
+      , theException = Nothing
+      , abort        = True
+      , labels       = Map.empty
+      , stamp        = Set.empty
+      , callbacks    = []
+      }
 
 --------------------------------------------------------------------------
 -- ** Lifting and mapping functions
@@ -301,7 +290,7 @@ counterexample s =
     res <- tryEvaluateIO (putLine (terminal st) s)
     case res of
       Left err ->
-        putLine (terminal st) (formatException "Exception thrown by generator" err)
+        putLine (terminal st) (formatException "Exception thrown while printing test case" err)
       Right () ->
         return ()
 
@@ -346,6 +335,10 @@ expectFailure = mapTotalResult (\res -> res{ expect = False })
 once :: Testable prop => prop -> Property
 once = mapTotalResult (\res -> res{ abort = True })
 
+-- | Undoes the effect of 'once'.
+again :: Testable prop => prop -> Property
+again = mapTotalResult (\res -> res{ abort = False })
+
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
 label :: Testable prop => String -> prop -> Property
@@ -364,17 +357,22 @@ classify :: Testable prop =>
          -> prop -> Property
 classify b s = cover b 0 s
 
--- | Checks that at least the given proportion of the test cases belong
--- to the given class.
+-- | Checks that at least the given proportion of /successful/ test
+-- cases belong to the given class. Discarded tests (i.e. ones
+-- with a false precondition) do not affect coverage.
 cover :: Testable prop =>
          Bool   -- ^ @True@ if the test case belongs to the class.
       -> Int    -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover True n s = n `seq` s `listSeq` (mapTotalResult $ \res -> res { stamp = (s,n) : stamp res })
+cover x n s =
+  x `seq` n `seq` s `listSeq`
+  mapTotalResult $
+    \res -> res {
+      labels = Map.insertWith max s n (labels res),
+      stamp = if x then Set.insert s (stamp res) else stamp res }
   where [] `listSeq` z = z
         (x:xs) `listSeq` z = x `seq` xs `listSeq` z
-cover False _ _ = property
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),
@@ -405,15 +403,13 @@ within n = mapRoseResult f
 -- test case generator.
 forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
-forAll gen pf =
-  MkProperty $
-  gen >>= \x ->
-    unProperty (counterexample (show x) (pf x))
+forAll gen pf = forAllShrink gen (\_ -> []) pf
 
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
 forAllShrink gen shrinker pf =
+  again $
   MkProperty $
   gen >>= \x ->
     unProperty $
@@ -425,6 +421,7 @@ forAllShrink gen shrinker pf =
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
+  again $
   MkProperty $
   arbitrary >>= \b ->
     unProperty $
@@ -438,28 +435,35 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
-     return (MkProp (conj [] roses))
+     return (MkProp (conj id roses))
  where
-  conj cbs [] =
-    MkRose succeeded{callbacks = cbs} []
+  conj k [] =
+    MkRose (k succeeded) []
 
-  conj cbs (p : ps) = IORose $ do
+  conj k (p : ps) = IORose $ do
     rose@(MkRose result _) <- reduceRose p
     case ok result of
       _ | not (expect result) ->
         return (return failed { reason = "expectFailure may not occur inside a conjunction" })
-      Just True -> return (conj (cbs ++ callbacks result) ps)
+      Just True -> return (conj (addLabels result . addCallbacks result . k) ps)
       Just False -> return rose
       Nothing -> do
-        rose2@(MkRose result2 _) <- reduceRose (conj (cbs ++ callbacks result) ps)
+        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacks result . k) ps)
         return $
           -- Nasty work to make sure we use the right callbacks
           case ok result2 of
             Just True -> MkRose (result2 { ok = Nothing }) []
             Just False -> rose2
             Nothing -> rose2
+
+  addCallbacks result r =
+    r { callbacks = callbacks result ++ callbacks r }
+  addLabels result r =
+    r { labels = Map.unionWith max (labels result) (labels r),
+        stamp = Set.union (stamp result) (stamp r) }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -468,6 +472,7 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
@@ -481,12 +486,25 @@ disjoin ps =
          Just False -> do
            result2 <- q
            return $
-             if expect result2 then
-               case ok result2 of
-                 Just True -> result2
-                 Just False -> result1 >>> result2
-                 Nothing -> result2
-             else expectFailureError
+             case ok result2 of
+               _ | not (expect result2) -> expectFailureError
+               Just True -> result2
+               Just False ->
+                 MkResult {
+                   ok = Just False,
+                   expect = True,
+                   reason = sep (reason result1) (reason result2),
+                   theException = theException result1 `mplus` theException result2,
+                   -- The following three fields are not important because the
+                   -- test case has failed anyway
+                   abort = False,
+                   labels = Map.empty,
+                   stamp = Set.empty,
+                   callbacks =
+                     callbacks result1 ++
+                     [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
+                     callbacks result2 }
+               Nothing -> result2
          Nothing -> do
            result2 <- q
            return (case ok result2 of
@@ -495,16 +513,9 @@ disjoin ps =
                      _ -> result1)
 
   expectFailureError = failed { reason = "expectFailure may not occur inside a disjunction" }
-  result1 >>> result2 | not (expect result1 && expect result2) = expectFailureError
-  result1 >>> result2 =
-    result2
-    { reason       = if null (reason result2) then reason result1 else reason result2
-    , theException = if null (reason result2) then theException result1 else theException result2
-    , stamp        = stamp result1 ++ stamp result2
-    , callbacks    = callbacks result1 ++
-                    [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
-                    callbacks result2
-    }
+  sep [] s = s
+  sep s [] = s
+  sep s s' = s ++ ", " ++ s'
 
 -- | Like '==', but prints a counterexample when it fails.
 infix 4 ===
