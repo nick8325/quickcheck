@@ -1,15 +1,23 @@
 -- | Type classes for random generation of values.
 {-# LANGUAGE CPP #-}
 #ifndef NO_GENERICS
-{-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
-{-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE DefaultSignatures #-}
+#endif
 #if __GLASGOW_HASKELL__ < 710
 {-# LANGUAGE OverlappingInstances  #-}
 #endif
 #endif
 #ifndef NO_SAFE_HASKELL
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 module Test.QuickCheck.Arbitrary
   (
@@ -124,7 +132,13 @@ import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 
 #ifndef NO_GENERICS
+import GHC.Exts (Char(..), Double(..), Float(..), Int(..), Word(..))
+
+#if MIN_VERSION_base(4,9,0)
 import GHC.Generics
+#else
+import Generics.Deriving.Base
+#endif
 #endif
 
 import qualified Data.Set as Set
@@ -141,7 +155,7 @@ import Data.Functor.Constant
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
-#ifndef NO_GENERICS
+#if !defined(NO_GENERICS) && __GLASGOW_HASKELL__ >= 702
 -- | Random generation and shrinking of values.
 --
 -- A default `arbitrary` definition is provided using "GHC.Generics".
@@ -164,7 +178,7 @@ import Data.Functor.Constant
 class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
-#ifndef NO_GENERICS
+#if !defined(NO_GENERICS) && __GLASGOW_HASKELL__ >= 702
   default arbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
   arbitrary = genericArbitrary
 #else
@@ -333,6 +347,30 @@ instance GArbitrary a => GArbitrary (M1 i c a) where
 instance Arbitrary a => GArbitrary (K1 i a) where
   gArbitrary = K1 <$> arbitrary
 
+instance GArbitrary UChar where
+  gArbitrary = do
+    C# c <- arbitrary
+    return (UChar c)
+
+instance GArbitrary UDouble where
+  gArbitrary = do
+    D# d <- arbitrary
+    return (UDouble d)
+
+instance GArbitrary UFloat where
+  gArbitrary = do
+    F# f <- arbitrary
+    return (UFloat f)
+
+instance GArbitrary UInt where
+  gArbitrary = do
+    I# i <- arbitrary
+    return (UInt i)
+
+instance GArbitrary UWord where
+  gArbitrary = do
+    W# w <- arbitrary
+    return (UWord w)
 
 -- | `Gen` for generic instances in which each constructor has equal probability
 -- of being chosen.
@@ -367,6 +405,21 @@ instance RecursivelyShrink f => RecursivelyShrink (M1 i c f) where
 
 instance Arbitrary a => RecursivelyShrink (K1 i a) where
   grecursivelyShrink (K1 x) = map K1 (shrink x)
+
+instance RecursivelyShrink UChar where
+  grecursivelyShrink (UChar c) = map (\(C# c') -> UChar c') (shrink (C# c))
+
+instance RecursivelyShrink UDouble where
+  grecursivelyShrink (UDouble d) = map (\(D# d') -> UDouble d') (shrink (D# d))
+
+instance RecursivelyShrink UFloat where
+  grecursivelyShrink (UFloat f) = map (\(F# f') -> UFloat f') (shrink (F# f))
+
+instance RecursivelyShrink UInt where
+  grecursivelyShrink (UInt i) = map (\(I# i') -> UInt i') (shrink (I# i))
+
+instance RecursivelyShrink UWord where
+  grecursivelyShrink (UWord w) = map (\(W# w') -> UWord w') (shrink (W# w))
 
 instance RecursivelyShrink U1 where
   grecursivelyShrink U1 = []
@@ -413,6 +466,8 @@ instance GSubterms f a => GSubterms (M1 i c f) a where
 instance GSubterms (K1 i a) b where
   gSubterms (K1 _) = []
 
+instance GSubterms (URec p) b where
+  gSubterms _ = []
 
 class GSubtermsIncl f a where
   -- | Provides the immediate subterms of a term that are of the same type
@@ -446,6 +501,8 @@ instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) a where
 instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
+instance GSubtermsIncl (URec p) a where
+  gSubtermsIncl _ = []
 #endif
 
 -- instances
@@ -928,7 +985,7 @@ shrinkRealFrac x =
 --------------------------------------------------------------------------
 -- ** CoArbitrary
 
-#ifndef NO_GENERICS
+#if !defined(NO_GENERICS) && __GLASGOW_HASKELL__ >= 702
 -- | Used for random generation of functions.
 --
 -- If you are using a recent GHC, there is a default definition of
@@ -960,10 +1017,12 @@ class CoArbitrary a where
   --   coarbitrary (x:xs) = 'variant' 1 . coarbitrary (x,xs)
   -- @
   coarbitrary :: a -> Gen b -> Gen b
-#ifndef NO_GENERICS
+#if !defined(NO_GENERICS) && __GLASGOW_HASKELL__ >= 702
   default coarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
   coarbitrary = genericCoarbitrary
+#endif
 
+#ifndef NO_GENERICS
 -- | Generic CoArbitrary implementation.
 genericCoarbitrary :: (Generic a, GCoArbitrary (Rep a)) => a -> Gen b -> Gen b
 genericCoarbitrary = gCoarbitrary . from
@@ -988,6 +1047,21 @@ instance GCoArbitrary f => GCoArbitrary (M1 i c f) where
 
 instance CoArbitrary a => GCoArbitrary (K1 i a) where
   gCoarbitrary (K1 x) = coarbitrary x
+
+instance GCoArbitrary UChar where
+  gCoarbitrary (UChar c) = coarbitrary (C# c)
+
+instance GCoArbitrary UDouble where
+  gCoarbitrary (UDouble d) = coarbitrary (D# d)
+
+instance GCoArbitrary UFloat where
+  gCoarbitrary (UFloat f) = coarbitrary (F# f)
+
+instance GCoArbitrary UInt where
+  gCoarbitrary (UInt i) = coarbitrary (I# i)
+
+instance GCoArbitrary UWord where
+  gCoarbitrary (UWord w) = coarbitrary (W# w)
 #endif
 
 {-# DEPRECATED (><) "Use ordinary function composition instead" #-}
