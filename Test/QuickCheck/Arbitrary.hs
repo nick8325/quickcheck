@@ -8,6 +8,9 @@
 {-# LANGUAGE OverlappingInstances  #-}
 #endif
 #endif
+#ifndef NO_POLYKINDS
+{-# LANGUAGE PolyKinds #-}
+#endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
 #endif
@@ -89,6 +92,10 @@ import Data.Fixed
 import Numeric.Natural
 #endif
 
+#ifndef NO_PROXY
+import Data.Proxy (Proxy (..))
+#endif
+
 import Data.Ratio
   ( Ratio
   , (%)
@@ -136,6 +143,8 @@ import qualified Data.Monoid as Monoid
 
 import Data.Functor.Identity
 import Data.Functor.Constant
+
+import Data.Proxy (Proxy (..))
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -520,6 +529,12 @@ instance Arbitrary Integer where
 instance Arbitrary Natural where
   arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
+#endif
+
+#ifndef NO_PROXY
+instance Arbitrary (Proxy a) where
+  arbitrary = pure Proxy
+  shrink _  = []
 #endif
 
 instance Arbitrary Int where
@@ -952,6 +967,11 @@ instance CoArbitrary Integer where
 #ifndef NO_NATURALS
 instance CoArbitrary Natural where
   coarbitrary = coarbitraryIntegral
+#endif
+
+#ifndef NO_PROXY
+instance CoArbitrary (Proxy a) where
+  coarbitrary _ = id
 #endif
 
 instance CoArbitrary Int where
