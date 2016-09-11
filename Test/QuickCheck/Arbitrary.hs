@@ -36,7 +36,6 @@ module Test.QuickCheck.Arbitrary
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
-  , shrinkRealFracToInteger  -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
@@ -391,7 +390,7 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFracToInteger
+  shrink    = shrinkRealFrac
 
 instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
   arbitrary = liftM2 (:+) arbitrary arbitrary
@@ -778,25 +777,14 @@ shrinkIntegral x =
             (True,  False) -> a + b < 0
             (False, True)  -> a + b > 0
 
--- | Shrink a fraction, but only shrink to integral values.
-shrinkRealFracToInteger :: RealFrac a => a -> [a]
-shrinkRealFracToInteger x =
+-- | Shrink a fraction.
+shrinkRealFrac :: RealFrac a => a -> [a]
+shrinkRealFrac x =
   nub $
   [ -x
   | x < 0
   ] ++
   map fromInteger (shrinkIntegral (truncate x))
-
--- | Shrink a fraction.
-shrinkRealFrac :: RealFrac a => a -> [a]
-shrinkRealFrac x =
-  nub $
-  shrinkRealFracToInteger x ++
-  [ x - x'
-  | x' <- take 20 (iterate (/ 2) x)
-  , (x - x') << x ]
- where
-  a << b = abs a < abs b
 
 --------------------------------------------------------------------------
 -- ** CoArbitrary

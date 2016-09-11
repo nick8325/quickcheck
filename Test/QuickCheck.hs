@@ -146,7 +146,6 @@ module Test.QuickCheck
   , shrinkList
   , shrinkIntegral
   , shrinkRealFrac
-  , shrinkRealFracToInteger
     -- ** Helper functions for implementing coarbitrary
   , variant
   , coarbitraryIntegral
