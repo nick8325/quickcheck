@@ -133,8 +133,10 @@ import qualified Data.Sequence as Sequence
 
 import qualified Data.Monoid as Monoid
 
+#ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
+#endif
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -609,6 +611,7 @@ instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = fmap ZipList arbitrary
   shrink = map ZipList . shrink . getZipList
 
+#ifndef NO_TRANSFORMERS
 -- Arbitrary instance for transformers' Functors
 instance Arbitrary a => Arbitrary (Identity a) where
   arbitrary = fmap Identity arbitrary
@@ -617,6 +620,7 @@ instance Arbitrary a => Arbitrary (Identity a) where
 instance Arbitrary a => Arbitrary (Constant a b) where
   arbitrary = fmap Constant arbitrary
   shrink = map Constant . shrink . getConstant
+#endif
 
 -- Arbitrary instance for Const
 instance Arbitrary a => Arbitrary (Const a b) where
@@ -648,6 +652,8 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   arbitrary = fmap Monoid.Product  arbitrary
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(3,0,0)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -655,8 +661,8 @@ instance Arbitrary a => Arbitrary (Monoid.First a) where
 instance Arbitrary a => Arbitrary (Monoid.Last a) where
   arbitrary = fmap Monoid.Last arbitrary
   shrink = map Monoid.Last . shrink . Monoid.getLast
+#endif
 
-#if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
@@ -997,12 +1003,14 @@ instance CoArbitrary a => CoArbitrary (Sequence.Seq a) where
 instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
 
+#ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
 instance CoArbitrary a => CoArbitrary (Identity a) where
   coarbitrary = coarbitrary . runIdentity
 
 instance CoArbitrary a => CoArbitrary (Constant a b) where
   coarbitrary = coarbitrary . getConstant
+#endif
 
 -- CoArbitrary instance for Const
 instance CoArbitrary a => CoArbitrary (Const a b) where
@@ -1027,13 +1035,15 @@ instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(3,0,0)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
+#endif
 
-#if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt

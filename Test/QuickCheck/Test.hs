@@ -23,6 +23,8 @@ import qualified Data.Map.Strict as Map
 #else
 import qualified Data.Map as Map
 #endif
+#else
+import qualified Data.Map as Map
 #endif
 import qualified Data.Set as Set
 
