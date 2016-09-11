@@ -91,7 +91,7 @@ instance Testable Prop where
   property (MkProp r) = MkProperty . return . MkProp . ioRose . return $ r
 
 instance Testable prop => Testable (Gen prop) where
-  property mp = MkProperty $ do p <- mp; unProperty (property p)
+  property mp = MkProperty $ do p <- mp; unProperty (again p)
 
 instance Testable Property where
   property = property . unProperty
