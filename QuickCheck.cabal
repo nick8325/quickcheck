@@ -51,7 +51,6 @@ library
     Test.QuickCheck,
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Gen,
-    Test.QuickCheck.Gen.Class,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
     Test.QuickCheck.Modifiers,
