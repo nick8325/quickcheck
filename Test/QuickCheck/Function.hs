@@ -8,6 +8,10 @@
 {-# LANGUAGE DefaultSignatures, FlexibleContexts #-}
 #endif
 
+#ifndef NO_POLYKINDS
+{-# LANGUAGE PolyKinds #-}
+#endif
+
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
 --
@@ -78,6 +82,10 @@ import Data.Fixed
 
 #ifndef NO_NATURALS
 import Numeric.Natural
+#endif
+
+#ifndef NO_PROXY
+import Data.Proxy (Proxy (..))
 #endif
 
 #ifndef NO_NONEMPTY
@@ -319,6 +327,11 @@ instance Function a => Function (IntMap.IntMap a) where
 
 instance Function a => Function (Sequence.Seq a) where
   function = functionMap toList Sequence.fromList
+
+#ifndef NO_PROXY
+instance Function (Proxy a) where
+  function = functionMap (const ()) (const Proxy)
+#endif
 
 #ifndef NO_NATURALS
 instance Function Natural where
