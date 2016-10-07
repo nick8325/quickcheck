@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeOperators, GADTs, CPP #-}
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
-{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 #endif
 
 #ifndef NO_GENERICS
@@ -28,7 +28,13 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
+#if __GLASGOW_HASKELL__ >= 800
+  , Fun2
+  , Fun3
+#endif
   , apply
+  , apply2
+  , apply3
   , (:->)
   , Function(..)
   , functionMap
@@ -38,6 +44,8 @@ module Test.QuickCheck.Function
   , functionBoundedEnum
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
   , pattern Fn
+  , pattern Fn2
+  , pattern Fn3
 #endif
   )
  where
@@ -451,21 +459,71 @@ shrinkFun shr (Map g h p) =
 
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
+#if __GLASGOW_HASKELL__ >= 800
+type Fun2 a b   = Fun (a, b)
+type Fun3 a b c = Fun (a, b, c)
+#endif
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
--- | A pattern for matching against the function only:
+-- | A modifier for testing functions.
 --
 -- > prop :: Fun String Integer -> Bool
 -- > prop (Fn f) = f "banana" == f "monkey"
 -- >            || f "banana" == f "elephant"
+#if __GLASGOW_HASKELL__ >= 800
+pattern Fn :: (a -> b) -> Fun a b
+#endif
 pattern Fn f <- Fun _ f
+
+-- | A modifier for testing binary functions.
+-- 
+-- @ 
+--     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
+--     prop_zipWith (Fn2 f) xs ys = zipWith f xs ys == [ f x y | (x, y) <- zip xs ys]
+-- @
+--
+-- >>> quickCheck prop_zipWith
+-- +++ OK, passed 100 tests.
+-- 
+#if __GLASGOW_HASKELL__ >= 800
+pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
+#endif
+pattern Fn2 f <- Fun _ (curry -> f)
+
+-- | A modifier for testing functions of three arguments.
+#if __GLASGOW_HASKELL__ >= 800
+pattern Fn3 :: (a -> b -> c -> d) -> Fun3 a b c d
+#endif
+pattern Fn3 f <- Fun _ (curry3 -> f)
+
+curry3 f a b c = f (a, b, c)
 #endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
+-- | Extracts the function value.
+--
+-- 'Fn' is the pattern equivalent of this function.
 apply :: Fun a b -> (a -> b)
 apply (Fun _ f) = f
+
+-- | Extracts the binary function value.
+--
+-- 'Fn3' is the pattern equivalent of the function.
+apply2 :: Fun (a, b) c -> (a -> b -> c)
+apply2 (Fun _ f) a b = f (a, b)
+
+-- | Extracts the value of a function of three arguments. 'Fn3' is the
+-- pattern equivalent of this function.
+-- 
+-- @ 
+--     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
+--     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
+-- @
+--
+apply3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
+apply3 (Fun _ f) a b c = f (a, b, c)
 
 instance (Show a, Show b) => Show (Fun a b) where
   show (Fun (_, _, NotShrunk) _) = "<fun>"
