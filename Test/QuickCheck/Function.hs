@@ -449,7 +449,8 @@ shrinkFun shr (Map g h p) =
 --------------------------------------------------------------------------
 -- the Fun modifier
 
-data Fun a b = Fun (a :-> b, b, Bool) (a -> b)
+data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
+data Shrunk = Shrunk | NotShrunk deriving Eq
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A pattern for matching against the function only:
@@ -461,14 +462,14 @@ pattern Fn f <- Fun _ f
 #endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
-mkFun p d = Fun (p, d, False) (abstract p d)
+mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
 apply :: Fun a b -> (a -> b)
 apply (Fun _ f) = f
 
 instance (Show a, Show b) => Show (Fun a b) where
-  show (Fun (_, _, False) _) = "<fun>"
-  show (Fun (p, d, True) _)  = showFunction p (Just d)
+  show (Fun (_, _, NotShrunk) _) = "<fun>"
+  show (Fun (p, d, Shrunk) _)    = showFunction p (Just d)
 
 instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
   arbitrary =
@@ -476,9 +477,9 @@ instance (Function a, CoArbitrary a, Arbitrary b) => Arbitrary (Fun a b) where
        d <- arbitrary
        return (mkFun p d)
 
-  shrink (Fun (p, d, b) f) =
+  shrink (Fun (p, d, s) f) =
     [ mkFun p' d' | (p', d') <- shrink (p, d) ] ++
-    [ Fun (p, d, True) f | not b ]
+    [ Fun (p, d, Shrunk) f | s == NotShrunk ]
 
 --------------------------------------------------------------------------
 -- the end.
