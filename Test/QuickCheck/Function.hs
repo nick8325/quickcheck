@@ -34,14 +34,11 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
-<<<<<<< HEAD
 #if __GLASGOW_HASKELL__ >= 800
   , Fun2
   , Fun3
 #endif
-=======
   , appFun
->>>>>>> 2890938... Add appFun
   , apply
   , apply2
   , apply3
