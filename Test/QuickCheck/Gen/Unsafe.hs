@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
 #endif

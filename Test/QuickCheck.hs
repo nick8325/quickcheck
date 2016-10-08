@@ -69,6 +69,9 @@ showable functions used for testing higher-order functions and
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
 #endif
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+{-# LANGUAGE PatternSynonyms #-}
+#endif
 module Test.QuickCheck
   (
     -- * Running tests
@@ -171,6 +174,15 @@ module Test.QuickCheck
   , ShrinkState(..)
 #endif
 
+    -- ** Functions
+  , Fun
+  , appFun
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+  , pattern Fn
+#endif
+  , Function (..)
+  , functionMap
+
     -- * Properties
   , Property, Testable(..)
     -- ** Property combinators
@@ -220,6 +232,7 @@ import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Text
 import Test.QuickCheck.Exception
+import Test.QuickCheck.Function
 #ifndef NO_TEMPLATE_HASKELL
 import Test.QuickCheck.All
 #endif

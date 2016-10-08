@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeOperators, GADTs, CPP #-}
-
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 #endif
@@ -36,6 +38,7 @@ module Test.QuickCheck.Function
   , Fun2
   , Fun3
 #endif
+  , appFun
   , apply
   , apply2
   , apply3
@@ -470,6 +473,12 @@ shrinkFun shr (Map g h p) =
 --------------------------------------------------------------------------
 -- the Fun modifier
 
+-- | Generation of random shrinkable, showable functions.
+--
+-- To generate random values of type @'Fun' a b@,
+-- you must have an instance @'Function' a@.
+--
+-- See also 'apply' (and 'Fn' with GHC >= 7.8)
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
 #if __GLASGOW_HASKELL__ >= 800
@@ -489,15 +498,15 @@ pattern Fn :: (a -> b) -> Fun a b
 pattern Fn f <- Fun _ f
 
 -- | A modifier for testing binary functions.
--- 
--- @ 
+--
+-- @
 --     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
 --     prop_zipWith (Fn2 f) xs ys = zipWith f xs ys == [ f x y | (x, y) <- zip xs ys]
 -- @
 --
 -- >>> quickCheck prop_zipWith
 -- +++ OK, passed 100 tests.
--- 
+--
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
 #endif
@@ -515,11 +524,19 @@ curry3 f a b c = f (a, b, c)
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
+-- | Alias to 'appFun'.
+apply :: Fun a b -> (a -> b)
+apply = appFun
+
 -- | Extracts the function value.
 --
 -- 'Fn' is the pattern equivalent of this function.
-apply :: Fun a b -> (a -> b)
-apply (Fun _ f) = f
+--
+-- > prop :: Fun String Integer -> Bool
+-- > prop f = appFun f "banana" == appFun f "monkey"
+-- >       || appFun f "banana" == appFun f "elephant"
+appFun :: Fun a b -> (a -> b)
+appFun (Fun _ f) = f
 
 -- | Extracts the binary function value.
 --
@@ -529,8 +546,8 @@ apply2 (Fun _ f) a b = f (a, b)
 
 -- | Extracts the value of a function of three arguments. 'Fn3' is the
 -- pattern equivalent of this function.
--- 
--- @ 
+--
+-- @
 --     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
 --     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
 -- @
