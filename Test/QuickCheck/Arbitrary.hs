@@ -578,6 +578,7 @@ instance Arbitrary Word64 where
   arbitrary = arbitrarySizedBoundedIntegral
   shrink    = shrinkIntegral
 
+-- | This currently only generates Latin1 Chars, if you want Unicode use the @Unicode@ newtype
 instance Arbitrary Char where
   arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
   shrink c  = filter (<. c) $ nub
