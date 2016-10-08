@@ -501,15 +501,15 @@ pattern Fn :: (a -> b) -> Fun a b
 pattern Fn f <- Fun _ f
 
 -- | A modifier for testing binary functions.
--- 
--- @ 
+--
+-- @
 --     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
 --     prop_zipWith (Fn2 f) xs ys = zipWith f xs ys == [ f x y | (x, y) <- zip xs ys]
 -- @
 --
 -- >>> quickCheck prop_zipWith
 -- +++ OK, passed 100 tests.
--- 
+--
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
 #endif
@@ -531,7 +531,7 @@ mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 apply :: Fun a b -> (a -> b)
 apply = appFun
 
--- | Extracts the function value. 
+-- | Extracts the function value.
 --
 -- 'Fn' is the pattern equivalent of this function.
 --
@@ -549,8 +549,8 @@ apply2 (Fun _ f) a b = f (a, b)
 
 -- | Extracts the value of a function of three arguments. 'Fn3' is the
 -- pattern equivalent of this function.
--- 
--- @ 
+--
+-- @
 --     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
 --     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
 -- @
