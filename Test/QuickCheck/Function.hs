@@ -34,14 +34,12 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
-#if __GLASGOW_HASKELL__ >= 800
   , Fun2
   , Fun3
-#endif
   , appFun
   , apply
-  , apply2
-  , apply3
+  , appFun2
+  , appFun3
   , (:->)
   , Function(..)
   , functionMap
@@ -481,10 +479,9 @@ shrinkFun shr (Map g h p) =
 -- See also 'apply' (and 'Fn' with GHC >= 7.8)
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
-#if __GLASGOW_HASKELL__ >= 800
+
 type Fun2 a b   = Fun (a, b)
 type Fun3 a b c = Fun (a, b, c)
-#endif
 
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A modifier for testing functions.
@@ -541,8 +538,8 @@ appFun (Fun _ f) = f
 -- | Extracts the binary function value.
 --
 -- 'Fn3' is the pattern equivalent of the function.
-apply2 :: Fun (a, b) c -> (a -> b -> c)
-apply2 (Fun _ f) a b = f (a, b)
+appFun2 :: Fun (a, b) c -> (a -> b -> c)
+appFun2 (Fun _ f) a b = f (a, b)
 
 -- | Extracts the value of a function of three arguments. 'Fn3' is the
 -- pattern equivalent of this function.
@@ -552,8 +549,8 @@ apply2 (Fun _ f) a b = f (a, b)
 --     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
 -- @
 --
-apply3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
-apply3 (Fun _ f) a b c = f (a, b, c)
+appFun3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
+appFun3 (Fun _ f) a b c = f (a, b, c)
 
 instance (Show a, Show b) => Show (Fun a b) where
   show (Fun (_, _, NotShrunk) _) = "<fun>"
