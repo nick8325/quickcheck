@@ -56,6 +56,9 @@ module Test.QuickCheck.Modifiers
   , Shrinking(..)
   , ShrinkState(..)
 #endif
+  , ASCIIString(..)
+  , UnicodeString(..)
+  , PrintableString(..)
   )
  where
 
@@ -67,6 +70,9 @@ import Test.QuickCheck.Arbitrary
 
 import Data.List
   ( sort
+  )
+import Data.Char
+  ( isPrint
   )
 
 --------------------------------------------------------------------------
@@ -343,4 +349,30 @@ instance (Arbitrary a, ShrinkState s a) => Arbitrary (Shrinking s a) where
 #endif /* NO_MULTI_PARAM_TYPE_CLASSES */
 
 --------------------------------------------------------------------------
+-- | @ASCIIString@: generates an ASCII string.
+newtype ASCIIString = ASCIIString {getASCIIString :: String}
+  deriving ( Eq, Ord, Show, Read )
+
+instance Arbitrary ASCIIString where
+  arbitrary = ASCIIString `fmap` listOf arbitraryASCIIChar
+  shrink (ASCIIString xs) = ASCIIString `fmap` shrink xs
+
+--------------------------------------------------------------------------
+-- | @UnicodeString@: generates a unicode String.
+newtype UnicodeString = UnicodeString {getUnicodeString :: String}
+  deriving ( Eq, Ord, Show, Read )
+
+instance Arbitrary UnicodeString where
+  arbitrary = UnicodeString `fmap` listOf arbitraryUnicodeChar
+  shrink (UnicodeString xs) = UnicodeString `fmap` shrink xs
+
+--------------------------------------------------------------------------
+-- | @PrintableString@: generates a printable unicode String.
+newtype PrintableString = PrintableString {getPrintableString :: String}
+  deriving ( Eq, Ord, Show, Read )
+
+instance Arbitrary PrintableString where
+  arbitrary = PrintableString `fmap` listOf arbitraryPrintableChar
+  shrink (PrintableString xs) = PrintableString `fmap` shrink xs
+
 -- the end.

@@ -28,6 +28,12 @@ module Test.QuickCheck.Arbitrary
   , arbitrarySizedFractional      -- :: Fractional a => Gen a
   , arbitraryBoundedRandom        -- :: (Bounded a, Random a) => Gen a
   , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
+  -- ** Generators for various kinds of character
+  , arbitraryUnicodeChar   -- :: Gen Char
+  , arbitraryASCIIChar     -- :: Gen Char
+  , arbitraryPrintableChar -- :: Gen Char
+  , arbitraryChar          -- :: Gen Char
+  , shrinkChar             -- :: Char -> [Char]
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
@@ -78,6 +84,9 @@ import Data.Char
   , toLower
   , isDigit
   , isSpace
+  , isPrint
+  , generalCategory
+  , GeneralCategory(..)
   )
 
 #ifndef NO_FIXED
@@ -579,22 +588,8 @@ instance Arbitrary Word64 where
   shrink    = shrinkIntegral
 
 instance Arbitrary Char where
-  arbitrary = chr `fmap` oneof [choose (0,127), choose (0,255)]
-  shrink c  = filter (<. c) $ nub
-            $ ['a','b','c']
-           ++ [ toLower c | isUpper c ]
-           ++ ['A','B','C']
-           ++ ['1','2','3']
-           ++ [' ','\n']
-   where
-    a <. b  = stamp a < stamp b
-    stamp a = ( (not (isLower a)
-              , not (isUpper a)
-              , not (isDigit a))
-              , (not (a==' ')
-              , not (isSpace a)
-              , a)
-              )
+  arbitrary = arbitraryChar
+  shrink = shrinkChar
 
 instance Arbitrary Float where
   arbitrary = arbitrarySizedFractional
@@ -773,6 +768,49 @@ arbitrarySizedBoundedIntegral =
            k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 80)
        n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
        return (fromInteger n)
+
+-- ** Generators for various kinds of character
+
+-- | Generates any Unicode character (but not a surrogate)
+arbitraryUnicodeChar :: Gen Char
+arbitraryUnicodeChar =
+  arbitraryBoundedEnum `suchThat` (not . isSurrogate)
+  where
+    isSurrogate c = generalCategory c == Surrogate
+
+-- | Generates a random ASCII character (0-127).
+arbitraryASCIIChar :: Gen Char
+arbitraryASCIIChar = choose ('\0', '\127')
+
+-- | Generates a character.
+-- ASCII characters are generated more often than non-ASCII.
+arbitraryChar :: Gen Char
+arbitraryChar =
+  frequency
+    [(3, arbitraryASCIIChar),
+     (1, arbitraryUnicodeChar)]
+
+-- | Generates a printable Unicode character.
+arbitraryPrintableChar :: Gen Char
+arbitraryPrintableChar = arbitraryChar `suchThat` isPrint
+
+-- | The shrinking function for characters.
+shrinkChar :: Char -> [Char]
+shrinkChar c = filter (<. c) $ nub
+          $ ['a','b','c']
+          ++ [ toLower c | isUpper c ]
+          ++ ['A','B','C']
+          ++ ['1','2','3']
+          ++ [' ','\n']
+   where
+    a <. b  = stamp a < stamp b
+    stamp a = ( (not (isLower a)
+              , not (isUpper a)
+              , not (isDigit a))
+              , (not (a==' ')
+              , not (isSpace a)
+              , a)
+              )
 
 -- ** Helper functions for implementing shrink
 
