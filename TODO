@@ -1,12 +1,7 @@
-Add applicative for shrinking?
-Fix bug with genericShrink on Integer
-Fix collection of labels in conjunction and disjunction
+point people at feat
+mention that 100 tests is an arbitrary number
+
 Allow using unicode characters in Function instance for Char
-
-Add tests for Positive (Small Int) and Small (Positive Int) - or
-perhaps a property that combines many modifiers.
-
-Edit new documentation.
 
 To make a release:
 * Run build-all script.
@@ -14,15 +9,9 @@ To make a release:
 * Tag git repo.
 
 Koen's old TODO (trimmed):
-* consider adding all QuickCheck1 flags (in particular: printing the number of test cases)
-* remove unnecessary incompatibilities with QuickCheck1
-* find consistent good names for functions (especially primed function names and callbacks)
 * add more callback functions
 * implement pre-test callbacks (add these as a top-level flag)
-* find a good principle to decide what to export and what not
-* decide what to export in Test.QuickCheck
 * consider introducing special wrapper modules for certain extensions (such as callbacks)
-* Deriving arbitrary, coarbitrary, shrink
 
 More recently:
 * Unify CoArbitrary and FunArbitrary?
@@ -31,7 +20,7 @@ More recently:
 * Some general way of recording information inside a property.
 * Add the 'infinite' combinator and use it to experiment with e.g.
   partial generators, sized-based generators.
-* Reformat things---some lines are 120 characters long!!!
+* Reformat things---some lines are 120 characters long!
 * Maybe split Property.Result into two parts, environment and result,
   so that we can include Property.Result in Test.Result.
 * Perhaps make Gen (Rose a) a first-class thing (maybe for internal
