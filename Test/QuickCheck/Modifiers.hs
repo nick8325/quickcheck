@@ -359,6 +359,7 @@ instance Arbitrary ASCIIString where
 
 --------------------------------------------------------------------------
 -- | @UnicodeString@: generates a unicode String.
+-- The string will not contain surrogate pairs.
 newtype UnicodeString = UnicodeString {getUnicodeString :: String}
   deriving ( Eq, Ord, Show, Read )
 
@@ -368,6 +369,7 @@ instance Arbitrary UnicodeString where
 
 --------------------------------------------------------------------------
 -- | @PrintableString@: generates a printable unicode String.
+-- The string will not contain surrogate pairs.
 newtype PrintableString = PrintableString {getPrintableString :: String}
   deriving ( Eq, Ord, Show, Read )
 
