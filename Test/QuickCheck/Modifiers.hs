@@ -56,13 +56,7 @@ module Test.QuickCheck.Modifiers
   , Shrinking(..)
   , ShrinkState(..)
 #endif
-  , ASCII(..)
-  , Latin1(..)
-  , Unicode(..)
-  , Printable(..)
-  , AllUnicode(..)
   , ASCIIString(..)
-  , Latin1String(..)
   , UnicodeString(..)
   , PrintableString(..)
   )
@@ -355,100 +349,30 @@ instance (Arbitrary a, ShrinkState s a) => Arbitrary (Shrinking s a) where
 #endif /* NO_MULTI_PARAM_TYPE_CLASSES */
 
 --------------------------------------------------------------------------
--- | @ASCII@.
-newtype ASCII = ASCII {getASCII :: Char}
-  deriving ( Eq, Ord, Show, Read )
-
-asciiGen :: Gen Char
-asciiGen = choose ('\0', '\127')
-
-instance Arbitrary ASCII where
-  arbitrary = ASCII `fmap` asciiGen
-
---------------------------------------------------------------------------
--- | @Latin1@: latin1 Char, same Arbitrary as Char itself.
-newtype Latin1 = Latin1 {getLatin1 :: Char}
-  deriving ( Eq, Ord, Show, Read )
-
-instance Arbitrary Latin1 where
-  arbitrary = Latin1 `fmap` arbitrary
-  shrink (Latin1 c) = Latin1 `fmap` shrink c
-
---------------------------------------------------------------------------
--- | @Unicode@: yields unicode Char.
-newtype Unicode = Unicode {getUnicode :: Char}
-  deriving ( Eq, Ord, Show, Read )
-
-unicodeGen' :: Gen Char
-unicodeGen' = oneof [choose (minBound, '\55296'), -- Skip high and low surrogates
-                     choose ('\57344', maxBound)]
-
-unicodeGen :: Gen Char
-unicodeGen =
-  frequency [
-    (3, asciiGen),
-    (1, unicodeGen')]
-
-
-instance Arbitrary Unicode where
-  arbitrary = Unicode `fmap` unicodeGen
-
---------------------------------------------------------------------------
--- | @Printable@: yields printable unicode Char.
-newtype Printable = Printable {getPrintable :: Char}
-  deriving ( Eq, Ord, Show, Read )
-
-printableGen :: Gen Char
-printableGen = unicodeGen `suchThat` isPrint
-
-instance Arbitrary Printable where
-  arbitrary = Printable `fmap` unicodeGen
-
---------------------------------------------------------------------------
--- | @AllUnicode@: yields any unicode (even invalid standalone surrogates).
-newtype AllUnicode = AllUnicode {getAllUnicode :: Char}
-  deriving ( Eq, Ord, Show, Read )
-
-instance Arbitrary AllUnicode where
-  arbitrary =
-    AllUnicode `fmap` frequency [
-      (3, asciiGen),
-      (1, choose (minBound, maxBound))]
-
---------------------------------------------------------------------------
--- | @ASCIIString@.
+-- | @ASCIIString@: generates an ASCII string.
 newtype ASCIIString = ASCIIString {getASCIIString :: String}
   deriving ( Eq, Ord, Show, Read )
 
 instance Arbitrary ASCIIString where
-  arbitrary = ASCIIString `fmap` listOf asciiGen
-  shrink (ASCIIString xs) = ASCIIString `fmap` shrinkList shrink xs
+  arbitrary = ASCIIString `fmap` listOf arbitraryASCIIChar
+  shrink (ASCIIString xs) = ASCIIString `fmap` shrink xs
 
 --------------------------------------------------------------------------
--- | @Latin1String@: latin1 String, same Arbitrary as String itself.
-newtype Latin1String = Latin1String {getLatin1String :: String}
-  deriving ( Eq, Ord, Show, Read )
-
-instance Arbitrary Latin1String where
-  arbitrary = Latin1String `fmap` arbitrary
-  shrink (Latin1String s) = Latin1String `fmap` shrink s
-
---------------------------------------------------------------------------
--- | @UnicodeString@: yields unicode String.
+-- | @UnicodeString@: generates a unicode String.
 newtype UnicodeString = UnicodeString {getUnicodeString :: String}
   deriving ( Eq, Ord, Show, Read )
 
 instance Arbitrary UnicodeString where
-  arbitrary = UnicodeString `fmap` listOf unicodeGen
-  shrink (UnicodeString xs) = UnicodeString `fmap` shrinkList shrink xs
+  arbitrary = UnicodeString `fmap` listOf arbitraryUnicodeChar
+  shrink (UnicodeString xs) = UnicodeString `fmap` shrink xs
 
 --------------------------------------------------------------------------
--- | @PrintableString@: yields printable unicode String.
+-- | @PrintableString@: generates a printable unicode String.
 newtype PrintableString = PrintableString {getPrintableString :: String}
   deriving ( Eq, Ord, Show, Read )
 
 instance Arbitrary PrintableString where
-  arbitrary = PrintableString `fmap` listOf printableGen
-  shrink (PrintableString xs) = PrintableString `fmap` shrinkList shrink xs
+  arbitrary = PrintableString `fmap` listOf arbitraryPrintableChar
+  shrink (PrintableString xs) = PrintableString `fmap` shrink xs
 
 -- the end.
