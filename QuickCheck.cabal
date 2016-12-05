@@ -97,7 +97,7 @@ library
     -- 'Data.Proxy' is available in base only since GHC 7.8 / base-4.7
     if impl(ghc < 7.8)
       build-depends: tagged>=0.8.5
-  else:
+  else
       cpp-options: -DNO_PROXY
 
   if !impl(ghc >= 7.6)
