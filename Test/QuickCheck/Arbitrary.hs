@@ -20,6 +20,14 @@ module Test.QuickCheck.Arbitrary
     Arbitrary(..)
   , CoArbitrary(..)
 
+  -- ** Unary and Binary classes
+  , Arbitrary1(..)
+  , arbitrary1
+  , shrink1
+  , Arbitrary2(..)
+  , arbitrary2
+  , shrink2
+
   -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
   , arbitrarySizedNatural         -- :: Integral a => Gen a
@@ -230,8 +238,33 @@ class Arbitrary a where
   -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
   -- after deriving @Generic@ for your type. However, if your data type has any
   -- special invariants, you will need to check that 'genericShrink' can't break those invariants.
+  --
   shrink :: a -> [a]
   shrink _ = []
+
+-- | Lifting of the 'Arbitrary' class to unary type constructors.
+class Arbitrary1 f where
+  liftArbitrary :: Gen a -> Gen (f a)
+  liftShrink    :: (a -> [a]) -> f a -> [f a]
+  liftShrink _ _ = []
+
+arbitrary1 :: (Arbitrary1 f, Arbitrary a) => Gen (f a)
+arbitrary1 = liftArbitrary arbitrary
+
+shrink1 :: (Arbitrary1 f, Arbitrary a) => f a -> [f a]
+shrink1 = liftShrink shrink
+
+-- | Lifting of the 'Arbitrary' class to binary type constructors.
+class Arbitrary2 f where
+  liftArbitrary2 :: Gen a -> Gen b -> Gen (f a b)
+  liftShrink2    :: (a -> [a]) -> (b -> [b]) -> f a b -> [f a b]
+  liftShrink2 _ _ _ = []
+
+arbitrary2 :: (Arbitrary2 f, Arbitrary a, Arbitrary b) => Gen (f a b)
+arbitrary2 = liftArbitrary2 arbitrary arbitrary
+
+shrink2 :: (Arbitrary2 f, Arbitrary a, Arbitrary b) => f a b -> [f a b]
+shrink2 = liftShrink2 shrink shrink
 
 #ifndef NO_GENERICS
 -- | Shrink a term to any of its immediate subterms,
@@ -343,8 +376,11 @@ instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
 
 -- instances
 
+instance (CoArbitrary a) => Arbitrary1 ((->) a) where
+  liftArbitrary arbB = promote (`coarbitrary` arbB)
+
 instance (CoArbitrary a, Arbitrary b) => Arbitrary (a -> b) where
-  arbitrary = promote (`coarbitrary` arbitrary)
+  arbitrary = arbitrary1
 
 instance Arbitrary () where
   arbitrary = return ()

@@ -130,6 +130,14 @@ module Test.QuickCheck
   , Arbitrary(..)
   , CoArbitrary(..)
 
+  -- ** Unary and Binary classes
+  , Arbitrary1(..)
+  , arbitrary1
+  , shrink1
+  , Arbitrary2(..)
+  , arbitrary2
+  , shrink2
+
     -- ** Helper functions for implementing arbitrary
   , arbitrarySizedIntegral
   , arbitrarySizedNatural
