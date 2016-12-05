@@ -66,6 +66,7 @@ import Control.Applicative
 import Data.Foldable(toList)
 import System.Random(Random)
 import Test.QuickCheck.Gen
+import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
 
 {-
@@ -697,6 +698,9 @@ instance Arbitrary Version where
     , length xs' > 0
     , all (>=0) xs'
     ]
+
+instance Arbitrary QCGen where
+  arbitrary = MkGen (\g _ -> g)
 
 -- ** Helper functions for implementing arbitrary
 
