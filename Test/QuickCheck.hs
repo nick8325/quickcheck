@@ -140,6 +140,7 @@ module Test.QuickCheck
   , arbitraryBoundedEnum
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
+  , genericArbitrary
   , genericCoarbitrary
   , genericShrink
   , subterms

@@ -76,13 +76,6 @@ library
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
 
-  -- The new generics appeared in GHC 7.2...
-  if impl(ghc < 7.2)
-    cpp-options: -DNO_GENERICS
-  -- ...but in 7.2-7.4 it lives in the ghc-prim package.
-  if impl(ghc >= 7.2) && impl(ghc < 7.6)
-    Build-depends: ghc-prim
-
   -- Safe Haskell appeared in GHC 7.2, but GHC.Generics isn't safe until 7.4.
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
@@ -112,10 +105,15 @@ library
 
   if impl(ghc)
     -- 'Data.List.NonEmpty' is available in base only since GHC 8.0 / base 4.9
+    --
+    -- We use the generic-deriving library for GHC generics compatibility with
+    -- older versions of GHC (back to 7.0). It also backports the
+    -- representation types for unlifted types (UChar, UDouble, etc.) for GHCs
+    -- older than 8.0.
     if impl(ghc < 8.0)
-      build-depends: semigroups >=0.9
+      build-depends: semigroups >=0.9, generic-deriving >= 1.10.1
   else
-      cpp-options: -DNO_NONEMPTY
+      cpp-options: -DNO_NONEMPTY -DNO_GENERICS
 
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
@@ -135,6 +133,9 @@ library
     Build-depends: old-time, old-locale
     -- Plus some bits of the standard library are missing.
     cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
+
+  ghc-options:
+    -Wall
 
 Test-Suite test-quickcheck
     type: exitcode-stdio-1.0

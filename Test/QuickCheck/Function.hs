@@ -7,7 +7,10 @@
 #endif
 
 #ifndef NO_GENERICS
-{-# LANGUAGE DefaultSignatures, FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE DefaultSignatures #-}
+#endif
 #endif
 
 #ifndef NO_POLYKINDS
@@ -94,7 +97,11 @@ import Data.List.NonEmpty(NonEmpty(..))
 #endif
 
 #ifndef NO_GENERICS
+#if MIN_VERSION_base(4,9,0)
 import GHC.Generics hiding (C)
+#else
+import Generics.Deriving.Base hiding (C)
+#endif
 #endif
 
 --------------------------------------------------------------------------
@@ -154,7 +161,7 @@ table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 
 class Function a where
   function :: (a->b) -> (a:->b)
-#ifndef NO_GENERICS
+#if !defined(NO_GENERICS) && __GLASGOW_HASKELL__ >= 702
   default function :: (Generic a, GFunction (Rep a)) => (a->b) -> (a:->b)
   function = genericFunction
 #endif
