@@ -36,6 +36,7 @@ import Control.Arrow
 import Test.QuickCheck.Random
 import Data.List
 import Data.Ord
+import qualified Data.Sequence as Seq
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -207,6 +208,17 @@ vectorOf = replicateM
 -- | Generates an infinite list.
 infiniteListOf :: Gen a -> Gen [a]
 infiniteListOf gen = sequence (repeat gen)
+
+-- | Generates a sequence of random length. The maximum length depends
+-- on the size parameter.
+seqOf :: Gen a -> Gen (Seq.Seq a)
+seqOf gen = sized $ \n ->
+  do k <- choose (0,n)
+     seqOfSize k gen
+
+-- | Generates a sequence of the given length.
+seqOfSize :: Int -> Gen a -> Gen (Seq.Seq a)
+seqOfSize = Seq.replicateA
 
 --------------------------------------------------------------------------
 -- the end.
