@@ -29,6 +29,12 @@ Description:
   .
   You can find a (slightly out-of-date but useful) manual at
   <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>.
+  .
+  There are several useful QuickCheck-related packages developed by other people:
+  .
+  * <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances> - `Arbitrary` instances which are not included in QuickCheck itself.
+  * <http://hackage.haskell.org/package/QuickCheck-GenT QuickCheck-GenT> - a monad transformer based on `Gen`.
+  * <http://hackage.haskell.org/package/testing-feat testing-feat> - high-quality automatic `Arbitrary` instances using Template Haskell.
 
 source-repository head
   type:     git
