@@ -1,5 +1,6 @@
 -- | Type classes for random generation of values.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE FlexibleContexts #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
@@ -145,6 +146,10 @@ import Control.Monad
 
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
+import System.Exit (ExitCode(..))
+#ifndef NO_CTYPES
+import Foreign.C.Types
+#endif
 
 #ifndef NO_GENERICS
 import GHC.Generics
@@ -162,8 +167,6 @@ import qualified Data.Monoid as Monoid
 import Data.Functor.Identity
 import Data.Functor.Constant
 #endif
-
-import Data.Proxy (Proxy (..))
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -652,6 +655,108 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
+#ifndef NO_CTYPES
+instance Arbitrary CChar where
+  arbitrary = CChar <$> arbitrary
+  shrink (CChar x) = CChar <$> shrink x
+
+instance Arbitrary CSChar where
+  arbitrary = CSChar <$> arbitrary
+  shrink (CSChar x) = CSChar <$> shrink x
+
+instance Arbitrary CUChar where
+  arbitrary = CUChar <$> arbitrary
+  shrink (CUChar x) = CUChar <$> shrink x
+
+instance Arbitrary CShort where
+  arbitrary = CShort <$> arbitrary
+  shrink (CShort x) = CShort <$> shrink x
+
+instance Arbitrary CUShort where
+  arbitrary = CUShort <$> arbitrary
+  shrink (CUShort x) = CUShort <$> shrink x
+
+instance Arbitrary CInt where
+  arbitrary = CInt <$> arbitrary
+  shrink (CInt x) = CInt <$> shrink x
+
+instance Arbitrary CUInt where
+  arbitrary = CUInt <$> arbitrary
+  shrink (CUInt x) = CUInt <$> shrink x
+
+instance Arbitrary CLong where
+  arbitrary = CLong <$> arbitrary
+  shrink (CLong x) = CLong <$> shrink x
+
+instance Arbitrary CULong where
+  arbitrary = CULong <$> arbitrary
+  shrink (CULong x) = CULong <$> shrink x
+
+instance Arbitrary CPtrdiff where
+  arbitrary = CPtrdiff <$> arbitrary
+  shrink (CPtrdiff x) = CPtrdiff <$> shrink x
+
+instance Arbitrary CSize where
+  arbitrary = CSize <$> arbitrary
+  shrink (CSize x) = CSize <$> shrink x
+
+instance Arbitrary CWchar where
+  arbitrary = CWchar <$> arbitrary
+  shrink (CWchar x) = CWchar <$> shrink x
+
+instance Arbitrary CSigAtomic where
+  arbitrary = CSigAtomic <$> arbitrary
+  shrink (CSigAtomic x) = CSigAtomic <$> shrink x
+
+instance Arbitrary CLLong where
+  arbitrary = CLLong <$> arbitrary
+  shrink (CLLong x) = CLLong <$> shrink x
+
+instance Arbitrary CULLong where
+  arbitrary = CULLong <$> arbitrary
+  shrink (CULLong x) = CULLong <$> shrink x
+
+instance Arbitrary CIntPtr where
+  arbitrary = CIntPtr <$> arbitrary
+  shrink (CIntPtr x) = CIntPtr <$> shrink x
+
+instance Arbitrary CUIntPtr where
+  arbitrary = CUIntPtr <$> arbitrary
+  shrink (CUIntPtr x) = CUIntPtr <$> shrink x
+
+instance Arbitrary CIntMax where
+  arbitrary = CIntMax <$> arbitrary
+  shrink (CIntMax x) = CIntMax <$> shrink x
+
+instance Arbitrary CUIntMax where
+  arbitrary = CUIntMax <$> arbitrary
+  shrink (CUIntMax x) = CUIntMax <$> shrink x
+
+instance Arbitrary CClock where
+  arbitrary = CClock <$> arbitrary
+  shrink (CClock x) = CClock <$> shrink x
+
+instance Arbitrary CTime where
+  arbitrary = CTime <$> arbitrary
+  shrink (CTime x) = CTime <$> shrink x
+
+instance Arbitrary CUSeconds where
+  arbitrary = CUSeconds <$> arbitrary
+  shrink (CUSeconds x) = CUSeconds <$> shrink x
+
+instance Arbitrary CSUSeconds where
+  arbitrary = CSUSeconds <$> arbitrary
+  shrink (CSUSeconds x) = CSUSeconds <$> shrink x
+
+instance Arbitrary CFloat where
+  arbitrary = CFloat <$> arbitrary
+  shrink (CFloat x) = CFloat <$> shrink x
+
+instance Arbitrary CDouble where
+  arbitrary = CDouble <$> arbitrary
+  shrink (CDouble x) = CDouble <$> shrink x
+#endif
+
 -- Arbitrary instances for container types
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
   arbitrary = fmap Set.fromList arbitrary
@@ -689,6 +794,14 @@ instance Arbitrary a => Arbitrary (Constant a b) where
 instance Arbitrary a => Arbitrary (Const a b) where
   arbitrary = fmap Const arbitrary
   shrink = map Const . shrink . getConst
+
+instance Arbitrary (m a) => Arbitrary (WrappedMonad m a) where
+  arbitrary = WrapMonad <$> arbitrary
+  shrink (WrapMonad a) = map WrapMonad (shrink a)
+
+instance Arbitrary (a b c) => Arbitrary (WrappedArrow a b c) where
+  arbitrary = WrapArrow <$> arbitrary
+  shrink (WrapArrow a) = map WrapArrow (shrink a)
 
 -- Arbitrary instances for Monoid
 instance Arbitrary a => Arbitrary (Monoid.Dual a) where
@@ -753,6 +866,12 @@ instance Arbitrary Version where
 
 instance Arbitrary QCGen where
   arbitrary = MkGen (\g _ -> g)
+
+instance Arbitrary ExitCode where
+  arbitrary = frequency [(1, return ExitSuccess), (3, liftM ExitFailure arbitrary)]
+
+  shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
+  shrink _        = []
 
 -- ** Helper functions for implementing arbitrary
 
