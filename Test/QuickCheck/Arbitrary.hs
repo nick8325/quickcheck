@@ -396,21 +396,37 @@ instance Arbitrary Ordering where
   shrink LT = [EQ]
   shrink EQ = []
 
-instance Arbitrary a => Arbitrary (Maybe a) where
-  arbitrary = frequency [(1, return Nothing), (3, liftM Just arbitrary)]
+instance Arbitrary1 Maybe where
+  liftArbitrary arb = frequency [(1, return Nothing), (3, liftM Just arb)]
 
-  shrink (Just x) = Nothing : [ Just x' | x' <- shrink x ]
-  shrink _        = []
+  liftShrink shr (Just x) = Nothing : [ Just x' | x' <- shr x ]
+  liftShrink _   Nothing  = []
+
+instance Arbitrary a => Arbitrary (Maybe a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+
+instance Arbitrary2 Either where
+  liftArbitrary2 arbA arbB = oneof [liftM Left arbA, liftM Right arbB]
+
+  liftShrink2 shrA _ (Left x)  = [ Left  x' | x' <- shrA x ]
+  liftShrink2 _ shrB (Right y) = [ Right y' | y' <- shrB y ]
+
+instance Arbitrary a => Arbitrary1 (Either a) where
+  liftArbitrary = liftArbitrary2 arbitrary
+  liftShrink = liftShrink2 shrink
 
 instance (Arbitrary a, Arbitrary b) => Arbitrary (Either a b) where
-  arbitrary = oneof [liftM Left arbitrary, liftM Right arbitrary]
+  arbitrary = arbitrary2
+  shrink = shrink2
 
-  shrink (Left x)  = [ Left  x' | x' <- shrink x ]
-  shrink (Right y) = [ Right y' | y' <- shrink y ]
+instance Arbitrary1 [] where
+  liftArbitrary = listOf
+  liftShrink = shrinkList
 
 instance Arbitrary a => Arbitrary [a] where
-  arbitrary = listOf arbitrary
-  shrink xs = shrinkList shrink xs
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 #ifndef NO_NONEMPTY
 instance Arbitrary a => Arbitrary (NonEmpty a) where
