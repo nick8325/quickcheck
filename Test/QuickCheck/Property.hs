@@ -69,7 +69,18 @@ infixr 1 .||.
 -- | The type of properties.
 newtype Property = MkProperty { unProperty :: Gen Prop }
 
--- | The class of things which can be tested, i.e. turned into a property.
+-- | The class of properties, i.e., types which QuickCheck knows how
+-- to test.
+--
+-- Typically a property will be a function returning 'Bool' or 'Property',
+-- but it can also use 'IO' or 'Gen'. For example, a property of type
+-- @... -> IO ()@ passes the test as long as it doesn't crash, while a property
+-- of type @... -> IO Bool@ must return @True@.
+--
+-- If a property does no quantification, i.e. has no
+-- parameters and doesn't use 'forAll', it will only be tested once.
+-- This may not be what you want if your property is an @IO Bool@.
+-- You can change this behaviour using the 'again' combinator.
 class Testable prop where
   -- | Convert the thing to a property.
   property :: prop -> Property
@@ -80,6 +91,15 @@ data Discard = Discard
 
 instance Testable Discard where
   property _ = property rejected
+
+-- This instance is mostly here so that we get
+-- a Testable (IO ()) instance.
+instance Testable () where
+  property = property . liftUnit
+    where
+      -- N.B. the unit gets forced only inside 'property',
+      -- so that we turn exceptions into test failures
+      liftUnit () = succeeded
 
 instance Testable Bool where
   property = property . liftBool
@@ -93,27 +113,23 @@ instance Testable Prop where
 instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (again p)
 
+instance Testable prop => Testable (IO prop) where
+  property =
+    MkProperty . fmap (MkProp . ioRose . fmap unProp) .
+    promote . fmap (unProperty . property)
+
 instance Testable Property where
   property = property . unProperty
 
--- | Do I/O inside a property. This can obviously lead to unrepeatable
--- testcases, so use with care.
-{-# DEPRECATED morallyDubiousIOProperty "Use ioProperty instead" #-}
+-- | Do I/O inside a property.
+{-# DEPRECATED morallyDubiousIOProperty "Use 'property' instead or remove call altogether; IO is an instance of Testable" #-}
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
-morallyDubiousIOProperty = ioProperty -- Silly names aren't all they're cracked up to be :)
+morallyDubiousIOProperty = property
 
--- | Do I/O inside a property. This can obviously lead to unrepeatable
--- testcases, so use with care.
---
--- For more advanced monadic testing you may want to look at
--- "Test.QuickCheck.Monadic".
---
--- Note that if you use 'ioProperty' on a property of type @IO Bool@,
--- or more generally a property that does no quantification, the property
--- will only be executed once. To test the property repeatedly you must
--- use the 'again' combinator.
+-- | Do I/O inside a property.
+{-# DEPRECATED ioProperty "Use 'property' instead or remove call altogether; IO is an instance of Testable" #-}
 ioProperty :: Testable prop => IO prop -> Property
-ioProperty = MkProperty . fmap (MkProp . ioRose . fmap unProp) . promote . fmap (unProperty . property)
+ioProperty = property
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
