@@ -166,6 +166,9 @@ import qualified Data.Monoid as Monoid
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
+import Data.Functor.Product
+import Data.Functor.Sum
+import Data.Functor.Compose
 #endif
 
 --------------------------------------------------------------------------
@@ -825,6 +828,30 @@ instance Arbitrary a => Arbitrary1 (Constant a) where
 instance Arbitrary a => Arbitrary (Constant a b) where
   arbitrary = fmap Constant arbitrary
   shrink = map Constant . shrink . getConstant
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Product f g) where
+  liftArbitrary arb = liftM2 Pair (liftArbitrary arb) (liftArbitrary arb)
+  liftShrink shr (Pair f g) =
+    [ Pair f' g | f' <- liftShrink shr f ] ++
+    [ Pair f g' | g' <- liftShrink shr g ]
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Sum f g) where
+  liftArbitrary arb = oneof [fmap InL (liftArbitrary arb), fmap InR (liftArbitrary arb)]
+  liftShrink shr (InL f) = map InL (liftShrink shr f)
+  liftShrink shr (InR g) = map InR (liftShrink shr g)
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Sum f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
+  liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
+  liftShrink shr = map Compose . liftShrink (liftShrink shr) . getCompose
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Compose f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 #endif
 
 -- Arbitrary instance for Const
