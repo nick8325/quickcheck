@@ -437,9 +437,7 @@ instance Arbitrary a => Arbitrary [a] where
 #ifndef NO_NONEMPTY
 instance Arbitrary1 NonEmpty where
   liftArbitrary arb = liftM2 (:|) arb (liftArbitrary arb)
-  liftShrink shr (x :| xs) =
-      [ x' :| xs | x' <- shr x ] ++
-      [ x :| xs' | xs' <- liftShrink shr xs ]
+  liftShrink shr (x :| xs) = mapMaybe nonEmpty . liftShrink shr $ x : xs
 
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
