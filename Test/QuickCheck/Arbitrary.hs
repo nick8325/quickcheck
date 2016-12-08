@@ -166,6 +166,9 @@ import qualified Data.Monoid as Monoid
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
+import Data.Functor.Product
+import Data.Functor.Sum
+import Data.Functor.Compose
 #endif
 
 --------------------------------------------------------------------------
@@ -432,9 +435,13 @@ instance Arbitrary a => Arbitrary [a] where
   shrink = shrink1
 
 #ifndef NO_NONEMPTY
+instance Arbitrary1 NonEmpty where
+  liftArbitrary arb = liftM2 (:|) arb (liftArbitrary arb)
+  liftShrink shr (x :| xs) = mapMaybe nonEmpty . liftShrink shr $ x : xs
+
 instance Arbitrary a => Arbitrary (NonEmpty a) where
-  arbitrary = liftM2 (:|) arbitrary arbitrary
-  shrink (x :| xs) = mapMaybe nonEmpty . shrinkList shrink $ x : xs
+  arbitrary = arbitrary1
+  shrink = shrink1
 #endif
 
 -- | Shrink a list of values given a shrinking function for individual values.
@@ -479,14 +486,19 @@ instance HasResolution a => Arbitrary (Fixed a) where
   shrink    = shrinkRealFrac
 #endif
 
-instance (Arbitrary a, Arbitrary b)
-      => Arbitrary (a,b)
- where
-  arbitrary = liftM2 (,) arbitrary arbitrary
+instance Arbitrary2 (,) where
+  liftArbitrary2 = liftM2 (,)
+  liftShrink2 shrA shrB (x, y) =
+       [ (x', y) | x' <- shrA x ]
+    ++ [ (x, y') | y' <- shrB y ]
 
-  shrink (x, y) =
-       [ (x', y) | x' <- shrink x ]
-    ++ [ (x, y') | y' <- shrink y ]
+instance (Arbitrary a) => Arbitrary1 ((,) a) where
+  liftArbitrary = liftArbitrary2 arbitrary
+  liftShrink = liftShrink2 shrink
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (a,b) where
+  arbitrary = arbitrary2
+  shrink = shrink2
 
 instance (Arbitrary a, Arbitrary b, Arbitrary c)
       => Arbitrary (a,b,c)
@@ -598,6 +610,10 @@ instance Arbitrary Natural where
 #endif
 
 #ifndef NO_PROXY
+instance Arbitrary1 Proxy where
+  liftArbitrary _ = pure Proxy
+  liftShrink _ _ = []
+
 instance Arbitrary (Proxy a) where
   arbitrary = pure Proxy
   shrink _  = []
@@ -761,36 +777,89 @@ instance Arbitrary CDouble where
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
   arbitrary = fmap Set.fromList arbitrary
   shrink = map Set.fromList . shrink . Set.toList
+instance (Ord k, Arbitrary k) => Arbitrary1 (Map.Map k) where
+  liftArbitrary = fmap Map.fromList . liftArbitrary . liftArbitrary
+  liftShrink shr = map Map.fromList . liftShrink (liftShrink shr) . Map.toList
 instance (Ord k, Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
-  arbitrary = fmap Map.fromList arbitrary
-  shrink = map Map.fromList . shrink . Map.toList
+  arbitrary = arbitrary1
+  shrink = shrink1
 instance Arbitrary IntSet.IntSet where
   arbitrary = fmap IntSet.fromList arbitrary
   shrink = map IntSet.fromList . shrink . IntSet.toList
+instance Arbitrary1 IntMap.IntMap where
+  liftArbitrary = fmap IntMap.fromList . liftArbitrary . liftArbitrary
+  liftShrink shr = map IntMap.fromList . liftShrink (liftShrink shr) . IntMap.toList
 instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
-  arbitrary = fmap IntMap.fromList arbitrary
-  shrink = map IntMap.fromList . shrink . IntMap.toList
+  arbitrary = arbitrary1
+  shrink = shrink1
+instance Arbitrary1 Sequence.Seq where
+  liftArbitrary = fmap Sequence.fromList . liftArbitrary
+  liftShrink shr = map Sequence.fromList . liftShrink shr . toList
 instance Arbitrary a => Arbitrary (Sequence.Seq a) where
-  arbitrary = fmap Sequence.fromList arbitrary
-  shrink = map Sequence.fromList . shrink . toList
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 -- Arbitrary instance for Ziplist
+instance Arbitrary1 ZipList where
+  liftArbitrary = fmap ZipList . liftArbitrary
+  liftShrink shr = map ZipList . liftShrink shr . getZipList
 instance Arbitrary a => Arbitrary (ZipList a) where
-  arbitrary = fmap ZipList arbitrary
-  shrink = map ZipList . shrink . getZipList
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 #ifndef NO_TRANSFORMERS
 -- Arbitrary instance for transformers' Functors
+instance Arbitrary1 Identity where
+  liftArbitrary = fmap Identity
+  liftShrink shr = map Identity . shr . runIdentity
 instance Arbitrary a => Arbitrary (Identity a) where
-  arbitrary = fmap Identity arbitrary
-  shrink = map Identity . shrink . runIdentity
+  arbitrary = arbitrary1
+  shrink = shrink1
 
+instance Arbitrary2 Constant where
+  liftArbitrary2 arbA _ = fmap Constant arbA
+  liftShrink2 shrA _ = fmap Constant . shrA . getConstant
+instance Arbitrary a => Arbitrary1 (Constant a) where
+  liftArbitrary = liftArbitrary2 arbitrary
+  liftShrink = liftShrink2 shrink
+-- Have to be defined explicitly, as Constant is kind polymorphic
 instance Arbitrary a => Arbitrary (Constant a b) where
   arbitrary = fmap Constant arbitrary
   shrink = map Constant . shrink . getConstant
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Product f g) where
+  liftArbitrary arb = liftM2 Pair (liftArbitrary arb) (liftArbitrary arb)
+  liftShrink shr (Pair f g) =
+    [ Pair f' g | f' <- liftShrink shr f ] ++
+    [ Pair f g' | g' <- liftShrink shr g ]
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Sum f g) where
+  liftArbitrary arb = oneof [fmap InL (liftArbitrary arb), fmap InR (liftArbitrary arb)]
+  liftShrink shr (InL f) = map InL (liftShrink shr f)
+  liftShrink shr (InR g) = map InR (liftShrink shr g)
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Sum f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+
+instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
+  liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
+  liftShrink shr = map Compose . liftShrink (liftShrink shr) . getCompose
+instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Compose f g a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 #endif
 
 -- Arbitrary instance for Const
+instance Arbitrary2 Const where
+  liftArbitrary2 arbA _ = fmap Const arbA
+  liftShrink2 shrA _ = fmap Const . shrA . getConst
+instance Arbitrary a => Arbitrary1 (Const a) where
+  liftArbitrary = liftArbitrary2 arbitrary
+  liftShrink = liftShrink2 shrink
+-- Have to be defined explicitly, as Const is kind polymorphic
 instance Arbitrary a => Arbitrary (Const a b) where
   arbitrary = fmap Const arbitrary
   shrink = map Const . shrink . getConst
