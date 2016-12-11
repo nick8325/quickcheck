@@ -162,6 +162,8 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Sequence as Sequence
 
 import qualified Data.Monoid as Monoid
+import Data.Array.IArray
+import Data.Array.Unboxed
 
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
@@ -941,6 +943,30 @@ instance Arbitrary ExitCode where
 
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
+
+instance (Num i, Ix i, Arbitrary i, Arbitrary a) => Arbitrary (Array i a) where
+  arbitrary = liftM2 makeArray arbitrary arbitrary
+  shrink = shrinkArray
+
+instance (Ix i, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array i a) where
+  coarbitrary arr = coarbitrary (bounds arr, elems arr)
+
+instance (Num i, Ix i, IArray UArray a, Arbitrary i, Arbitrary a) => Arbitrary (UArray i a) where
+  arbitrary = liftM2 makeArray arbitrary arbitrary
+  shrink = shrinkArray
+
+instance (Ix i, IArray UArray a, CoArbitrary i, CoArbitrary a) => CoArbitrary (UArray i a) where
+  coarbitrary arr = coarbitrary (bounds arr, elems arr)
+
+shrinkArray :: (Num i, Ix i, IArray arr a, Arbitrary i, Arbitrary a) => arr i a -> [arr i a]
+shrinkArray arr =
+  [ makeArray lo xs | xs <- shrink (elems arr) ] ++
+  [ makeArray lo' (elems arr) | lo' <- shrink lo ]
+  where
+    (lo, _) = bounds arr
+
+makeArray :: (Num i, Ix i, IArray arr a) => i -> [a] -> arr i a
+makeArray lo xs = listArray (lo, lo + fromIntegral (length xs - 1)) xs
 
 -- ** Helper functions for implementing arbitrary
 

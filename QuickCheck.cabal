@@ -50,7 +50,7 @@ flag templateHaskell
   Default: True
 
 library
-  Build-depends: base >=4.3 && <5, random, containers
+  Build-depends: base >=4.3 && <5, random, containers, array
 
   -- Modules that are always built.
   Exposed-Modules:

@@ -74,6 +74,7 @@ import Data.List
 import Data.Char
   ( isPrint
   )
+import Data.Array.IArray(Ix)
 
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
@@ -220,7 +221,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
 newtype Large a = Large {getLarge :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
-          , Num, Integral, Real, Enum
+          , Num, Integral, Real, Enum, Ix
 #endif
           )
 
@@ -237,7 +238,7 @@ instance (Integral a, Bounded a) => Arbitrary (Large a) where
 newtype Small a = Small {getSmall :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
-          , Num, Integral, Real, Enum
+          , Num, Integral, Real, Enum, Ix
 #endif
           )
 
