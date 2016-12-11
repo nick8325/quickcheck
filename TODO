@@ -1,6 +1,9 @@
 point people at feat
 mention that 100 tests is an arbitrary number
 
+add rose tree "<*>" combinator and use to get interleaved shrinking
+for properties with multiple parameters
+
 Allow using unicode characters in Function instance for Char
 
 To make a release:
