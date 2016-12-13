@@ -208,11 +208,11 @@ monitor f = MkPropertyM (\k -> (f `liftM`) `fmap` (k ()))
 
 -- run functions
 
-monadic :: Monad m => (m Property -> Property) -> PropertyM m () -> Property
+monadic :: (Testable a, Monad m) => (m Property -> Property) -> PropertyM m a -> Property
 monadic runner m = property (fmap runner (monadic' m))
 
-monadic' :: Monad m => PropertyM m () -> Gen (m Property)
-monadic' (MkPropertyM m) = m (const (return (return (property True))))
+monadic' :: (Testable a, Monad m) => PropertyM m a -> Gen (m Property)
+monadic' (MkPropertyM m) = m (\prop -> return (return (property prop)))
 
 -- | Runs the property monad for 'IO'-computations.
 --
@@ -228,7 +228,7 @@ monadic' (MkPropertyM m) = m (const (return (return (property True))))
 -- >>> quickCheck prop_cat
 -- +++ OK, passed 100 tests.
 --
-monadicIO :: PropertyM IO () -> Property
+monadicIO :: Testable a => PropertyM IO a -> Property
 monadicIO = monadic ioProperty
 
 #ifndef NO_ST_MONAD
@@ -247,7 +247,7 @@ monadicIO = monadic ioProperty
 -- >>> quickCheck prop_sortST
 -- +++ OK, passed 100 tests.
 --
-monadicST :: (forall s. PropertyM (ST s) ()) -> Property
+monadicST :: Testable a => (forall s. PropertyM (ST s) a) -> Property
 monadicST m = property (runSTGen (monadic' m))
 
 runSTGen :: (forall s. Gen (ST s a)) -> Gen a
