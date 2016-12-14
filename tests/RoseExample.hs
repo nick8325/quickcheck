@@ -37,7 +37,7 @@ rexp = rty >>= rExpFromTy []
     rExpFromTy ctx ty = rsized (rExpFromTy' ctx ty)
 
     rExpFromTy' :: [Ty] -> Ty -> Int -> RGen Exp
-    rExpFromTy' ctx ty s = roneof $
+    rExpFromTy' ctx ty s = roneof' $
         -- variables
         map (pure . V) (elemIndices ty ctx) ++
         -- Z
@@ -102,6 +102,6 @@ main = do
         putStrLn $ "expr: " ++ show (rootLabel x)
         putStrLn $ "type: " ++ show (wellTyped $ rootLabel x)
         for_ (subForest x) $ \y ->
-            putStrLn $ "- " ++ show (rootLabel y)
+            putStrLn $ "- " ++ show (rootLabel y) ++ " : " ++ show (wellTyped $ rootLabel y)
         putStrLn "------"
     pure ()
