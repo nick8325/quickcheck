@@ -89,6 +89,34 @@ wellTyped = go []
     nth 0 (x : _)  = Just x
     nth n (_ : xs) = nth (n - 1) xs
 
+prettyTy :: Ty -> String
+prettyTy ty = ppr False ty []
+  where
+    -- Just two precedences
+    ppr :: Bool -> Ty -> ShowS
+    ppr _ TyNat       = showString "Nat"
+    ppr d (TyArr a b) = showParen d
+        $ ppr True a
+        . showString " -> "
+        . ppr False b
+
+prettyExp :: Exp -> String
+prettyExp e = ppr False e []
+  where
+    ppr :: Bool -> Exp -> ShowS
+    ppr _ (V i)     = showsPrec 0 i
+    ppr _ Z         = showString "Z"
+    ppr _ S         = showString "S"
+    ppr d (App f x) = showParen d
+        $ ppr True f
+        . showChar ' '
+        . ppr False x
+    ppr d (Lam ty e)   = showParen d
+        $ showString "\\:"
+        . showString (prettyTy ty)
+        . showString ". "
+        . ppr False e
+
 main :: IO ()
 main = do
     Success {} <- quickCheckResult $ rForAll rexp $ isJust . wellTyped
@@ -97,9 +125,9 @@ main = do
     putStrLn "======="
     xs <- sample' (runRGen rexp)
     for_ (take 3 xs) $ \x -> do
-        putStrLn $ "expr: " ++ show (rootLabel x)
-        putStrLn $ "type: " ++ show (wellTyped $ rootLabel x)
+        putStrLn $ "expr: " ++ prettyExp (rootLabel x)
+        putStrLn $ "type: " ++ maybe "<type error>" prettyTy (wellTyped $ rootLabel x)
         for_ (subForest x) $ \y ->
-            putStrLn $ "- " ++ show (rootLabel y) ++ " : " ++ show (wellTyped $ rootLabel y)
+            putStrLn $ "- " ++ prettyExp (rootLabel y) ++ " : " ++ maybe "<type error>" prettyTy (wellTyped $ rootLabel y)
         putStrLn "------"
     pure ()
