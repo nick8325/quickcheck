@@ -23,7 +23,7 @@ instance Arbitrary Ty where
         a : b : [ TyArr a' b | a' <- shrink a ] ++ [ TyArr a b' | b' <- shrink b ]
 
 -- de bruijn indexes
-data Exp = V Int | Lam Ty Exp | App Exp Exp | Z | S Exp
+data Exp = V Int | Lam Ty Exp | App Exp Exp | Z | S
   deriving (Show, Eq)
 
 -- Generator of types
@@ -43,7 +43,7 @@ rexp = rty >>= rExpFromTy []
         -- Z
         [ pure Z | ty == TyNat ] ++
         -- S
-        [ S <$> rExpFromTy' ctx TyNat s | ty == TyArr TyNat TyNat ] ++
+        [ pure S | ty == TyArr TyNat TyNat ] ++
         -- App
         [ app
         | s /= 0
@@ -65,7 +65,7 @@ expSize (V _)     = 1
 expSize (Lam _ e) = 1 + expSize e
 expSize (App f x) = expSize f + expSize x
 expSize Z         = 1
-expSize (S e)     = 1 + expSize e
+expSize S         = 1
 
 -- | Property which holds non-obviously
 wellTyped :: Exp -> Maybe Ty
@@ -74,9 +74,7 @@ wellTyped = go []
     go :: [Ty] -> Exp -> Maybe Ty
     go ctx (V n) = nth n ctx
     go _   Z     = Just TyNat
-    go ctx (S e) = do
-        TyNat <- go ctx e
-        pure $ TyArr TyNat TyNat
+    go ctx S     = Just $ TyArr TyNat TyNat
     go ctx (App f x) = do
         TyArr a b <- go ctx f
         a' <- go ctx x
