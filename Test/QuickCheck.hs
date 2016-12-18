@@ -122,6 +122,7 @@ module Test.QuickCheck
   , infiniteList
     -- ** Running a generator
   , generate
+  , replayer
     -- ** Generator debugging
   , sample
   , sample'

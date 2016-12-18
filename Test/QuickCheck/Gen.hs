@@ -102,6 +102,13 @@ generate (MkGen g) =
   do r <- newQCGen
      return (g r 30)
 
+-- | create a reproduceable generating environment
+replayer :: IO (Gen a -> a)
+replayer = do
+    r <- newQCGen
+    let repeater (MkGen g) = g r 30
+    return $ repeater
+
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' g =
