@@ -116,6 +116,8 @@ module Test.QuickCheck
   , infiniteListOf
   , shuffle
   , sublistOf
+  , parallel
+  , (=!=)
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
