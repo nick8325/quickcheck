@@ -73,8 +73,34 @@ variant :: Integral n => n -> Gen a -> Gen a
 variant k (MkGen g) = MkGen (\r n -> g (variantQCGen k r) n)
 
 -- | Used to construct generators that depend on the size parameter.
+--
+-- For example, 'listOf', which uses the size parameter as an upper bound on
+-- length of lists it generates, can be defined like this:
+--
+-- > listOf :: Gen a -> Gen [a]
+-- > listOf gen = sized $ \n ->
+-- >   do k <- choose (0,n)
+-- >      vectorOf k gen
+--
+-- You can also do this using 'genSize'.
 sized :: (Int -> Gen a) -> Gen a
 sized f = MkGen (\r n -> let MkGen m = f n in m r n)
+
+-- | Generates the size parameter. Used to construct generators that depend on
+-- the size parameter.
+--
+-- For example, 'listOf', which uses the size parameter as an upper bound on
+-- length of lists it generates, can be defined like this:
+--
+-- > listOf :: Gen a -> Gen [a]
+-- > listOf gen = do
+-- >   n <- genSize
+-- >   k <- choose (0,n)
+-- >   vectorOf k gen
+--
+-- You can also do this using 'sized'.
+genSize :: Gen Int
+genSize = sized pure
 
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
