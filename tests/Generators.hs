@@ -142,5 +142,17 @@ prop_reachesBound_Word16 = reachesBound :: Word16 -> Property
 prop_reachesBound_Word32 = reachesBound :: Word32 -> Property
 prop_reachesBound_Word64 = reachesBound :: Word64 -> Property
 
+-- Bad shrink: infinite list
+--
+-- remove unexpectedFailure in prop_B1, shrinking should not loop forever.
+data B1 = B1 Int deriving (Eq, Show)
+
+instance Arbitrary B1 where
+    arbitrary = fmap B1 arbitrary
+    shrink x = x : shrink x
+
+prop_B1 :: B1 -> Property
+prop_B1 (B1 n) = expectFailure $ n === n + 1
+
 return []
-main = $quickCheckAll >>= print
+main = $forAllProperties (quickCheckWithResult stdArgs { maxShrinks = 10000 }) >>= print
