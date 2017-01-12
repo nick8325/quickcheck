@@ -20,6 +20,7 @@ data State
   , maxDiscardedTests         :: Int               -- ^ maximum number of tests that can be discarded
   , computeSize               :: Int -> Int -> Int -- ^ how to compute the size of test cases from
                                                    --   #tests and #discarded tests
+  , numTotMaxShrinks          :: !Int              -- ^ How many shrinks to try before giving up
 
   -- dynamic
   , numSuccessTests           :: !Int              -- ^ the current number of tests that have succeeded

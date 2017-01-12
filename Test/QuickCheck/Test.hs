@@ -60,6 +60,9 @@ data Args
     -- ^ Size to use for the biggest test cases
   , chatty          :: Bool
     -- ^ Whether to print anything
+  , maxShrinks      :: Int
+    -- ^ Maximum number of shrinks to before giving up. Setting this to zero
+    --   turns shrinking off.
   }
  deriving ( Show, Read )
 
@@ -117,7 +120,7 @@ stdArgs = Args
   , maxDiscardRatio = 10
   , maxSize         = 100
   , chatty          = True
--- noShrinking flag?
+  , maxShrinks      = maxBound
   }
 
 -- | Tests a property and prints the results to 'stdout'.
@@ -144,6 +147,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , computeSize               = case replay a of
                                                  Nothing    -> computeSize'
                                                  Just (_,s) -> computeSize' `at0` s
+                 , numTotMaxShrinks          = maxShrinks a
                  , numSuccessTests           = 0
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
@@ -371,6 +375,10 @@ foundFailure st res ts =
 localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
 localMin st MkResult{P.theException = Just e} lastRes _
   | isInterrupt e = localMinFound st lastRes
+-- Don't try to shrink for too long
+localMin st res _ ts
+  | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st =
+    localMinFound st res
 localMin st res _ ts = do
   r <- tryEvaluateIO $
     putTemp (terminal st)
