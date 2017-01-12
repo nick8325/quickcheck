@@ -82,7 +82,7 @@ variant k (MkGen g) = MkGen (\r n -> g (variantQCGen k r) n)
 -- >   do k <- choose (0,n)
 -- >      vectorOf k gen
 --
--- You can also do this using 'genSize'.
+-- You can also do this using 'size'.
 sized :: (Int -> Gen a) -> Gen a
 sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 
@@ -94,13 +94,13 @@ sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 --
 -- > listOf :: Gen a -> Gen [a]
 -- > listOf gen = do
--- >   n <- genSize
+-- >   n <- size
 -- >   k <- choose (0,n)
 -- >   vectorOf k gen
 --
 -- You can also do this using 'sized'.
-genSize :: Gen Int
-genSize = sized pure
+size :: Gen Int
+size = sized pure
 
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
