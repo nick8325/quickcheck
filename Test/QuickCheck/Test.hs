@@ -373,8 +373,6 @@ foundFailure st res ts =
   do localMin st{ numTryShrinks = 0 } res res ts
 
 localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
-localMin st MkResult{P.theException = Just e} lastRes _
-  | isInterrupt e = localMinFound st lastRes
 -- Don't try to shrink for too long
 localMin st res _ ts
   | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st =
