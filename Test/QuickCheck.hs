@@ -106,6 +106,7 @@ module Test.QuickCheck
   , elements
   , growingElements
   , sized
+  , genSize
   , resize
   , scale
   , suchThat
