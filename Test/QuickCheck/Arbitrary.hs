@@ -5,8 +5,11 @@
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-#if __GLASGOW_HASKELL__ < 710
+#if __GLASGOW_HASKELL__ >= 710
+#define OVERLAPPING_ {-# OVERLAPPING #-}
+#else
 {-# LANGUAGE OverlappingInstances  #-}
+#define OVERLAPPING_
 #endif
 #endif
 #ifndef NO_POLYKINDS
@@ -376,10 +379,10 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
   gSubtermsIncl (M1 x) = gSubtermsIncl x
 
 -- This is the important case: We've found a term of the same type.
-instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) a where
+instance OVERLAPPING_ GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
-instance {-# OVERLAPPING #-} GSubtermsIncl (K1 i a) b where
+instance OVERLAPPING_ GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
 #endif
