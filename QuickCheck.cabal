@@ -4,7 +4,6 @@ Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
-Extra-source-files: README changelog
 Copyright: 2000-2016 Koen Claessen, 2006-2008 Björn Bringert, 2009-2016 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: QuickCheck developers <quickcheck@projects.haskell.org>
@@ -35,6 +34,17 @@ Description:
   * <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances> - `Arbitrary` instances which are not included in QuickCheck itself.
   * <http://hackage.haskell.org/package/QuickCheck-GenT QuickCheck-GenT> - a monad transformer based on `Gen`.
   * <http://hackage.haskell.org/package/testing-feat testing-feat> - high-quality automatic `Arbitrary` instances using Template Haskell.
+
+extra-source-files:
+  README
+  changelog
+  examples/Heap.hs
+  examples/Heap_Program.hs
+  examples/Heap_ProgramAlgebraic.hs
+  examples/Lambda.hs
+  examples/Merge.hs
+  examples/Set.hs
+  examples/Simple.hs
 
 source-repository head
   type:     git
