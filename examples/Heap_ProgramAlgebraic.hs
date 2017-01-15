@@ -5,10 +5,7 @@ module Main where
 -- imports
 
 import Test.QuickCheck
-import Test.QuickCheck.Text
-import Test.QuickCheck.All
 import Test.QuickCheck.Poly
-import Test.QuickCheck.Property
 
 import Data.List
   ( sort

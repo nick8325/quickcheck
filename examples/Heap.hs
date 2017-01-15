@@ -5,8 +5,6 @@ module Main where
 -- imports
 
 import Test.QuickCheck
-import Test.QuickCheck.Text
-import Test.QuickCheck.All
 
 import Data.List
   ( sort

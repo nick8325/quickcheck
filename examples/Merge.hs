@@ -109,7 +109,8 @@ prop_Merging (xss :: [OrderedList Int]) =
 
 --  mapSize (`div` 2) $ \(xss :: [OrderedList Int]) ->
 
+return []
+main = $quickCheckAll
+
 --------------------------------------------------------------------------
 -- the end.
-
-
