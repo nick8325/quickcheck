@@ -53,7 +53,9 @@ data Args
     -- If you want to store a test case permanently you should save
     -- the test case itself.
   , maxSuccess      :: Int
-    -- ^ Maximum number of successful tests before succeeding
+    -- ^ Maximum number of successful tests before succeeding. Testing stops
+    -- at the first failure. If all tests are passing and you want to run more tests,
+    -- increase this number.
   , maxDiscardRatio :: Int
     -- ^ Maximum number of discarded tests per successful test before giving up
   , maxSize         :: Int
@@ -124,6 +126,15 @@ stdArgs = Args
   }
 
 -- | Tests a property and prints the results to 'stdout'.
+--
+-- By default up to 100 tests are performed. Here 100 is an
+-- arbitrary default, defined by the 'maxSuccess' field of
+-- 'stdArgs'. To change the defaults, use 'quickCheckWith'
+-- instead. For example,
+--
+-- > quickCheckWith (stdArgs { maxSuccess = 1000 }) p
+--
+-- will test @p@ up to 1000 times.
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheckWith stdArgs p
 
