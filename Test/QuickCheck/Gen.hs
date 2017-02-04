@@ -10,16 +10,13 @@ module Test.QuickCheck.Gen where
 
 import System.Random
   ( Random
-  , StdGen
   , random
   , randomR
   , split
-  , newStdGen
   )
 
 import Control.Monad
-  ( liftM
-  , ap
+  ( ap
   , replicateM
   , filterM
   )
@@ -27,10 +24,6 @@ import Control.Monad
 import Control.Applicative
   ( Applicative(..)
   , (<$>)
-  )
-
-import Control.Arrow
-  ( second
   )
 
 import Test.QuickCheck.Random
