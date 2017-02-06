@@ -27,7 +27,9 @@ Description:
   data generators.
   .
   You can find a (slightly out-of-date but useful) manual at
-  <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>.
+  <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>
+  and a detailed tutorial at
+  <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>.
   .
   There are several useful QuickCheck-related packages developed by other people:
   .
