@@ -65,7 +65,6 @@ import Data.Char
 import Data.Word
 import Data.List( intersperse )
 import Data.Ratio
-import Control.Arrow( (&&&) )
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
 import qualified Data.Map as Map
