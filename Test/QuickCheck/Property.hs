@@ -19,6 +19,7 @@ import Test.QuickCheck.State hiding (labels)
 import System.Timeout(timeout)
 #endif
 import Data.Maybe
+import Control.Applicative
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Map(Map)
