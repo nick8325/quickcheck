@@ -35,7 +35,6 @@ import Data.Char
 import Data.List
   ( sort
   , group
-  , groupBy
   , intersperse
   )
 --------------------------------------------------------------------------
