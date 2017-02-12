@@ -25,7 +25,6 @@ module Test.QuickCheck.Text
 --------------------------------------------------------------------------
 -- imports
 
-import Control.Applicative
 import System.IO
   ( hFlush
   , hPutStr
