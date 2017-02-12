@@ -71,7 +71,6 @@ import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Sequence as Sequence
 import Data.Int
-import Data.Word
 import Data.Complex
 import Data.Foldable(toList)
 
