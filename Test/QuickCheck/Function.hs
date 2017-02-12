@@ -64,7 +64,6 @@ import Test.QuickCheck.Poly
 import Data.Char
 import Data.Word
 import Data.List( intersperse )
-import Data.Maybe( fromJust )
 import Data.Ratio
 import Control.Arrow( (&&&) )
 import qualified Data.IntMap as IntMap
