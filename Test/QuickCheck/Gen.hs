@@ -22,9 +22,7 @@ import Control.Monad
   )
 
 import Control.Applicative
-  ( Applicative(..)
-  , (<$>)
-  )
+  ( Applicative(..) )
 
 import Test.QuickCheck.Random
 import Data.List
