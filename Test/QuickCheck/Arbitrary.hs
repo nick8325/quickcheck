@@ -92,8 +92,7 @@ import Data.Generics
 -}
 
 import Data.Char
-  ( chr
-  , ord
+  ( ord
   , isLower
   , isUpper
   , toLower

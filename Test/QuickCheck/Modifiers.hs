@@ -71,9 +71,6 @@ import Test.QuickCheck.Arbitrary
 import Data.List
   ( sort
   )
-import Data.Char
-  ( isPrint
-  )
 import Data.Array.IArray(Ix)
 
 --------------------------------------------------------------------------

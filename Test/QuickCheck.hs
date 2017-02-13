@@ -245,7 +245,6 @@ import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Modifiers
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
-import Test.QuickCheck.Text
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Function
 #ifndef NO_TEMPLATE_HASKELL

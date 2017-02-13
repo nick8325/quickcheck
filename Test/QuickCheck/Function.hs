@@ -64,16 +64,13 @@ import Test.QuickCheck.Poly
 import Data.Char
 import Data.Word
 import Data.List( intersperse )
-import Data.Maybe( fromJust )
 import Data.Ratio
-import Control.Arrow( (&&&) )
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Sequence as Sequence
 import Data.Int
-import Data.Word
 import Data.Complex
 import Data.Foldable(toList)
 
