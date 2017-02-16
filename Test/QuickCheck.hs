@@ -156,6 +156,8 @@ module Test.QuickCheck
 #endif
   , shrinkNothing
   , shrinkList
+  , shrinkMapBy
+  , shrinkMap
   , shrinkIntegral
   , shrinkRealFrac
     -- ** Helper functions for implementing coarbitrary
