@@ -61,6 +61,13 @@ flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
 
+flag light
+  Description:
+    Build with as few dependencies as possible.
+    Some instances will be missing, but build time will be reduced.
+    Can be useful on e.g. Travis.
+  Default: False
+
 library
   Build-depends: base >=4.3 && <5, random, containers, array
 
@@ -114,7 +121,7 @@ library
   else
     cpp-options: -DNO_TF_RANDOM
 
-  if impl(ghc)
+  if impl(ghc) && (impl(ghc >= 7.8) || !flag(light))
     -- 'Data.Proxy' is available in base only since GHC 7.8 / base-4.7
     if impl(ghc < 7.8)
       build-depends: tagged>=0.8.5
@@ -124,14 +131,14 @@ library
   if !impl(ghc >= 7.6)
       cpp-options: -DNO_POLYKINDS
 
-  if impl(ghc)
+  if impl(ghc) && (impl(ghc >= 7.10) || !flag(light))
     if impl(ghc < 7.10)
       -- `Numeric.Natural` is available in base only since GHC 7.10 / base 4.8
       build-depends: nats>=1
   else
       cpp-options: -DNO_NATURALS
 
-  if impl(ghc)
+  if impl(ghc) && (impl(ghc >= 8.0) || !flag(light))
     -- 'Data.List.NonEmpty' is available in base only since GHC 8.0 / base 4.9
     if impl(ghc < 8.0)
       build-depends: semigroups >=0.9
