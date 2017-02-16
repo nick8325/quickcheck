@@ -90,7 +90,7 @@ library
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-    Build-depends: transformers >= 0.2
+    Build-depends: transformers >= 0.4
   else
     cpp-options: -DNO_TRANSFORMERS
 
