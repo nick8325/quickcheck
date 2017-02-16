@@ -113,23 +113,27 @@ instance Testable Prop where
 instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (again p)
 
-instance Testable prop => Testable (IO prop) where
-  property =
-    MkProperty . fmap (MkProp . ioRose . fmap unProp) .
-    promote . fmap (unProperty . property)
-
 instance Testable Property where
   property = property . unProperty
 
 -- | Do I/O inside a property.
-{-# DEPRECATED morallyDubiousIOProperty "Use 'property' instead or remove call altogether; IO is an instance of Testable" #-}
+{-# DEPRECATED morallyDubiousIOProperty "Use 'ioProperty' instead" #-}
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
 morallyDubiousIOProperty = property
 
 -- | Do I/O inside a property.
-{-# DEPRECATED ioProperty "Use 'property' instead or remove call altogether; IO is an instance of Testable" #-}
+--
+-- Warning: strange things can happen if you interleave I/O with
+-- generation. In particular, if you do I/O and _then_ generate a
+-- random value, the I/O won't be re-executed once the value starts
+-- shrinking. To avoid this, generate all random values _before_
+-- doing any I/O.
+--
+-- This is probably a bug, but it is very unclear how to fix it.
 ioProperty :: Testable prop => IO prop -> Property
-ioProperty = property
+ioProperty =
+  MkProperty . fmap (MkProp . ioRose . fmap unProp) .
+  promote . fmap (unProperty . property)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
