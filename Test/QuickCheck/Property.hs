@@ -210,14 +210,15 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok           :: Maybe Bool        -- ^ result of the test case; Nothing = discard
-  , expect       :: Bool              -- ^ indicates what the expected result of the property is
-  , reason       :: String            -- ^ a message indicating what went wrong
-  , theException :: Maybe AnException -- ^ the exception thrown, if any
-  , abort        :: Bool              -- ^ if True, the test should not be repeated
-  , labels       :: Map String Int    -- ^ all labels used by this property
-  , stamp        :: Set String        -- ^ the collected values for this test case
-  , callbacks    :: [Callback]        -- ^ the callbacks for this test case
+  { ok            :: Maybe Bool        -- ^ result of the test case; Nothing = discard
+  , expect        :: Bool              -- ^ indicates what the expected result of the property is
+  , reason        :: String            -- ^ a message indicating what went wrong
+  , theException  :: Maybe AnException -- ^ the exception thrown, if any
+  , abort         :: Bool              -- ^ if True, the test should not be repeated
+  , maybeNumTests :: Maybe Int         -- ^ stop after this many tests
+  , labels        :: Map String Int    -- ^ all labels used by this property
+  , stamp         :: Set String        -- ^ the collected values for this test case
+  , callbacks     :: [Callback]        -- ^ the callbacks for this test case
   }
 
 exception :: String -> AnException -> Result
@@ -242,14 +243,15 @@ succeeded, failed, rejected :: Result
   where
     result =
       MkResult
-      { ok           = undefined
-      , expect       = True
-      , reason       = ""
-      , theException = Nothing
-      , abort        = True
-      , labels       = Map.empty
-      , stamp        = Set.empty
-      , callbacks    = []
+      { ok            = undefined
+      , expect        = True
+      , reason        = ""
+      , theException  = Nothing
+      , abort         = True
+      , maybeNumTests = Nothing
+      , labels        = Map.empty
+      , stamp         = Set.empty
+      , callbacks     = []
       }
 
 --------------------------------------------------------------------------
@@ -359,6 +361,10 @@ once = mapTotalResult (\res -> res{ abort = True })
 -- | Undoes the effect of 'once'.
 again :: Testable prop => prop -> Property
 again = mapTotalResult (\res -> res{ abort = False })
+
+-- | Configures how many times a property will be tested.
+testFor :: Testable prop => Int -> prop -> Property
+testFor n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
@@ -519,6 +525,7 @@ disjoin ps =
                    -- The following three fields are not important because the
                    -- test case has failed anyway
                    abort = False,
+                   maybeNumTests = Nothing,
                    labels = Map.empty,
                    stamp = Set.empty,
                    callbacks =

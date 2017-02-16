@@ -37,6 +37,9 @@ import Data.List
   , group
   , intersperse
   )
+
+import Data.Maybe(fromMaybe)
+
 --------------------------------------------------------------------------
 -- quickCheck
 
@@ -278,20 +281,22 @@ runATest st f =
            | otherwise = x:xs
 
      case res of
-       MkResult{ok = Just True, stamp = stamp, expect = expect} -> -- successful test
+       MkResult{ok = Just True, stamp = stamp, expect = expect, maybeNumTests = mnt} -> -- successful test
          do continue doneTesting
               st{ numSuccessTests           = numSuccessTests st + 1
                 , numRecentlyDiscardedTests = 0
+                , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
                 , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
                 , collected                 = stamp `cons` collected st
                 , expectedFailure           = expect
                 } f
 
-       MkResult{ok = Nothing, expect = expect} -> -- discarded test
+       MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt} -> -- discarded test
          do continue giveUp
               st{ numDiscardedTests         = numDiscardedTests st + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
+                , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
                 , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
                 , expectedFailure           = expect
