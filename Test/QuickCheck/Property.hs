@@ -119,7 +119,7 @@ instance Testable Property where
 -- | Do I/O inside a property.
 {-# DEPRECATED morallyDubiousIOProperty "Use 'ioProperty' instead" #-}
 morallyDubiousIOProperty :: Testable prop => IO prop -> Property
-morallyDubiousIOProperty = property
+morallyDubiousIOProperty = ioProperty
 
 -- | Do I/O inside a property.
 --
