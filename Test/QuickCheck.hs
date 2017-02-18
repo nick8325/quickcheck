@@ -213,7 +213,7 @@ module Test.QuickCheck
   , verbose
   , once
   , again
-  , testFor
+  , withMaxSuccess
   , within
   , noShrinking
   , cleanup

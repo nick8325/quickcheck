@@ -367,8 +367,8 @@ again :: Testable prop => prop -> Property
 again = mapTotalResult (\res -> res{ abort = False })
 
 -- | Configures how many times a property will be tested.
-testFor :: Testable prop => Int -> prop -> Property
-testFor n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+withMaxSuccess :: Testable prop => Int -> prop -> Property
+withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
