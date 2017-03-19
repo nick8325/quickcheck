@@ -51,9 +51,10 @@ instance Monad Gen where
 
   MkGen m >>= k =
     MkGen (\r n ->
-      let (r1,r2)  = split r
-          MkGen m' = k (m r1 n)
-       in m' r2 n
+      case split r of
+        (r1, r2) ->
+          let MkGen m' = k (m r1 n)
+          in m' r2 n
     )
 
 --------------------------------------------------------------------------
