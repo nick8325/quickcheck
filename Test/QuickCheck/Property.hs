@@ -25,6 +25,9 @@ import qualified Data.Map as Map
 import Data.Map(Map)
 import qualified Data.Set as Set
 import Data.Set(Set)
+#ifndef NO_DEEPSEQ
+import Control.DeepSeq
+#endif
 
 --------------------------------------------------------------------------
 -- fixities
@@ -555,6 +558,11 @@ infix 4 ===
 x === y =
   counterexample (show x ++ " /= " ++ show y) (x == y)
 
+#ifndef NO_DEEPSEQ
+-- | Checks that a value is total, i.e., doesn't contain bottom.
+total :: NFData a => a -> Property
+total x = property (rnf x)
+#endif
 
 --------------------------------------------------------------------------
 -- the end.

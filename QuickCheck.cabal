@@ -90,9 +90,9 @@ library
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-    Build-depends: transformers >= 0.3
+    Build-depends: transformers >= 0.3, deepseq
   else
-    cpp-options: -DNO_TRANSFORMERS
+    cpp-options: -DNO_TRANSFORMERS -DNO_DEEPSEQ
 
   if impl(ghc) && flag(templateHaskell) && !impl(haste)
     Build-depends: template-haskell >= 2.4
