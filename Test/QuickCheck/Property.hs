@@ -365,7 +365,7 @@ expectFailure = mapTotalResult (\res -> res{ expect = False })
 once :: Testable prop => prop -> Property
 once = mapTotalResult (\res -> res{ abort = True })
 
--- | Undoes the effect of 'once'.
+-- | Modifies a property so that it will be tested repeatedly.
 again :: Testable prop => prop -> Property
 again = mapTotalResult (\res -> res{ abort = False })
 
