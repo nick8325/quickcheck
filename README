@@ -2,7 +2,7 @@ This is QuickCheck 2, a library for random testing of program properties.
 
 Install it in the usual way:
 
-$ cabal install
+$ cabal install quickcheck
 
 Please report bugs to the QuickCheck mailing list at
 quickcheck@projects.haskell.org.
