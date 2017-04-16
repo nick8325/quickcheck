@@ -21,6 +21,7 @@ import Test.QuickCheck.Property hiding (Result)
 import Test.QuickCheck.Test
 import Data.Char
 import Data.List
+import Data.Maybe
 import Control.Monad
 
 import qualified System.IO as S
@@ -136,10 +137,10 @@ forAllProperties = do
 #endif
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
-        exists <- (warning x >> return False) `recover` (reify (mkName x) >> return True)
+        exists <- fmap isJust $ lookupValueName x
         if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
                                      property $(monomorphic (mkName x))) |] ]
-         else return []
+         else warning x >> return []
   [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
 
 readUTF8File name = S.openFile name S.ReadMode >>=
