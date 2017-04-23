@@ -219,7 +219,6 @@ module Test.QuickCheck
   , withMaxSuccess
   , within
   , noShrinking
-  , cleanup
     -- *** Conjunction and disjunction
   , (.&.)
   , (.&&.)

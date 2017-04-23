@@ -308,11 +308,6 @@ noShrinking = mapRoseResult (onRose (\res _ -> MkRose res []))
 callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 
--- | Runs a given piece of code after every test case.
-cleanup :: Testable prop => IO () -> prop -> Property
-cleanup action prop =
-  callback (PostTest NotCounterexample (\_ _ -> action)) prop
-
 -- | Adds the given string to the counterexample.
 counterexample :: Testable prop => String -> prop -> Property
 counterexample s =
