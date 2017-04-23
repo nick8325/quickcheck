@@ -264,6 +264,9 @@ instance Function Integer where
 instance Function Int where
   function = functionIntegral
 
+instance Function Word where
+  function = functionIntegral
+
 instance Function Char where
   function = functionMap ord chr
 
