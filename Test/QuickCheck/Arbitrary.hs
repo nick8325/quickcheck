@@ -195,6 +195,10 @@ import Data.Functor.Sum
 class Arbitrary a where
   -- | A generator for values of the given type.
   arbitrary :: Gen a
+#ifndef NO_GENERICS
+  default arbitrary :: (Generic a, GArbitrary (Rep a)) => Gen a
+  arbitrary = to <$> gArbitrary
+#endif
 
   -- | Produces a (possibly) empty list of all the possible
   -- immediate shrinks of the given value. The default implementation
@@ -290,6 +294,33 @@ shrink2 :: (Arbitrary2 f, Arbitrary a, Arbitrary b) => f a b -> [f a b]
 shrink2 = liftShrink2 shrink shrink
 
 #ifndef NO_GENERICS
+-- | Generic derivation of `Arbitrary` on common data types
+-- Class for Generic type level traversal
+class GArbitrary f where gArbitrary :: Gen (f a)
+
+-- | Unit
+instance GArbitrary U1 where gArbitrary = pure U1
+
+-- | Data Types
+instance GArbitrary a => GArbitrary (D1 i a) where
+  gArbitrary = M1 <$> gArbitrary
+
+-- | Data Constructors
+instance GArbitrary a => GArbitrary (C1 i a) where
+  gArbitrary = M1 <$> gArbitrary
+
+-- | Generic Arbitrary Values
+instance Arbitrary a => GArbitrary (S1 s (K1 i a)) where
+  gArbitrary = M1 . K1 <$> arbitrary
+
+-- | Generic Product instance
+instance (GArbitrary a, GArbitrary b) => GArbitrary (a :*: b) where
+  gArbitrary = liftM2 (:*:) gArbitrary gArbitrary
+
+-- | Generic Sum instance
+instance (GArbitrary a, GArbitrary b) => GArbitrary (a :+: b) where
+  gArbitrary = oneof [ L1 <$> gArbitrary, R1 <$> gArbitrary ]
+
 -- | Shrink a term to any of its immediate subterms,
 -- and also recursively shrink all subterms.
 genericShrink :: (Generic a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
