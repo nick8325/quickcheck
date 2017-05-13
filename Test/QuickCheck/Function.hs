@@ -492,7 +492,7 @@ type Fun3 a b c = Fun (a, b, c)
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn :: (a -> b) -> Fun a b
 #endif
-pattern Fn f <- Fun _ f
+pattern Fn f <- (applyFun -> f)
 
 -- | A modifier for testing binary functions.
 --
@@ -507,13 +507,13 @@ pattern Fn f <- Fun _ f
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
 #endif
-pattern Fn2 f <- Fun _ (curry -> f)
+pattern Fn2 f <- (applyFun2 -> f)
 
 -- | A modifier for testing functions of three arguments.
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn3 :: (a -> b -> c -> d) -> Fun3 a b c d
 #endif
-pattern Fn3 f <- Fun _ (curry3 -> f)
+pattern Fn3 f <- (applyFun3 -> f)
 
 curry3 f a b c = f (a, b, c)
 #endif
