@@ -4,7 +4,7 @@ Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
-Copyright: 2000-2016 Koen Claessen, 2006-2008 Björn Bringert, 2009-2016 Nick Smallbone
+Copyright: 2000-2017 Koen Claessen, 2006-2008 Björn Bringert, 2009-2017 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: Nick Smallbone <nick@smallbone.se>; see also QuickCheck mailing list <haskell-quickcheck@googlegroups.com>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
