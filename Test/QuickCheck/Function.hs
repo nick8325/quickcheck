@@ -36,10 +36,10 @@ module Test.QuickCheck.Function
   ( Fun(..)
   , Fun2
   , Fun3
-  , appFun
+  , applyFun
   , apply
-  , appFun2
-  , appFun3
+  , applyFun2
+  , applyFun3
   , (:->)
   , Function(..)
   , functionMap
@@ -521,25 +521,25 @@ curry3 f a b c = f (a, b, c)
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
--- | Alias to 'appFun'.
+-- | Alias to 'applyFun'.
 apply :: Fun a b -> (a -> b)
-apply = appFun
+apply = applyFun
 
 -- | Extracts the function value.
 --
 -- 'Fn' is the pattern equivalent of this function.
 --
 -- > prop :: Fun String Integer -> Bool
--- > prop f = appFun f "banana" == appFun f "monkey"
--- >       || appFun f "banana" == appFun f "elephant"
-appFun :: Fun a b -> (a -> b)
-appFun (Fun _ f) = f
+-- > prop f = applyFun f "banana" == applyFun f "monkey"
+-- >       || applyFun f "banana" == applyFun f "elephant"
+applyFun :: Fun a b -> (a -> b)
+applyFun (Fun _ f) = f
 
 -- | Extracts the binary function value.
 --
 -- 'Fn3' is the pattern equivalent of the function.
-appFun2 :: Fun (a, b) c -> (a -> b -> c)
-appFun2 (Fun _ f) a b = f (a, b)
+applyFun2 :: Fun (a, b) c -> (a -> b -> c)
+applyFun2 (Fun _ f) a b = f (a, b)
 
 -- | Extracts the value of a function of three arguments. 'Fn3' is the
 -- pattern equivalent of this function.
@@ -549,8 +549,8 @@ appFun2 (Fun _ f) a b = f (a, b)
 --     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
 -- @
 --
-appFun3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
-appFun3 (Fun _ f) a b c = f (a, b, c)
+applyFun3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
+applyFun3 (Fun _ f) a b c = f (a, b, c)
 
 instance (Show a, Show b) => Show (Fun a b) where
   show (Fun (_, _, NotShrunk) _) = "<fun>"
