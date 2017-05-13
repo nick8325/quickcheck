@@ -5,10 +5,4 @@ Install it in the usual way:
 $ cabal install
 
 Please report bugs to the QuickCheck mailing list at
-quickcheck@projects.haskell.org.
-
-If you get errors about Template Haskell, try
-
-$ cabal install -f-templateHaskell
-
-but please report this as a bug.
+haskell-quickcheck@googlegroups.com.
