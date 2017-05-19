@@ -159,18 +159,6 @@ import Data.Functor.Identity
 import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
-
-#ifdef MIN_VERSION_transformers
-#if MIN_VERSION_transformers(0,4,0)
-#define TRANSFORMERS_SUM
-#endif
-#else
-#define TRANSFORMERS_SUM
-#endif
-
-#ifdef TRANSFORMERS_SUM
-import Data.Functor.Sum
-#endif
 #endif
 
 --------------------------------------------------------------------------
@@ -811,16 +799,6 @@ instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Product f g) where
 instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) where
   arbitrary = arbitrary1
   shrink = shrink1
-
-#ifdef TRANSFORMERS_SUM
-instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Sum f g) where
-  liftArbitrary arb = oneof [fmap InL (liftArbitrary arb), fmap InR (liftArbitrary arb)]
-  liftShrink shr (InL f) = map InL (liftShrink shr f)
-  liftShrink shr (InR g) = map InR (liftShrink shr g)
-instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Sum f g a) where
-  arbitrary = arbitrary1
-  shrink = shrink1
-#endif
 
 instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
   liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
