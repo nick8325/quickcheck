@@ -306,7 +306,7 @@ runATest st f =
          do if expect res
               then putPart (terminal st) (bold "*** Failed! ")
               else putPart (terminal st) "+++ OK, failed as expected. "
-            (numShrinks, totFailed, lastFailed) <- foundFailure st res ts
+            (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
               return Success{ labels = summary st,
@@ -383,11 +383,11 @@ insufficientCoverage st =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
+foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 foundFailure st res ts =
   do localMin st{ numTryShrinks = 0 } res res ts
 
-localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
+localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 -- Don't try to shrink for too long
 localMin st res _ ts
   | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st =
@@ -419,7 +419,7 @@ localMin st res _ ts = do
             (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
         Right ts' -> localMin' st res ts'
 
-localMin' :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int)
+localMin' :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 localMin' st res [] = localMinFound st res
 localMin' st res (t:ts) =
   do -- CALLBACK before_test
@@ -431,7 +431,7 @@ localMin' st res (t:ts) =
       else localMin st{ numTryShrinks    = numTryShrinks st + 1,
                         numTotTryShrinks = numTotTryShrinks st + 1 } res res ts
 
-localMinFound :: State -> P.Result -> IO (Int, Int, Int)
+localMinFound :: State -> P.Result -> IO (Int, Int, Int, P.Result)
 localMinFound st res =
   do let report = concat [
            "(after " ++ number (numSuccessTests st+1) "test",
@@ -451,7 +451,7 @@ localMinFound st res =
      callbackPostFinalFailure st res
      -- NB no need to check if callbacks threw an exception because
      -- we are about to return to the user anyway
-     return (numSuccessShrinks st, numTotTryShrinks st - numTryShrinks st, numTryShrinks st)
+     return (numSuccessShrinks st, numTotTryShrinks st - numTryShrinks st, numTryShrinks st, res)
 
 --------------------------------------------------------------------------
 -- callbacks
