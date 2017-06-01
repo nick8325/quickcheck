@@ -106,6 +106,12 @@ import qualified Control.Monad.Fail as Fail
 newtype PropertyM m a =
   MkPropertyM { unPropertyM :: (a -> Gen (m Property)) -> Gen (m Property) }
 
+bind :: PropertyM m a -> (a -> PropertyM m b) -> PropertyM m b
+MkPropertyM m `bind` f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
+
+fail_ :: Monad m => String -> PropertyM m a
+fail_ s = stop (failed { reason = s })
+
 instance Functor (PropertyM m) where
   fmap f (MkPropertyM m) = MkPropertyM (\k -> m (k . f))
 
@@ -113,12 +119,6 @@ instance Applicative (PropertyM m) where
   pure x = MkPropertyM (\k -> k x)
   mf <*> mx =
     mf `bind` \f -> mx `bind` \x -> pure (f x)
-
-bind :: PropertyM m a -> (a -> PropertyM m b) -> PropertyM m b
-MkPropertyM m `bind` f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
-
-fail_ :: Monad m => String -> PropertyM m a
-fail_ s = stop (failed { reason = s })
 
 #ifdef NO_MONADFAIL
 instance Monad m => Monad (PropertyM m) where
