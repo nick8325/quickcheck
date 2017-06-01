@@ -110,14 +110,6 @@ import Data.Fixed
   )
 #endif
 
-#ifndef NO_NATURALS
-import Numeric.Natural
-#endif
-
-#ifndef NO_PROXY
-import Data.Proxy (Proxy (..))
-#endif
-
 import Data.Ratio
   ( Ratio
   , (%)
@@ -132,11 +124,6 @@ import Data.List
   ( sort
   , nub
   )
-
-#ifndef NO_NONEMPTY
-import Data.List.NonEmpty (NonEmpty (..), nonEmpty)
-import Data.Maybe (mapMaybe)
-#endif
 
 import Data.Version (Version (..))
 
@@ -166,26 +153,12 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Sequence as Sequence
 
 import qualified Data.Monoid as Monoid
-import Data.Array.IArray
-import Data.Array.Unboxed
 
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
-
-#ifdef MIN_VERSION_transformers
-#if MIN_VERSION_transformers(0,4,0)
-#define TRANSFORMERS_SUM
-#endif
-#else
-#define TRANSFORMERS_SUM
-#endif
-
-#ifdef TRANSFORMERS_SUM
-import Data.Functor.Sum
-#endif
 #endif
 
 --------------------------------------------------------------------------
@@ -451,16 +424,6 @@ instance Arbitrary a => Arbitrary [a] where
   arbitrary = arbitrary1
   shrink = shrink1
 
-#ifndef NO_NONEMPTY
-instance Arbitrary1 NonEmpty where
-  liftArbitrary arb = liftM2 (:|) arb (liftArbitrary arb)
-  liftShrink shr (x :| xs) = mapMaybe nonEmpty . liftShrink shr $ x : xs
-
-instance Arbitrary a => Arbitrary (NonEmpty a) where
-  arbitrary = arbitrary1
-  shrink = shrink1
-#endif
-
 -- | Shrink a list of values given a shrinking function for individual values.
 shrinkList :: (a -> [a]) -> [a] -> [[a]]
 shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div`2) n) ]
@@ -619,22 +582,6 @@ instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
 instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
-
-#ifndef NO_NATURALS
-instance Arbitrary Natural where
-  arbitrary = arbitrarySizedNatural
-  shrink    = shrinkIntegral
-#endif
-
-#ifndef NO_PROXY
-instance Arbitrary1 Proxy where
-  liftArbitrary _ = pure Proxy
-  liftShrink _ _ = []
-
-instance Arbitrary (Proxy a) where
-  arbitrary = pure Proxy
-  shrink _  = []
-#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -853,16 +800,6 @@ instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) 
   arbitrary = arbitrary1
   shrink = shrink1
 
-#ifdef TRANSFORMERS_SUM
-instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Sum f g) where
-  liftArbitrary arb = oneof [fmap InL (liftArbitrary arb), fmap InR (liftArbitrary arb)]
-  liftShrink shr (InL f) = map InL (liftShrink shr f)
-  liftShrink shr (InR g) = map InR (liftShrink shr g)
-instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Sum f g a) where
-  arbitrary = arbitrary1
-  shrink = shrink1
-#endif
-
 instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
   liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
   liftShrink shr = map Compose . liftShrink (liftShrink shr) . getCompose
@@ -961,29 +898,7 @@ instance Arbitrary ExitCode where
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
 
-instance (Num i, Ix i, Arbitrary i, Arbitrary a) => Arbitrary (Array i a) where
-  arbitrary = liftM2 makeArray arbitrary arbitrary
-  shrink = shrinkArray
 
-instance (Ix i, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array i a) where
-  coarbitrary arr = coarbitrary (bounds arr, elems arr)
-
-instance (Num i, Ix i, IArray UArray a, Arbitrary i, Arbitrary a) => Arbitrary (UArray i a) where
-  arbitrary = liftM2 makeArray arbitrary arbitrary
-  shrink = shrinkArray
-
-instance (Ix i, IArray UArray a, CoArbitrary i, CoArbitrary a) => CoArbitrary (UArray i a) where
-  coarbitrary arr = coarbitrary (bounds arr, elems arr)
-
-shrinkArray :: (Num i, Ix i, IArray arr a, Arbitrary i, Arbitrary a) => arr i a -> [arr i a]
-shrinkArray arr =
-  [ makeArray lo xs | xs <- shrink (elems arr) ] ++
-  [ makeArray lo' (elems arr) | lo' <- shrink lo ]
-  where
-    (lo, _) = bounds arr
-
-makeArray :: (Num i, Ix i, IArray arr a) => i -> [a] -> arr i a
-makeArray lo xs = listArray (lo, lo + fromIntegral (length xs - 1)) xs
 
 -- ** Helper functions for implementing arbitrary
 
@@ -1249,11 +1164,6 @@ instance CoArbitrary a => CoArbitrary [a] where
   coarbitrary []     = variant 0
   coarbitrary (x:xs) = variant 1 . coarbitrary (x,xs)
 
-#ifndef NO_NONEMPTY
-instance CoArbitrary a => CoArbitrary (NonEmpty a) where
-  coarbitrary (x :| xs) = coarbitrary (x, xs)
-#endif
-
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
 
@@ -1299,16 +1209,6 @@ instance (CoArbitrary a, CoArbitrary b, CoArbitrary c, CoArbitrary d, CoArbitrar
 
 instance CoArbitrary Integer where
   coarbitrary = coarbitraryIntegral
-
-#ifndef NO_NATURALS
-instance CoArbitrary Natural where
-  coarbitrary = coarbitraryIntegral
-#endif
-
-#ifndef NO_PROXY
-instance CoArbitrary (Proxy a) where
-  coarbitrary _ = id
-#endif
 
 instance CoArbitrary Int where
   coarbitrary = coarbitraryIntegral

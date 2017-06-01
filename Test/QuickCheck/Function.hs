@@ -78,18 +78,6 @@ import Data.Foldable(toList)
 import Data.Fixed
 #endif
 
-#ifndef NO_NATURALS
-import Numeric.Natural
-#endif
-
-#ifndef NO_PROXY
-import Data.Proxy (Proxy (..))
-#endif
-
-#ifndef NO_NONEMPTY
-import Data.List.NonEmpty(NonEmpty(..))
-#endif
-
 #ifndef NO_GENERICS
 import GHC.Generics hiding (C)
 #endif
@@ -289,14 +277,6 @@ instance Function Ordering where
       h (Left True)  = EQ
       h (Right _)    = GT
 
-#ifndef NO_NONEMPTY
-instance Function a => Function (NonEmpty a) where
-  function = functionMap g h
-   where
-     g (x :| xs) = (x,   xs)
-     h (x,   xs) =  x :| xs
-#endif
-
 instance (Integral a, Function a) => Function (Ratio a) where
   function = functionMap g h
    where
@@ -328,16 +308,6 @@ instance Function a => Function (IntMap.IntMap a) where
 
 instance Function a => Function (Sequence.Seq a) where
   function = functionMap toList Sequence.fromList
-
-#ifndef NO_PROXY
-instance Function (Proxy a) where
-  function = functionMap (const ()) (const Proxy)
-#endif
-
-#ifndef NO_NATURALS
-instance Function Natural where
-  function = functionIntegral
-#endif
 
 instance Function Int8 where
   function = functionBoundedEnum

@@ -71,7 +71,7 @@ import Test.QuickCheck.Arbitrary
 import Data.List
   ( sort
   )
-import Data.Array.IArray(Ix)
+import Data.Ix (Ix)
 
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
