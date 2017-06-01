@@ -90,6 +90,10 @@ import Control.Monad.IO.Class
 import Control.Monad.Trans.Class
 #endif
 
+#ifndef NO_MONADFAIL
+import qualified Control.Monad.Fail as Fail
+#endif
+
 --------------------------------------------------------------------------
 -- type PropertyM
 
@@ -105,14 +109,29 @@ newtype PropertyM m a =
 instance Functor (PropertyM m) where
   fmap f (MkPropertyM m) = MkPropertyM (\k -> m (k . f))
 
-instance Monad m => Applicative (PropertyM m) where
-  pure = return
-  (<*>) = liftM2 ($)
+instance Applicative (PropertyM m) where
+  pure x = MkPropertyM (\k -> k x)
+  mf <*> mx =
+    mf `bind` \f -> mx `bind` \x -> pure (f x)
 
+bind :: PropertyM m a -> (a -> PropertyM m b) -> PropertyM m b
+MkPropertyM m `bind` f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
+
+fail_ :: Monad m => String -> PropertyM m a
+fail_ s = stop (failed { reason = s })
+
+#ifdef NO_MONADFAIL
 instance Monad m => Monad (PropertyM m) where
-  return x            = MkPropertyM (\k -> k x)
-  MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
-  fail s              = stop (failed { reason = s })
+  return = pure
+  (>>=) = bind
+  fail = fail_
+#else
+instance Monad (PropertyM m) where
+  return = pure
+  (>>=) = bind
+instance Monad m => Fail.MonadFail (PropertyM m) where
+  fail = fail_
+#endif
 
 #ifndef NO_TRANSFORMERS
 instance MonadTrans PropertyM where

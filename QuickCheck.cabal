@@ -117,6 +117,9 @@ library
   if !impl(ghc >= 7.6)
       cpp-options: -DNO_POLYKINDS
 
+  if !impl(ghc >= 8.0)
+    cpp-options: -DNO_MONADFAIL
+
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
