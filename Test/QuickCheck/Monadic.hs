@@ -81,6 +81,9 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Property
 
 import Control.Monad(liftM, liftM2)
+#if MIN_VERSION_base(4,9,0)
+import Control.Monad.Fail(MonadFail, fail)
+#endif
 
 import Control.Monad.ST
 import Control.Applicative
@@ -105,14 +108,23 @@ newtype PropertyM m a =
 instance Functor (PropertyM m) where
   fmap f (MkPropertyM m) = MkPropertyM (\k -> m (k . f))
 
-instance Monad m => Applicative (PropertyM m) where
-  pure = return
-  (<*>) = liftM2 ($)
+instance Applicative (PropertyM m) where
+  pure x  = MkPropertyM ($ x)
+  f <*> v = MkPropertyM $ \ c -> unPropertyM f $ \ g -> unPropertyM v (c . g)
 
+#if MIN_VERSION_base(4,9,0)
+instance Monad (PropertyM m) where
+  return x = MkPropertyM ($ x)
+  m >>= k  = MkPropertyM $ \ c -> unPropertyM m (\ x -> unPropertyM (k x) c)
+
+instance Monad m => MonadFail (PropertyM m) where
+  fail s = stop (failed { reason = s })
+#else
 instance Monad m => Monad (PropertyM m) where
   return x            = MkPropertyM (\k -> k x)
   MkPropertyM m >>= f = MkPropertyM (\k -> m (\a -> unPropertyM (f a) k))
   fail s              = stop (failed { reason = s })
+#endif
 
 #ifndef NO_TRANSFORMERS
 instance MonadTrans PropertyM where
@@ -130,7 +142,7 @@ stop p = MkPropertyM (\_k -> return (return (property p)))
 -- | Allows embedding non-monadic properties into monadic ones.
 assert :: Monad m => Bool -> PropertyM m ()
 assert True  = return ()
-assert False = fail "Assertion failed"
+assert False = Prelude.fail "Assertion failed"
 
 -- should think about strictness/exceptions here
 -- | Tests preconditions. Unlike 'assert' this does not cause the
