@@ -27,6 +27,7 @@ import Control.Applicative
 import Test.QuickCheck.Random
 import Data.List
 import Data.Ord
+import Data.Maybe
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -141,6 +142,11 @@ gen `suchThat` p =
      case mx of
        Just x  -> return x
        Nothing -> sized (\n -> resize (n+1) (gen `suchThat` p))
+
+-- | Generates a value for which the given function returns a 'Just'.
+suchThatMap :: Gen a -> (a -> Maybe b) -> Gen b
+gen `suchThatMap` f =
+  fromJust <$> fmap f gen `suchThat` isJust
 
 -- | Tries to generate a value that satisfies a predicate.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)

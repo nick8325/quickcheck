@@ -110,6 +110,7 @@ module Test.QuickCheck
   , resize
   , scale
   , suchThat
+  , suchThatMap
   , suchThatMaybe
   , listOf
   , listOf1

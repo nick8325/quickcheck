@@ -4,6 +4,8 @@ QuickCheck 2.10 (released ????-??-??)
 	* New combinators 'shrinkMap'/'shrinkMapBy' for defining shrink
 	  functions.
 	* New combinator 'total' checks that a value is non-crashing.
+	* New combinator 'suchThatMap' which is similar to 'suchThat'
+	  but takes a Maybe-returning function instead of a predicate.
 	* New combinator 'getSize' returns the current size.
 	* Much of Test.QuickCheck.Function (showable random functions)
 	  is now exported from Test.QuickCheck.
