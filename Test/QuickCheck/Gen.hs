@@ -208,15 +208,25 @@ growingElements xs = sized $ \n -> elements (take (1 `max` (n * k `div` 100)) xs
 -- size parameter.
 listOf :: Gen a -> Gen [a]
 listOf gen = sized $ \n ->
-  do k <- choose (0,n)
-     vectorOf k gen
+  do size <- choose (0,n)
+     pars <- arbPartition size
+     mapM (\i -> resize i gen) pars
 
 -- | Generates a non-empty list of random length. The maximum length
 -- depends on the size parameter.
 listOf1 :: Gen a -> Gen [a]
 listOf1 gen = sized $ \n ->
-  do k <- choose (1,1 `max` n)
-     vectorOf k gen
+  do size <- choose (1,1 `max` n)
+     pars <- arbPartition size
+     mapM (\i -> resize i gen) pars
+
+arbPartition :: Int -> Gen [Int]
+arbPartition k
+    | k <= 0 = pure []
+    | otherwise = do
+    first <- choose (1, k)
+    rest <- arbPartition $ k - first
+    return $ first : rest
 
 -- | Generates a list of the given length.
 vectorOf :: Int -> Gen a -> Gen [a]
