@@ -34,12 +34,14 @@ import Data.Char
 
 import Data.List
   ( sort
+  , sortBy
   , group
   , intersperse
   )
 
 import Data.Maybe(fromMaybe)
-import Text.Printf
+import Data.Ord(comparing)
+import Text.Printf(printf)
 
 --------------------------------------------------------------------------
 -- quickCheck
@@ -76,13 +78,13 @@ data Result
   -- | A successful test run
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
-    , labels         :: [(String,Int)]    -- ^ Labels and frequencies found during all successful tests
+    , labels         :: [(String,Double)] -- ^ Labels and frequencies found during all successful tests
     , output         :: String            -- ^ Printed output
     }
   -- | Given up
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
     , output         :: String            --   Printed output
     }
   -- | A failed test run
@@ -95,19 +97,19 @@ data Result
     , usedSize       :: Int               -- ^ What was the test size
     , reason         :: String            -- ^ Why did the property fail
     , theException   :: Maybe AnException -- ^ The exception the property threw, if any
-    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
     , output         :: String            --   Printed output
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
     , output         :: String            --   Printed output
     }
  -- | The tests passed but a use of 'cover' had insufficient coverage
  | InsufficientCoverage
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Int)]    --   Labels and frequencies found during all successful tests
+    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
     , output         :: String            --   Printed output
     }
  deriving ( Show )
@@ -328,15 +330,17 @@ runATest st f =
  where
   (rnd1,rnd2) = split (randomSeed st)
 
-summary :: State -> [(String,Int)]
+summary :: State -> [(String, Double)]
 summary st = reverse
-           . sort
-           . map (\ss -> (head ss, (length ss * 100) `div` numSuccessTests st))
+           . sortBy (comparing snd)
+           . map (\ss -> (head ss, fromIntegral (length ss) * 100 / fromIntegral (numSuccessTests st)))
            . group
            . sort
-           $ [ concat (intersperse ", " (Set.toList s))
+           $ [ concat (intersperse ", " s')
              | s <- collected st
-             , not (Set.null s)
+               -- HACK: don't print out labels that were created by 'cover'.
+             , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
+             , not (null s')
              ]
 
 success :: State -> IO ()
@@ -351,26 +355,15 @@ success st =
     cases -> do putLine (terminal st) ":"
                 sequence_ [ putLine (terminal st) pt | pt <- cases ]
  where
-  allLabels = reverse
-            . sort
-            . map (\ss -> (showP True (length ss) ++ " " ++ head ss))
-            . group
-            . sort
-            $ [ concat (intersperse ", " s')
-              | s <- collected st
-              , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
-              , not (null s')
-              ]
+  allLabels =
+    [ showP True p ++ " " ++ x | (x, p) <- summary st ]
 
-  covers = [ ("only " ++ showP False n ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
-           | (l, reqP, n) <- insufficientlyCovered st ]
+  covers = [ ("only " ++ showP False p ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
+           | (l, reqP, p) <- insufficientlyCovered st ]
 
-  showP pad n =
+  showP pad p =
     (if pad && p < 10 then " " else "") ++
     printf "%.*f" places p ++ "%"
-    where
-      p :: Double
-      p = fromIntegral n * 100 / fromIntegral (numSuccessTests st)
 
   -- Show no decimal places if <= 100 successful tests,
   -- one decimal place if <= 1000 successful tests,
@@ -385,12 +378,16 @@ labelCount l st =
   -- need to think what to do there
   length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
 
-insufficientlyCovered :: State -> [(String, Int, Int)]
+percentage :: Integral a => State -> a -> Double
+percentage st n =
+  fromIntegral n * 100 / fromIntegral (numSuccessTests st)
+
+insufficientlyCovered :: State -> [(String, Int, Double)]
 insufficientlyCovered st =
-  [ (l, reqP, n)
+  [ (l, reqP, p)
   | (l, reqP) <- Map.toList (S.labels st),
-    let n = labelCount l st,
-    n < reqP * numSuccessTests st `div` 100 ]
+    let p = percentage st (labelCount l st),
+    p < fromIntegral reqP ]
 
 --------------------------------------------------------------------------
 -- main shrinking loop
