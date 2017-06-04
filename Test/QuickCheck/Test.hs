@@ -39,6 +39,7 @@ import Data.List
   )
 
 import Data.Maybe(fromMaybe)
+import Text.Printf
 
 --------------------------------------------------------------------------
 -- quickCheck
@@ -223,7 +224,7 @@ doneTesting st _f
        ++ " tests (expected failure)"
         )
       finished NoExpectedFailure
-  | insufficientCoverage st = do
+  | not (null (insufficientlyCovered st)) = do
       putPart (terminal st)
         ( bold ("*** Insufficient coverage after ")
        ++ show (numSuccessTests st)
@@ -352,7 +353,7 @@ success st =
  where
   allLabels = reverse
             . sort
-            . map (\ss -> (showP ((length ss * 100) `div` numSuccessTests st) ++ head ss))
+            . map (\ss -> (showP True (length ss) ++ " " ++ head ss))
             . group
             . sort
             $ [ concat (intersperse ", " s')
@@ -361,24 +362,35 @@ success st =
               , not (null s')
               ]
 
-  covers = [ ("only " ++ show (labelPercentage l st) ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
-           | (l, reqP) <- Map.toList (S.labels st)
-           , labelPercentage l st < reqP
-           ]
+  covers = [ ("only " ++ showP False n ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
+           | (l, reqP, n) <- insufficientlyCovered st ]
 
-  showP p = (if p < 10 then " " else "") ++ show p ++ "% "
+  showP pad n =
+    (if pad && p < 10 then " " else "") ++
+    printf "%.*f" places p ++ "%"
+    where
+      p :: Double
+      p = fromIntegral n * 100 / fromIntegral (numSuccessTests st)
 
-labelPercentage :: String -> State -> Int
-labelPercentage l st =
+  -- Show no decimal places if <= 100 successful tests,
+  -- one decimal place if <= 1000 successful tests,
+  -- two decimal places if <= 10000 successful tests, and so on.
+  places :: Integer
+  places =
+    ceiling (logBase 10 (fromIntegral (numSuccessTests st)) - 2 :: Double) `max` 0
+
+labelCount :: String -> State -> Int
+labelCount l st =
   -- XXX in case of a disjunction, a label can occur several times,
   -- need to think what to do there
-  (100 * occur) `div` maxSuccessTests st
-  where
-    occur = length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
+  length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
 
-insufficientCoverage :: State -> Bool
-insufficientCoverage st =
-  or [ labelPercentage l st < reqP | (l, reqP) <- Map.toList (S.labels st) ]
+insufficientlyCovered :: State -> [(String, Int, Int)]
+insufficientlyCovered st =
+  [ (l, reqP, n)
+  | (l, reqP) <- Map.toList (S.labels st),
+    let n = labelCount l st,
+    n < reqP * numSuccessTests st `div` 100 ]
 
 --------------------------------------------------------------------------
 -- main shrinking loop
