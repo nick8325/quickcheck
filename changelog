@@ -1,16 +1,49 @@
-QuickCheck HEAD
+QuickCheck 2.10 (released ????-??-??)
+	* New combinator 'withMaxSuccess' sets the maximum number of test
+	  cases to run.
+	* New combinators 'shrinkMap'/'shrinkMapBy' for defining shrink
+	  functions.
+	* New combinator 'total' checks that a value is non-crashing.
+	* New combinator 'getSize' returns the current size.
+	* Much of Test.QuickCheck.Function (showable random functions)
+	  is now exported from Test.QuickCheck.
+	* Random strings now include Unicode characters by default.
+	  To control the kind of strings generated, you can use
+	  the ASCIIString/UnicodeString/PrintableString modifiers,
+	  or the arbitraryASCIIChar/arbitraryUnicodeChar/
+	  arbitraryPrintableChar generators.
+
 	* 'apply2', 'apply3' and 'Fn2', 'Fn3' added to
 	  Test.QuickCheck.Function for testing functions of more than one
 	  argument
-	* Export 'Fun' type, 'apply', 'Function(..)' and 'functionMap' from
-	  'Test.QuickCheck'
+
+	* QuickCheck no longer catches asynchronous exceptions,
+	  which means that pressing ctrl-C will now cancel testing
+	  without printing a counterexample. If you are debugging an
+	  infinite loop, please use the 'timeout' combinator or
+	  'verboseCheck' instead.
+
+	* Some Arbitrary instances have been removed: Semigroup, Natural.
+	  This is because they resulted in a lot of extra dependencies.
+	  You can now find them in the 'quickcheck-instances' package.
+
+	* New Arbitrary instances for the following types: Proxy, ExitCode,
+	  WrappedMonad, WrappedArrow, QCGen, and the types in
+	  Foreign.C.Types and Data.Functor.{Product,Compose}.
+
 	* 'Test.QuickCheck.Function', 'Test.QuickCheck.Poly', and
 	  'Test.QuickCheck.Monadic' are now Safe modules.
 	* 'Test.QuickCheck.Monadic' functions no longer ignore returned
 	  `a`s, and use `()` instead.
+	  XXX they return a testable
 	* Add `maxShrinks` parameter to `Args`. Number of shrinks to try
 	  before giving up shrinking.
-	* Move instances from `nats`, `semigroups` to `quickcheck-instances`
+	* New Arbitrary1/Arbitrary2 typeclass in the same style as
+	  Eq1 and friends.
+	* Documentation improvements: examples, links.
+
+	* () is now an instance of Testable.
+	  This can be useful in monadic testing.
 
 QuickCheck 2.9.2 (released 2016-09-15)
 	* Fix a bug where some properties were only being tested once
