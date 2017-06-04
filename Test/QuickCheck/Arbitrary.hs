@@ -44,8 +44,6 @@ module Test.QuickCheck.Arbitrary
   , arbitraryUnicodeChar   -- :: Gen Char
   , arbitraryASCIIChar     -- :: Gen Char
   , arbitraryPrintableChar -- :: Gen Char
-  , arbitraryChar          -- :: Gen Char
-  , shrinkChar             -- :: Char -> [Char]
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
@@ -624,8 +622,26 @@ instance Arbitrary Word64 where
   shrink    = shrinkIntegral
 
 instance Arbitrary Char where
-  arbitrary = arbitraryChar
-  shrink = shrinkChar
+  arbitrary =
+    frequency
+      [(3, arbitraryASCIIChar),
+       (1, arbitraryUnicodeChar)]
+
+  shrink c = filter (<. c) $ nub
+            $ ['a','b','c']
+            ++ [ toLower c | isUpper c ]
+            ++ ['A','B','C']
+            ++ ['1','2','3']
+            ++ [' ','\n']
+     where
+      a <. b  = stamp a < stamp b
+      stamp a = ( (not (isLower a)
+                , not (isUpper a)
+                , not (isDigit a))
+                , (not (a==' ')
+                , not (isSpace a)
+                , a)
+                )
 
 instance Arbitrary Float where
   arbitrary = arbitrarySizedFractional
@@ -984,35 +1000,9 @@ arbitraryUnicodeChar =
 arbitraryASCIIChar :: Gen Char
 arbitraryASCIIChar = choose ('\0', '\127')
 
--- | Generates a character.
--- ASCII characters are generated more often than non-ASCII.
-arbitraryChar :: Gen Char
-arbitraryChar =
-  frequency
-    [(3, arbitraryASCIIChar),
-     (1, arbitraryUnicodeChar)]
-
 -- | Generates a printable Unicode character.
 arbitraryPrintableChar :: Gen Char
-arbitraryPrintableChar = arbitraryChar `suchThat` isPrint
-
--- | The shrinking function for characters.
-shrinkChar :: Char -> [Char]
-shrinkChar c = filter (<. c) $ nub
-          $ ['a','b','c']
-          ++ [ toLower c | isUpper c ]
-          ++ ['A','B','C']
-          ++ ['1','2','3']
-          ++ [' ','\n']
-   where
-    a <. b  = stamp a < stamp b
-    stamp a = ( (not (isLower a)
-              , not (isUpper a)
-              , not (isDigit a))
-              , (not (a==' ')
-              , not (isSpace a)
-              , a)
-              )
+arbitraryPrintableChar = arbitrary `suchThat` isPrint
 
 -- ** Helper functions for implementing shrink
 
