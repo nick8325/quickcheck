@@ -32,6 +32,8 @@ import Data.Char
   ( isSpace
   )
 
+import Text.Printf (printf)
+
 import Data.List
   ( sort
   , group
@@ -352,7 +354,7 @@ success st =
  where
   allLabels = reverse
             . sort
-            . map (\ss -> (showP ((length ss * 100) `div` numSuccessTests st) ++ head ss))
+            . map (\ss -> (showP (labelPrecise (length ss) (numSuccessTests st)) ++ head ss))
             . group
             . sort
             $ [ concat (intersperse ", " s')
@@ -361,12 +363,15 @@ success st =
               , not (null s')
               ]
 
-  covers = [ ("only " ++ show (labelPercentage l st) ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
+  covers = [ ("only " ++ show (labelPrecise (labelCount l st) (numSuccessTests st)) ++ "% " ++ l ++ ", not " ++ show reqP ++ "%")
            | (l, reqP) <- Map.toList (S.labels st)
            , labelPercentage l st < reqP
            ]
 
-  showP p = (if p < 10 then " " else "") ++ show p ++ "% "
+  showP p = (if length p < 1 then " " else "") ++ p ++ "% "
+
+labelCount :: String -> State -> Int
+labelCount l st = length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
 
 labelPercentage :: String -> State -> Int
 labelPercentage l st =
@@ -374,7 +379,25 @@ labelPercentage l st =
   -- need to think what to do there
   (100 * occur) `div` maxSuccessTests st
   where
-    occur = length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
+    occur = labelCount l st
+
+-- What we want here is to:
+-- * display two significant digits
+-- * do not display the decimal point if
+--   the result is at least 10%
+labelPrecise :: Int -> Int -> String
+labelPrecise 0 _ = "0"
+labelPrecise labelOccurrences totalTests
+  | factor == 100 = show value
+  | otherwise     = printf "%f" $ (fromIntegral value / fromIntegral (factor `div` 100) :: Double)
+  where
+    (factor, value) = findFactor 100
+    -- We find the factor by which to multiply
+    -- the number of occurrences to get 2 significant digits
+    findFactor factor
+      | cur >= 10 = (factor, cur)
+      | otherwise = findFactor (factor * 10)
+      where cur = (factor * labelOccurrences) `div` totalTests
 
 insufficientCoverage :: State -> Bool
 insufficientCoverage st =
