@@ -79,6 +79,7 @@ library
     Test.QuickCheck.State,
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception
+    Test.QuickCheck.Rose
 
   -- GHC-specific modules.
   if impl(ghc)
@@ -175,3 +176,9 @@ Test-Suite test-quickcheck-gshrink
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
+
+Test-suite test-quickcheck-rose
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: RoseExample.hs
+    build-depends: base, containers, QuickCheck
