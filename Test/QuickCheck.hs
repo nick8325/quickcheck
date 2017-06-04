@@ -147,6 +147,10 @@ module Test.QuickCheck
   , arbitraryBoundedIntegral
   , arbitraryBoundedRandom
   , arbitraryBoundedEnum
+  , arbitraryUnicodeChar
+  , arbitraryASCIIChar
+  , arbitraryChar
+  , arbitraryPrintableChar
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
   , genericCoarbitrary
@@ -160,6 +164,7 @@ module Test.QuickCheck
   , shrinkMap
   , shrinkIntegral
   , shrinkRealFrac
+  , shrinkChar
     -- ** Helper functions for implementing coarbitrary
   , variant
   , coarbitraryIntegral
@@ -184,6 +189,9 @@ module Test.QuickCheck
   , Shrinking(..)
   , ShrinkState(..)
 #endif
+  , ASCIIString(..)
+  , UnicodeString(..)
+  , PrintableString(..)
 
     -- ** Functions
   , Fun
