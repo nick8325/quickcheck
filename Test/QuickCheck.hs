@@ -117,12 +117,15 @@ module Test.QuickCheck
   , infiniteListOf
   , shuffle
   , sublistOf
+  , parallel
+  , (=!=)
     -- ** Generators which use Arbitrary
   , vector
   , orderedList
   , infiniteList
     -- ** Running a generator
   , generate
+  , replayer
     -- ** Generator debugging
   , sample
   , sample'

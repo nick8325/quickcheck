@@ -120,6 +120,22 @@ generate (MkGen g) =
   do r <- newQCGen
      return (g r 30)
 
+-- | a reproduceable generate
+replayer :: IO (Gen a -> a)
+replayer = do
+    r <- newQCGen
+    let repeater (MkGen g) = g r 30
+    return $ repeater
+
+-- | evaluate 2 generators with the same seed
+parallel :: Gen a -> Gen a -> Gen (a,a)
+parallel (MkGen x) (MkGen y) = MkGen $ \g n -> 
+    (x g n, y g n)
+
+-- | test generator equality, useful for implementation crosschecking
+(=!=) :: Eq a =>  Gen a -> Gen a -> Gen Bool
+a =!= b = fmap (\(x,y) -> x == y) $ parallel a b
+
 -- | Generates some example values.
 sample' :: Gen a -> IO [a]
 sample' g =
