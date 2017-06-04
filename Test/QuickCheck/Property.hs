@@ -554,7 +554,7 @@ x === y =
   counterexample (show x ++ " /= " ++ show y) (x == y)
 
 #ifndef NO_DEEPSEQ
--- | Checks that a value is total, i.e., doesn't contain bottom.
+-- | Checks that a value is total, i.e., doesn't crash when evaluated.
 total :: NFData a => a -> Property
 total x = property (rnf x)
 #endif
