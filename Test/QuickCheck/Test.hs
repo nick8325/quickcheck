@@ -353,7 +353,7 @@ success st =
                  ++ ")."
                   )
     cases -> do putLine (terminal st) ":"
-                sequence_ [ putLine (terminal st) pt | pt <- cases ]
+                mapM_ (putLine $ terminal st) cases
  where
   allLabels =
     [ showP True p ++ " " ++ x | (x, p) <- summary st ]
