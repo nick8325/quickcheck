@@ -356,15 +356,15 @@ success st =
                 mapM_ (putLine $ terminal st) cases
  where
   allLabels :: [String]
-  allLabels = map (formatLabel True) (summary st)
+  allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
 
   covers :: [String]
-  covers = [ ("only " ++ formatLabel False (l, p) ++ ", not " ++ show reqP ++ "%")
+  covers = [ ("only " ++ formatLabel (numSuccessTests st) False (l, p) ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
 
-  formatLabel :: Bool -> (String, Double) -> String
-  formatLabel pad (x, p) = showP pad p ++ " " ++ x
-
+formatLabel :: Int -> Bool -> (String, Double) -> String
+formatLabel n pad (x, p) = showP pad p ++ " " ++ x
+ where
   showP :: Bool -> Double -> String
   showP pad p =
     (if pad && p < 10 then " " else "") ++
@@ -375,7 +375,7 @@ success st =
   -- two decimal places if <= 10000 successful tests, and so on.
   places :: Integer
   places =
-    ceiling (logBase 10 (fromIntegral (numSuccessTests st)) - 2 :: Double) `max` 0
+    ceiling (logBase 10 (fromIntegral n) - 2 :: Double) `max` 0
 
 labelCount :: String -> State -> Int
 labelCount l st =
