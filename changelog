@@ -1,51 +1,65 @@
 QuickCheck 2.10 (released ????-??-??)
-	* New combinator 'withMaxSuccess' sets the maximum number of test
-	  cases to run.
-	* New combinators 'shrinkMap'/'shrinkMapBy' for defining shrink
-	  functions.
-	* New combinator 'total' checks that a value is non-crashing.
-	* New combinator 'suchThatMap' which is similar to 'suchThat'
-	  but takes a Maybe-returning function instead of a predicate.
-	* New combinator 'getSize' returns the current size.
+	* New combinators:
+		- withMaxSuccess sets the maximum number of test cases for a property.
+		- shrinkMap/shrinkMapBy are helpers for defining shrink functions.
+		- total checks that a value is non-crashing.
+		- suchThatMap is similar to 'suchThat'
+		  but takes a Maybe-returning function instead of a predicate.
+		- getSize returns the current test case size.
+
+	* Random strings and characters now include Unicode characters by
+	  default. There are new modifiers and generators which control the
+	  kind of strings generated: ASCIIString, UnicodeString,
+	  PrintableString, arbitraryASCIIChar, arbitraryUnicodeChar,
+	  arbitraryPrintableChar.
+
+	* QuickCheck no longer catches asynchronous exceptions, which
+	  means that pressing ctrl-C will now cancel testing without
+	  printing a counterexample. If you are debugging an infinite loop,
+	  please use the 'timeout' combinator or 'verboseCheck' instead.
+	  ('timeout' is better as it allows the counterexample to be
+	  shrunk.)
+
 	* Much of Test.QuickCheck.Function (showable random functions)
 	  is now exported from Test.QuickCheck.
-	* Random strings now include Unicode characters by default.
-	  To control the kind of strings generated, you can use
-	  the ASCIIString/UnicodeString/PrintableString modifiers,
-	  or the arbitraryASCIIChar/arbitraryUnicodeChar/
-	  arbitraryPrintableChar generators.
+		- Test.QuickCheck.Function now defines functions and
+		  pattern synonyms which simplify testing functions of
+		  more than one argument: apply2, apply3, Fn2, Fn3.
 
-	* 'apply2', 'apply3' and 'Fn2', 'Fn3' added to
-	  Test.QuickCheck.Function for testing functions of more than one
-	  argument
-
-	* QuickCheck no longer catches asynchronous exceptions,
-	  which means that pressing ctrl-C will now cancel testing
-	  without printing a counterexample. If you are debugging an
-	  infinite loop, please use the 'timeout' combinator or
-	  'verboseCheck' instead.
+	* New typeclasses Arbitrary1 and Arbitrary2 which lift Arbitrary
+	  to unary/binary type constructors, like in Data.Functor.Classes.
 
 	* Some Arbitrary instances have been removed: Semigroup, Natural.
 	  This is because they resulted in a lot of extra dependencies.
-	  You can now find them in the 'quickcheck-instances' package.
+	  You can now find them in the quickcheck-instances package.
 
 	* New Arbitrary instances for the following types: Proxy, ExitCode,
 	  WrappedMonad, WrappedArrow, QCGen, and the types in
 	  Foreign.C.Types and Data.Functor.{Product,Compose}.
+	  Also a Function instance for Word.
 
-	* 'Test.QuickCheck.Function', 'Test.QuickCheck.Poly', and
-	  'Test.QuickCheck.Monadic' are now Safe modules.
-	* 'Test.QuickCheck.Monadic' functions no longer ignore returned
-	  `a`s, and use `()` instead.
-	  XXX they return a testable
-	* Add `maxShrinks` parameter to `Args`. Number of shrinks to try
-	  before giving up shrinking.
-	* New Arbitrary1/Arbitrary2 typeclass in the same style as
-	  Eq1 and friends.
-	* Documentation improvements: examples, links.
+	* The functions in Test.QuickCheck.Monadic which take an argument
+	  of type PropertyM m a now expect that 'a' to be Testable, and test it.
+	  To reduce breakage from this, () is now an instance of Testable which
+	  always succeeds.
+		- PropertyM now has a MonadFail instance on recent GHCs.
+		  Furthermore, the constraints on its instances were loosened.
 
-	* () is now an instance of Testable.
-	  This can be useful in monadic testing.
+	* Miscellaneous API changes:
+		- Args now has a `maxShrinks` argument, the maximum number of
+		  shrinks to try before giving up shrinking.
+		- The 'labels' field of Result now encodes frequencies as Doubles
+		  rather than Ints.
+
+	* Bugfixes:
+		- 'Test.QuickCheck.Function', 'Test.QuickCheck.Poly', and
+		  'Test.QuickCheck.Monadic' are now Safe modules.
+		- Result.theException and Result.reason were taken from
+		  the pre-shrunk counterexample, not the shrunk one.
+		- The Testable Property instance improperly used 'again'.
+		- Gen.>>= is strict in the result of split, fixing a space leak.
+
+	* Some more examples and links have been added to the documentation.
 
 QuickCheck 2.9.2 (released 2016-09-15)
 	* Fix a bug where some properties were only being tested once
