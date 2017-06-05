@@ -355,12 +355,15 @@ success st =
     cases -> do putLine (terminal st) ":"
                 mapM_ (putLine $ terminal st) cases
  where
+  allLabels :: [String]
   allLabels =
     [ showP True p ++ " " ++ x | (x, p) <- summary st ]
 
+  covers :: [String]
   covers = [ ("only " ++ showP False p ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
 
+  showP :: Bool -> Double -> String
   showP pad p =
     (if pad && p < 10 then " " else "") ++
     printf "%.*f" places p ++ "%"
