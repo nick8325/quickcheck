@@ -356,12 +356,14 @@ success st =
                 mapM_ (putLine $ terminal st) cases
  where
   allLabels :: [String]
-  allLabels =
-    [ showP True p ++ " " ++ x | (x, p) <- summary st ]
+  allLabels = map (formatLabel True) (summary st)
 
   covers :: [String]
-  covers = [ ("only " ++ showP False p ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
+  covers = [ ("only " ++ formatLabel False (l, p) ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
+
+  formatLabel :: Bool -> (String, Double) -> String
+  formatLabel pad (x, p) = showP pad p ++ " " ++ x
 
   showP :: Bool -> Double -> String
   showP pad p =
