@@ -353,14 +353,19 @@ success st =
                  ++ ")."
                   )
     cases -> do putLine (terminal st) ":"
-                sequence_ [ putLine (terminal st) pt | pt <- cases ]
+                mapM_ (putLine $ terminal st) cases
  where
-  allLabels =
-    [ showP True p ++ " " ++ x | (x, p) <- summary st ]
+  allLabels :: [String]
+  allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
 
-  covers = [ ("only " ++ showP False p ++ " " ++ l ++ ", not " ++ show reqP ++ "%")
+  covers :: [String]
+  covers = [ ("only " ++ formatLabel (numSuccessTests st) False (l, p) ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
 
+formatLabel :: Int -> Bool -> (String, Double) -> String
+formatLabel n pad (x, p) = showP pad p ++ " " ++ x
+ where
+  showP :: Bool -> Double -> String
   showP pad p =
     (if pad && p < 10 then " " else "") ++
     printf "%.*f" places p ++ "%"
@@ -370,7 +375,7 @@ success st =
   -- two decimal places if <= 10000 successful tests, and so on.
   places :: Integer
   places =
-    ceiling (logBase 10 (fromIntegral (numSuccessTests st)) - 2 :: Double) `max` 0
+    ceiling (logBase 10 (fromIntegral n) - 2 :: Double) `max` 0
 
 labelCount :: String -> State -> Int
 labelCount l st =
