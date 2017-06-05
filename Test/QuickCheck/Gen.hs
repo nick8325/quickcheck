@@ -146,7 +146,7 @@ gen `suchThat` p =
 -- | Generates a value for which the given function returns a 'Just'.
 suchThatMap :: Gen a -> (a -> Maybe b) -> Gen b
 gen `suchThatMap` f =
-  fromJust <$> fmap f gen `suchThat` isJust
+  fmap fromJust $ fmap f gen `suchThat` isJust
 
 -- | Tries to generate a value that satisfies a predicate.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)
