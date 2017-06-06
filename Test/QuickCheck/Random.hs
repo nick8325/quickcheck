@@ -63,7 +63,7 @@ stop n = n <= 1
 newtype QCGen = QCGen TheGen
 
 instance Show QCGen where
-  showsPrec n (QCGen g) = showsPrec n g
+  showsPrec n (QCGen g) s = showsPrec n g "" ++ s
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
