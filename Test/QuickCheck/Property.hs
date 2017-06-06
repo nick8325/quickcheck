@@ -224,7 +224,7 @@ data Result
   , abort         :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests :: Maybe Int         -- ^ stop after this many tests
   , labels        :: Map String Int    -- ^ all labels used by this property
-  , stamp         :: Set String        -- ^ the collected values for this test case
+  , stamp         :: Set String        -- ^ the collected labels for this test case
   , callbacks     :: [Callback]        -- ^ the callbacks for this test case
   }
 
