@@ -120,15 +120,12 @@ instance Applicative (PropertyM m) where
   mf <*> mx =
     mf `bind` \f -> mx `bind` \x -> pure (f x)
 
-#ifdef NO_MONADFAIL
 instance Monad m => Monad (PropertyM m) where
   return = pure
   (>>=) = bind
   fail = fail_
-#else
-instance Monad (PropertyM m) where
-  return = pure
-  (>>=) = bind
+
+#ifndef NO_MONADFAIL
 instance Monad m => Fail.MonadFail (PropertyM m) where
   fail = fail_
 #endif

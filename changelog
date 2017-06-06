@@ -43,7 +43,7 @@ QuickCheck 2.10 (released ????-??-??)
 	  To reduce breakage from this, () is now an instance of Testable which
 	  always succeeds.
 		- PropertyM now has a MonadFail instance on recent GHCs.
-		  Furthermore, the constraints on its instances were loosened.
+		  Furthermore, the constraints on some instances were loosened.
 
 	* Miscellaneous API changes:
 		- Args now has a `maxShrinks` argument, the maximum number of
