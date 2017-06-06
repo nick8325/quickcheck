@@ -126,17 +126,13 @@ morallyDubiousIOProperty = ioProperty
 
 -- | Do I/O inside a property.
 --
--- Warning: strange things can happen if you interleave I/O with
--- generation. In particular, if you do I/O and _then_ generate a
--- random value, the I/O won't be re-executed once the value starts
--- shrinking. To avoid this, generate all random values _before_
--- doing any I/O.
---
--- This is probably a bug, but it is very unclear how to fix it.
+-- Warning: any random values generated inside of the argument to @ioProperty@
+-- will not be shrunk. For best results, generate all random values before
+-- calling @ioProperty@.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty =
   MkProperty . fmap (MkProp . ioRose . fmap unProp) .
-  promote . fmap (unProperty . property)
+  promote . fmap (unProperty . noShrinking)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
