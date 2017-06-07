@@ -46,6 +46,8 @@ QuickCheck 2.10 (released ????-??-??)
 		  Furthermore, the constraints on some instances were loosened.
 
 	* Miscellaneous API changes:
+		- Result now returns the counterexample as a list of strings.
+		  See the "failingTestCase" field.
 		- Args now has a `maxShrinks` argument, the maximum number of
 		  shrinks to try before giving up shrinking.
 		- The 'labels' field of Result now encodes frequencies as Doubles
