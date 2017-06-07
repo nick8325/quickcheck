@@ -89,16 +89,17 @@ data Result
     }
   -- | A failed test run
   | Failure
-    { numTests       :: Int               --   Number of tests performed
-    , numShrinks     :: Int               -- ^ Number of successful shrinking steps performed
-    , numShrinkTries :: Int               -- ^ Number of unsuccessful shrinking steps performed
-    , numShrinkFinal :: Int               -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
-    , usedSeed       :: QCGen             -- ^ What seed was used
-    , usedSize       :: Int               -- ^ What was the test size
-    , reason         :: String            -- ^ Why did the property fail
-    , theException   :: Maybe AnException -- ^ The exception the property threw, if any
-    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
-    , output         :: String            --   Printed output
+    { numTests        :: Int               --   Number of tests performed
+    , numShrinks      :: Int               -- ^ Number of successful shrinking steps performed
+    , numShrinkTries  :: Int               -- ^ Number of unsuccessful shrinking steps performed
+    , numShrinkFinal  :: Int               -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
+    , usedSeed        :: QCGen             -- ^ What seed was used
+    , usedSize        :: Int               -- ^ What was the test size
+    , reason          :: String            -- ^ Why did the property fail
+    , theException    :: Maybe AnException -- ^ The exception the property threw, if any
+    , labels          :: [(String,Double)] --   Labels and frequencies found during all successful tests
+    , output          :: String            --   Printed output
+    , failingTestCase :: [String]          -- ^ The test case which provoked the failure
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
@@ -315,17 +316,19 @@ runATest st f =
               return Success{ labels = summary st,
                               numTests = numSuccessTests st+1,
                               output = theOutput }
-             else
-              return Failure{ usedSeed       = randomSeed st -- correct! (this will be split first)
-                            , usedSize       = size
-                            , numTests       = numSuccessTests st+1
-                            , numShrinks     = numShrinks
-                            , numShrinkTries = totFailed
-                            , numShrinkFinal = lastFailed
-                            , output         = theOutput
-                            , reason         = P.reason res
-                            , theException   = P.theException res
-                            , labels         = summary st
+             else do
+              testCase <- mapM showCounterexample (P.testCase res)
+              return Failure{ usedSeed        = randomSeed st -- correct! (this will be split first)
+                            , usedSize        = size
+                            , numTests        = numSuccessTests st+1
+                            , numShrinks      = numShrinks
+                            , numShrinkTries  = totFailed
+                            , numShrinkFinal  = lastFailed
+                            , output          = theOutput
+                            , reason          = P.reason res
+                            , theException    = P.theException res
+                            , labels          = summary st
+                            , failingTestCase = testCase
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)

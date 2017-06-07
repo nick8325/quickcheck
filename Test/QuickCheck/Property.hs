@@ -222,6 +222,7 @@ data Result
   , labels        :: Map String Int    -- ^ all labels used by this property
   , stamp         :: Set String        -- ^ the collected labels for this test case
   , callbacks     :: [Callback]        -- ^ the callbacks for this test case
+  , testCase      :: [String]          -- ^ the generated test case
   }
 
 exception :: String -> AnException -> Result
@@ -255,6 +256,7 @@ succeeded, failed, rejected :: Result
       , labels        = Map.empty
       , stamp         = Set.empty
       , callbacks     = []
+      , testCase      = []
       }
 
 --------------------------------------------------------------------------
@@ -307,13 +309,22 @@ callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 -- | Adds the given string to the counterexample.
 counterexample :: Testable prop => String -> prop -> Property
 counterexample s =
-  callback $ PostFinalFailure Counterexample $ \st _res -> do
-    res <- tryEvaluateIO (putLine (terminal st) s)
+  mapTotalResult (\res -> res{ testCase = s:testCase res }) .
+  callback (PostFinalFailure Counterexample $ \st _res -> do
+    s <- showCounterexample s
+    putLine (terminal st) s)
+
+showCounterexample :: String -> IO String
+showCounterexample s = do
+  let force [] = return ()
+      force (x:xs) = x `seq` force xs
+  res <- tryEvaluateIO (force s)
+  return $
     case res of
       Left err ->
-        putLine (terminal st) (formatException "Exception thrown while printing test case" err)
+        formatException "Exception thrown while showing test case" err
       Right () ->
-        return ()
+        s
 
 -- | Adds the given string to the counterexample.
 {-# DEPRECATED printTestCase "Use counterexample instead" #-}
@@ -342,7 +353,8 @@ verbose :: Testable prop => prop -> Property
 verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ callbacks res })
   where newCallbacks cbs =
           PostTest Counterexample (\st res -> putLine (terminal st) (status res ++ ":")):
-          [ PostTest Counterexample f | PostFinalFailure Counterexample f <- cbs ]
+          [ PostTest Counterexample f | PostFinalFailure Counterexample f <- cbs ] ++
+          [ PostTest Counterexample (\st res -> putLine (terminal st) "") ]
         status MkResult{ok = Just True} = "Passed"
         status MkResult{ok = Just False} = "Failed"
         status MkResult{ok = Nothing} = "Skipped (precondition false)"
@@ -529,7 +541,10 @@ disjoin ps =
                    callbacks =
                      callbacks result1 ++
                      [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
-                     callbacks result2 }
+                     callbacks result2,
+                   testCase =
+                     testCase result1 ++
+                     testCase result2 }
                Nothing -> result2
          Nothing -> do
            result2 <- q
