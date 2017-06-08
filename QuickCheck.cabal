@@ -15,27 +15,18 @@ Synopsis:       Automatic testing of Haskell programs
 Description:
   QuickCheck is a library for random testing of program properties.
   .
-  The programmer provides a specification of the program, in
-  the form of properties which functions should satisfy, and
-  QuickCheck then tests that the properties hold in a large number
-  of randomly generated cases.
+  The programmer provides a specification of the program, in the form of
+  properties which functions should satisfy, and QuickCheck then tests that the
+  properties hold in a large number of randomly generated cases.
   .
-  Specifications are expressed in
-  Haskell, using combinators defined in the QuickCheck library.
-  QuickCheck provides combinators to define properties, observe
-  the distribution of test data, and define test
-  data generators.
+  Specifications are expressed in Haskell, using combinators defined in the
+  QuickCheck library. QuickCheck provides combinators to define properties,
+  observe the distribution of test data, and define test data generators.
   .
   You can find a (slightly out-of-date but useful) manual at
   <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html>
   and a detailed tutorial at
   <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>.
-  .
-  There are several useful QuickCheck-related packages developed by other people:
-  .
-  * <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances> - `Arbitrary` instances which are not included in QuickCheck itself.
-  * <http://hackage.haskell.org/package/QuickCheck-GenT QuickCheck-GenT> - a monad transformer based on `Gen`.
-  * <http://hackage.haskell.org/package/testing-feat testing-feat> - high-quality automatic `Arbitrary` instances using Template Haskell.
 
 extra-source-files:
   README

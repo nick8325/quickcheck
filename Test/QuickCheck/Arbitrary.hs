@@ -163,19 +163,40 @@ import Data.Functor.Product
 -- ** class Arbitrary
 
 -- | Random generation and shrinking of values.
+--
+-- QuickCheck provides @Arbitrary@ instances for most types in @base@,
+-- except those which incur extra dependencies.
+-- For a wider range of @Arbitrary@ instances see the
+-- <http://hackage.haskell.org/package/quickcheck-instances
+-- quickcheck-instances> package.
 class Arbitrary a where
   -- | A generator for values of the given type.
+  --
+  -- It is worth spending time thinking about what sort of test data
+  -- you want - good generators are often the difference between
+  -- finding bugs and not finding them. You can use 'sample',
+  -- 'label' and 'classify' to check the quality of your test data.
+  --
+  -- There is no generic @arbitrary@ implementation included because we don't
+  -- know how to make a high-quality one. If you want one, consider using the
+  -- <http://hackage.haskell.org/package/testing-feat testing-feat> package.
   arbitrary :: Gen a
 
   -- | Produces a (possibly) empty list of all the possible
-  -- immediate shrinks of the given value. The default implementation
-  -- returns the empty list, so will not try to shrink the value.
+  -- immediate shrinks of the given value.
+  --
+  -- The default implementation returns the empty list, so will not try to
+  -- shrink the value. If your data type has no special invariants, you can
+  -- enable shrinking by defining @shrink = 'genericShrink'@, but by customising
+  -- the behaviour of @shrink@ you can often get simpler counterexamples.
   --
   -- Most implementations of 'shrink' should try at least three things:
   --
   -- 1. Shrink a term to any of its immediate subterms.
+  --    You can use 'subterms' to do this.
   --
   -- 2. Recursively apply 'shrink' to all immediate subterms.
+  --    You can use 'recursivelyShrink' to do this.
   --
   -- 3. Type-specific shrinkings such as replacing a constructor by a
   --    simpler constructor.
@@ -209,8 +230,7 @@ class Arbitrary a where
   --   the three is fully shrunk.
   --
   -- There is a fair bit of boilerplate in the code above.
-  -- We can avoid it with the help of some generic functions;
-  -- note that these only work on GHC 7.2 and above.
+  -- We can avoid it with the help of some generic functions.
   -- The function 'genericShrink' tries shrinking a term to all of its
   -- subterms and, failing that, recursively shrinks the subterms.
   -- Using it, we can define 'shrink' as:
@@ -232,7 +252,6 @@ class Arbitrary a where
   -- If all this leaves you bewildered, you might try @'shrink' = 'genericShrink'@ to begin with,
   -- after deriving @Generic@ for your type. However, if your data type has any
   -- special invariants, you will need to check that 'genericShrink' can't break those invariants.
-  --
   shrink :: a -> [a]
   shrink _ = []
 
