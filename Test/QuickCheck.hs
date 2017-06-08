@@ -195,9 +195,7 @@ module Test.QuickCheck
     -- ** Functions
   , Fun
   , applyFun
-  , Fun2
   , applyFun2
-  , Fun3
   , applyFun3
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
   , pattern Fn

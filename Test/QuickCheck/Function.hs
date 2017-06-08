@@ -34,8 +34,6 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
-  , Fun2
-  , Fun3
   , applyFun
   , apply
   , applyFun2
@@ -450,9 +448,6 @@ shrinkFun shr (Map g h p) =
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
 
-type Fun2 a b   = Fun (a, b)
-type Fun3 a b c = Fun (a, b, c)
-
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A modifier for testing functions.
 --
@@ -475,13 +470,13 @@ pattern Fn f <- (applyFun -> f)
 -- +++ OK, passed 100 tests.
 --
 #if __GLASGOW_HASKELL__ >= 800
-pattern Fn2 :: (a -> b -> c) -> Fun2 a b c
+pattern Fn2 :: (a -> b -> c) -> Fun (a, b) c
 #endif
 pattern Fn2 f <- (applyFun2 -> f)
 
 -- | A modifier for testing functions of three arguments.
 #if __GLASGOW_HASKELL__ >= 800
-pattern Fn3 :: (a -> b -> c -> d) -> Fun3 a b c d
+pattern Fn3 :: (a -> b -> c -> d) -> Fun (a, b, c) d
 #endif
 pattern Fn3 f <- (applyFun3 -> f)
 
