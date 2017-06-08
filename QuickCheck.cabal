@@ -49,7 +49,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.9.2
+  tag:      2.10
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
