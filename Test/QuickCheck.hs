@@ -1,66 +1,34 @@
-{-| For further information see the <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>.
+{-|
+The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>
+gives detailed information about using QuickCheck effectively.
 
-To use QuickCheck to check a property, first define a function
-expressing that property (functions expressing properties under test
-tend to be prefixed with @prop_@). Testing that @n + m = m + n@ holds
-for @Integer@s one might write:
+To start using QuickCheck, write down your property as a function returning @Bool@.
+For example, to check that reversing a list twice gives back the same list you can write:
 
 @
 import Test.QuickCheck
 
-prop_commutativeAdd :: Integer -> Integer -> Bool
-prop_commutativeAdd n m = n + m == m + n
+prop_reverse :: [Int] -> Bool
+prop_reverse xs = reverse (reverse xs) == xs
 @
 
-and testing:
+You can then use QuickCheck to test @prop_reverse@ on 100 random lists:
 
->>> quickCheck prop_commutativeAdd
+>>> quickCheck prop_reverse
 +++ OK, passed 100 tests.
 
-which tests @prop_commutativeAdd@ on 100 random @(Integer, Integer)@ pairs.
+To run more tests you can use the 'withMaxSuccess' combinator:
 
-'verboseCheck' can be used to see the actual values generated:
+>>> quickCheck (withMaxSuccess 10000 prop_reverse)
++++ OK, passed 10000 tests.
 
->>> verboseCheck prop_commutativeAdd
-Passed:
-0
-0
-  …98 tests omitted…
-Passed:
--68
-6
-+++ OK, passed 100 tests.
+To use QuickCheck on your own data types you will need to write 'Arbitrary'
+instances for those types. See the
+<http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual> for
+details about how to do that.
 
-and if more than 100 tests are needed the number of tests can be
-increased by updating the 'stdArgs' record:
-
->>> quickCheckWith stdArgs { maxSuccess = 500 } prop_commutativeAdd
-+++ OK, passed 500 tests.
-
-To let QuickCheck generate values of your own data type an 'Arbitrary'
-instance must be defined:
-
-@
-data Point = MkPoint Int Int deriving Eq
-
-instance Arbitrary Point where
-  arbitrary = MkPoint <$> arbitrary <*> arbitrary
-
-swapPoint :: Point -> Point
-swapPoint (MkPoint x y) = MkPoint y x
-
--- swapPoint . swapPoint = id
-prop_swapInvolution point = swapPoint (swapPoint point) == point
-@
-
->>> quickCheck prop_swapInvolution
-+++ OK, passed 100 tests.
-
-See "Test.QuickCheck.Function" for generating random shrinkable,
-showable functions used for testing higher-order functions and
-"Test.QuickCheck.Monadic" for testing impure or monadic code
-(e.g. effectful code in 'IO').
-
+This module exports most of QuickCheck's functionality, but see also
+"Test.QuickCheck.Monadic" which helps with testing impure or monadic code.
 -}
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL

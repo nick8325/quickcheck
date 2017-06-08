@@ -180,6 +180,10 @@ class Arbitrary a where
   -- There is no generic @arbitrary@ implementation included because we don't
   -- know how to make a high-quality one. If you want one, consider using the
   -- <http://hackage.haskell.org/package/testing-feat testing-feat> package.
+  --
+  -- The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>
+  -- goes into detail on how to write good generators. Make sure to look at it,
+  -- especially if your type is recursive!
   arbitrary :: Gen a
 
   -- | Produces a (possibly) empty list of all the possible
