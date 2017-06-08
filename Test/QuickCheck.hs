@@ -44,10 +44,7 @@ instance must be defined:
 data Point = MkPoint Int Int deriving Eq
 
 instance Arbitrary Point where
-  arbitrary = do
-    x <- 'arbitrary'
-    y <- arbitrary
-    return (MkPoint x y)
+  arbitrary = MkPoint <$> arbitrary <*> arbitrary
 
 swapPoint :: Point -> Point
 swapPoint (MkPoint x y) = MkPoint y x
@@ -160,8 +157,8 @@ module Test.QuickCheck
 #endif
   , shrinkNothing
   , shrinkList
-  , shrinkMapBy
   , shrinkMap
+  , shrinkMapBy
   , shrinkIntegral
   , shrinkRealFrac
     -- ** Helper functions for implementing coarbitrary

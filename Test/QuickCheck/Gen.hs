@@ -147,12 +147,14 @@ gen `suchThat` p =
        Just x  -> return x
        Nothing -> sized (\n -> resize (n+1) (gen `suchThat` p))
 
--- | Generates a value for which the given function returns a 'Just'.
+-- | Generates a value for which the given function returns a 'Just', and then
+-- applies the function.
 suchThatMap :: Gen a -> (a -> Maybe b) -> Gen b
 gen `suchThatMap` f =
   fmap fromJust $ fmap f gen `suchThat` isJust
 
 -- | Tries to generate a value that satisfies a predicate.
+-- If it fails to do so after enough attempts, returns @Nothing@.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)
 gen `suchThatMaybe` p = sized (try 0 . max 1)
  where

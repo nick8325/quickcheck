@@ -72,13 +72,8 @@ infixr 1 .||.
 -- | The type of properties.
 newtype Property = MkProperty { unProperty :: Gen Prop }
 
--- | The class of properties, i.e., types which QuickCheck knows how
--- to test.
---
--- Typically a property will be a function returning 'Bool' or 'Property',
--- but it can also use 'IO' or 'Gen'. For example, a property of type
--- @... -> IO ()@ passes the test as long as it doesn't crash, while a property
--- of type @... -> IO Bool@ must return @True@.
+-- | The class of properties, i.e., types which QuickCheck knows how to test.
+-- Typically a property will be a function returning 'Bool' or 'Property'.
 --
 -- If a property does no quantification, i.e. has no
 -- parameters and doesn't use 'forAll', it will only be tested once.
@@ -95,8 +90,7 @@ data Discard = Discard
 instance Testable Discard where
   property _ = property rejected
 
--- This instance is mostly here so that we get
--- a Testable (IO ()) instance.
+-- This instance is here to make it easier to turn IO () into a Property.
 instance Testable () where
   property = property . liftUnit
     where
@@ -127,8 +121,8 @@ morallyDubiousIOProperty = ioProperty
 -- | Do I/O inside a property.
 --
 -- Warning: any random values generated inside of the argument to @ioProperty@
--- will not be shrunk. For best results, generate all random values before
--- calling @ioProperty@.
+-- will not currently be shrunk. For best results, generate all random values
+-- before calling @ioProperty@.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty =
   MkProperty . fmap (MkProp . ioRose . fmap unProp) .
@@ -286,8 +280,8 @@ mapProp f = MkProperty . fmap f . unProperty . property
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
 mapSize f p = MkProperty (sized ((`resize` unProperty (property p)) . f))
 
--- | Shrinks the argument to property if it fails. Shrinking is done
--- automatically for most types. This is only needed when you want to
+-- | Shrinks the argument to a property if it fails. Shrinking is done
+-- automatically for most types. This function is only needed when you want to
 -- override the default behavior.
 shrinking :: Testable prop =>
              (a -> [a])  -- ^ 'shrink'-like function.
@@ -306,7 +300,7 @@ noShrinking = mapRoseResult (onRose (\res _ -> MkRose res []))
 callback :: Testable prop => Callback -> prop -> Property
 callback cb = mapTotalResult (\res -> res{ callbacks = cb : callbacks res })
 
--- | Adds the given string to the counterexample.
+-- | Adds the given string to the counterexample if the property fails.
 counterexample :: Testable prop => String -> prop -> Property
 counterexample s =
   mapTotalResult (\res -> res{ testCase = s:testCase res }) .
@@ -326,7 +320,7 @@ showCounterexample s = do
       Right () ->
         s
 
--- | Adds the given string to the counterexample.
+-- | Adds the given string to the counterexample if the property fails.
 {-# DEPRECATED printTestCase "Use counterexample instead" #-}
 printTestCase :: Testable prop => String -> prop -> Property
 printTestCase = counterexample
@@ -365,29 +359,79 @@ expectFailure :: Testable prop => prop -> Property
 expectFailure = mapTotalResult (\res -> res{ expect = False })
 
 -- | Modifies a property so that it only will be tested once.
+-- Opposite of 'again'.
 once :: Testable prop => prop -> Property
 once = mapTotalResult (\res -> res{ abort = True })
 
 -- | Modifies a property so that it will be tested repeatedly.
+-- Opposite of 'once'.
 again :: Testable prop => prop -> Property
 again = mapTotalResult (\res -> res{ abort = False })
 
 -- | Configures how many times a property will be tested.
+--
+-- For example,
+--
+-- > quickCheck (withMaxSuccess 1000 p)
+--
+-- will test @p@ up to 1000 times.
 withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
+--
+-- For example:
+--
+-- > prop_reverse_reverse :: [Int] -> Property
+-- > prop_reverse_reverse xs =
+-- >   label ("length of input is " ++ show (length xs)) $
+-- >     reverse (reverse xs) === xs
+--
+-- >>> quickCheck prop_reverse_reverse
+-- +++ OK, passed 100 tests:
+-- 7% length of input is 7
+-- 6% length of input is 3
+-- 5% length of input is 4
+-- 4% length of input is 6
+-- ...
 label :: Testable prop => String -> prop -> Property
 label s = classify True s
 
--- | Labels a property with a value:
+-- | Attaches a label to a property. This is used for reporting
+-- test case distribution.
 --
 -- > collect x = label (show x)
+--
+-- For example:
+--
+-- > prop_reverse_reverse :: [Int] -> Property
+-- > prop_reverse_reverse xs =
+-- >   collect (length xs) $
+-- >     reverse (reverse xs) === xs
+--
+-- >>> quickCheck prop_reverse_reverse
+-- +++ OK, passed 100 tests:
+-- 7% 7
+-- 6% 3
+-- 5% 4
+-- 4% 6
+-- ...
 collect :: (Show a, Testable prop) => a -> prop -> Property
 collect x = label (show x)
 
--- | Conditionally labels test case.
+-- | Records how many test cases satisfy a given condition.
+--
+-- For example:
+--
+-- > prop_sorted_sort :: [Int] -> Property
+-- > prop_sorted_sort xs =
+-- >   sorted xs ==>
+-- >   classify (length xs > 1) "non-trivial" $
+-- >   sort xs === xs
+--
+-- >>> quickCheck prop_sorted_sort
+-- +++ OK, passed 100 tests (22% non-trivial).
 classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
@@ -397,6 +441,17 @@ classify b s = cover b 0 s
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
 -- with a false precondition) do not affect coverage.
+--
+-- For example:
+--
+-- > prop_sorted_sort :: [Int] -> Property
+-- > prop_sorted_sort xs =
+-- >   sorted xs ==>
+-- >   cover (length xs > 1) 50 "non-trivial" $
+-- >   sort xs === xs
+--
+-- >>> quickCheck prop_sorted_sort
+-- *** Insufficient coverage after 100 tests (only 24% non-trivial, not 50%).
 cover :: Testable prop =>
          Bool   -- ^ @True@ if the test case belongs to the class.
       -> Int    -- ^ The required percentage (0-100) of test cases.

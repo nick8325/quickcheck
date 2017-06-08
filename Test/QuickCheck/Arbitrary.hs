@@ -53,8 +53,8 @@ module Test.QuickCheck.Arbitrary
 #endif
   , shrinkNothing            -- :: a -> [a]
   , shrinkList               -- :: (a -> [a]) -> [a] -> [[a]]
-  , shrinkMapBy              -- :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
   , shrinkMap                -- :: Arbitrary a -> (a -> b) -> (b -> a) -> b -> [b]
+  , shrinkMapBy              -- :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
@@ -167,8 +167,8 @@ import Data.Functor.Product
 -- QuickCheck provides @Arbitrary@ instances for most types in @base@,
 -- except those which incur extra dependencies.
 -- For a wider range of @Arbitrary@ instances see the
--- <http://hackage.haskell.org/package/quickcheck-instances
--- quickcheck-instances> package.
+-- <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances>
+-- package.
 class Arbitrary a where
   -- | A generator for values of the given type.
   --
@@ -1029,8 +1029,8 @@ arbitraryPrintableChar = arbitrary `suchThat` isPrint
 shrinkNothing :: a -> [a]
 shrinkNothing _ = []
 
--- | Map shrink function to other domain. This is handy if your data type
--- has special invariants, but is *almost* isomorphic to some other type.
+-- | Map a shrink function to another domain. This is handy if your data type
+-- has special invariants, but is /almost/ isomorphic to some other type.
 --
 -- @
 -- shrinkOrderedList :: (Ord a, Arbitrary a) => [a] -> [[a]]
@@ -1042,7 +1042,7 @@ shrinkNothing _ = []
 shrinkMap :: Arbitrary a => (a -> b) -> (b -> a) -> b -> [b]
 shrinkMap f g = shrinkMapBy f g shrink
 
--- | Non-overloaded `shrinkMap`
+-- | Non-overloaded version of `shrinkMap`.
 shrinkMapBy :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
 shrinkMapBy f g shr = map f . shr . g
 
@@ -1355,7 +1355,7 @@ vector k = vectorOf k arbitrary
 orderedList :: (Ord a, Arbitrary a) => Gen [a]
 orderedList = sort `fmap` arbitrary
 
--- | Generate an infinite list.
+-- | Generates an infinite list.
 infiniteList :: Arbitrary a => Gen [a]
 infiniteList = infiniteListOf arbitrary
 

@@ -133,14 +133,8 @@ stdArgs = Args
 
 -- | Tests a property and prints the results to 'stdout'.
 --
--- By default up to 100 tests are performed. Here 100 is an
--- arbitrary default, defined by the 'maxSuccess' field of
--- 'stdArgs'. To change the defaults, use 'quickCheckWith'
--- instead. For example,
---
--- > quickCheckWith (stdArgs { maxSuccess = 1000 }) p
---
--- will test @p@ up to 1000 times.
+-- By default up to 100 tests are performed, which may not be enough
+-- to find all bugs. To run more tests, use 'withMaxSuccess'.
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheckWith stdArgs p
 

@@ -135,6 +135,12 @@ table (Map _ h p) = [ (h x, c) | (x,c) <- table p ]
 --------------------------------------------------------------------------
 -- Function
 
+-- | The class @Function a@ is used for random generation of showable
+-- functions of type @a -> b@.
+--
+-- There is a default implementation for 'function', which you can use
+-- if your type has structural equality. Otherwise, you can normally
+-- use 'functionMap' or 'functionShow'.
 class Function a where
   function :: (a->b) -> (a:->b)
 #ifndef NO_GENERICS
@@ -444,7 +450,7 @@ shrinkFun shr (Map g h p) =
 -- To generate random values of type @'Fun' a b@,
 -- you must have an instance @'Function' a@.
 --
--- See also 'apply' (and 'Fn' with GHC >= 7.8)
+-- See also 'applyFun', and 'Fn' with GHC >= 7.8.
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
 
@@ -461,26 +467,18 @@ pattern Fn f <- (applyFun -> f)
 
 -- | A modifier for testing binary functions.
 --
--- @
---     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
---     prop_zipWith (Fn2 f) xs ys = zipWith f xs ys == [ f x y | (x, y) <- zip xs ys]
--- @
---
--- >>> quickCheck prop_zipWith
--- +++ OK, passed 100 tests.
---
+-- > prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
+-- > prop_zipWith (Fn2 f) xs ys = zipWith f xs ys == [ f x y | (x, y) <- zip xs ys]
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn2 :: (a -> b -> c) -> Fun (a, b) c
 #endif
 pattern Fn2 f <- (applyFun2 -> f)
 
--- | A modifier for testing functions of three arguments.
+-- | A modifier for testing ternary functions.
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn3 :: (a -> b -> c -> d) -> Fun (a, b, c) d
 #endif
 pattern Fn3 f <- (applyFun3 -> f)
-
-curry3 f a b c = f (a, b, c)
 #endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
@@ -490,7 +488,7 @@ mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 apply :: Fun a b -> (a -> b)
 apply = applyFun
 
--- | Extracts the function value.
+-- | Extracts the value of a function.
 --
 -- 'Fn' is the pattern equivalent of this function.
 --
@@ -500,20 +498,18 @@ apply = applyFun
 applyFun :: Fun a b -> (a -> b)
 applyFun (Fun _ f) = f
 
--- | Extracts the binary function value.
+-- | Extracts the value of a binary function.
 --
--- 'Fn3' is the pattern equivalent of the function.
+-- 'Fn2' is the pattern equivalent of this function.
+--
+--  > prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
+--  > prop_zipWith f xs ys = zipWith (applyFun2 f) xs ys == [ applyFun2 f x y | (x, y) <- zip xs ys]
+--
 applyFun2 :: Fun (a, b) c -> (a -> b -> c)
 applyFun2 (Fun _ f) a b = f (a, b)
 
--- | Extracts the value of a function of three arguments. 'Fn3' is the
+-- | Extracts the value of a ternary function. 'Fn3' is the
 -- pattern equivalent of this function.
---
--- @
---     prop_zipWith :: Fun (Int, Bool) Char -> [Int] -> [Bool] -> Bool
---     prop_zipWith f xs ys = zipWith (apply f) xs ys == [ (apply f) x y | (x, y) <- zip xs ys]
--- @
---
 applyFun3 :: Fun (a, b, c) d -> (a -> b -> c -> d)
 applyFun3 (Fun _ f) a b c = f (a, b, c)
 
