@@ -23,8 +23,8 @@ Description:
   QuickCheck library. QuickCheck provides combinators to define properties,
   observe the distribution of test data, and define test data generators.
   .
-  The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html
-  official QuickCheck manual> explains how to write generators and properties;
+  The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html official QuickCheck manual>
+  explains how to write generators and properties;
   it is out-of-date in some details but still full of useful advice.
   .
   A user of QuickCheck has written an unofficial, but detailed, tutorial which
