@@ -8,10 +8,11 @@ QuickCheck 2.10 (released ????-??-??)
 		- getSize returns the current test case size.
 
 	* Random strings and characters now include Unicode characters by
-	  default. There are new modifiers and generators which control the
-	  kind of strings generated: ASCIIString, UnicodeString,
-	  PrintableString, arbitraryASCIIChar, arbitraryUnicodeChar,
-	  arbitraryPrintableChar.
+	  default. To generate only ASCII characters, use the new
+	  ASCIIString modifier or arbitraryASCIIChar generator.
+	  The following modifiers and generators also control the
+	  kind of strings generated: UnicodeString, PrintableString,
+	  arbitraryUnicodeChar, arbitraryPrintableChar.
 
 	* QuickCheck no longer catches asynchronous exceptions, which
 	  means that pressing ctrl-C will now cancel testing without
@@ -29,9 +30,10 @@ QuickCheck 2.10 (released ????-??-??)
 	* New typeclasses Arbitrary1 and Arbitrary2 which lift Arbitrary
 	  to unary/binary type constructors, like in Data.Functor.Classes.
 
-	* Some Arbitrary instances have been removed: Semigroup, Natural.
+	* Some Arbitrary instances have been removed: NonEmpty, Natural.
 	  This is because they resulted in a lot of extra dependencies.
 	  You can now find them in the quickcheck-instances package.
+	  Alternatively, use the NonEmptyList and NonNegative modifiers.
 
 	* New Arbitrary instances for the following types: Proxy, ExitCode,
 	  WrappedMonad, WrappedArrow, QCGen, and the types in
