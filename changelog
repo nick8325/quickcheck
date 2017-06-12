@@ -62,6 +62,7 @@ QuickCheck 2.10 (released ????-??-??)
 		  the pre-shrunk counterexample, not the shrunk one.
 		- The Testable Property instance improperly used 'again'.
 		- Gen.>>= is strict in the result of split, fixing a space leak.
+		- within now gives a better error message on timeout
 
 	* Some more examples and links have been added to the documentation.
 

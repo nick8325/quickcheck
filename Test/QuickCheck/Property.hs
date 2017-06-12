@@ -477,16 +477,16 @@ True  ==> p = property p
 -- the given number of microseconds.
 within :: Testable prop => Int -> prop -> Property
 within n = mapRoseResult f
-  -- We rely on the fact that the property will catch the timeout
-  -- exception and turn it into a failed test case.
   where
     f rose = ioRose $ do
-      let m `orError` x = fmap (fromMaybe (error x)) m
+      let m `orError` x = fmap (fromMaybe x) m
       MkRose res roses <- timeout n (reduceRose rose) `orError`
-                          "within: timeout exception not caught in Rose Result"
+        return timeoutResult
       res' <- timeout n (protectResult (return res)) `orError`
-              "within: timeout exception not caught in Result"
+        timeoutResult
       return (MkRose res' (map f roses))
+
+    timeoutResult = failed { reason = "Timeout" }
 #ifdef NO_TIMEOUT
     timeout _ = fmap Just
 #endif
