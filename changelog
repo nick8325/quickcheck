@@ -1,4 +1,4 @@
-QuickCheck 2.10 (released ????-??-??)
+QuickCheck 2.10 (released 2017-06-15)
 	* New combinators:
 		- withMaxSuccess sets the maximum number of test cases for a property.
 		- shrinkMap/shrinkMapBy are helpers for defining shrink functions.
