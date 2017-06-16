@@ -17,8 +17,8 @@ QuickCheck 2.10 (released 2017-06-15)
 	* QuickCheck no longer catches asynchronous exceptions, which
 	  means that pressing ctrl-C will now cancel testing without
 	  printing a counterexample. If you are debugging an infinite loop,
-	  please use the 'timeout' combinator or 'verboseCheck' instead.
-	  ('timeout' is better as it allows the counterexample to be
+	  please use the 'within' combinator or 'verboseCheck' instead.
+	  ('within' is better as it allows the counterexample to be
 	  shrunk.)
 
 	* Much of Test.QuickCheck.Function (showable random functions)
