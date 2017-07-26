@@ -16,7 +16,10 @@
 {-# LANGUAGE PolyKinds #-}
 #endif
 #ifndef NO_SAFE_HASKELL
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+#endif
+#ifndef NO_NEWTYPE_DERIVING
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 #endif
 module Test.QuickCheck.Arbitrary
   (
@@ -136,9 +139,7 @@ import Control.Monad
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
-#ifndef NO_CTYPES
 import Foreign.C.Types
-#endif
 
 #ifndef NO_GENERICS
 import GHC.Generics
@@ -674,107 +675,138 @@ instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
-#ifndef NO_CTYPES
 instance Arbitrary CChar where
-  arbitrary = CChar <$> arbitrary
-  shrink (CChar x) = CChar <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CSChar where
-  arbitrary = CSChar <$> arbitrary
-  shrink (CSChar x) = CSChar <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CUChar where
-  arbitrary = CUChar <$> arbitrary
-  shrink (CUChar x) = CUChar <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CShort where
-  arbitrary = CShort <$> arbitrary
-  shrink (CShort x) = CShort <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CUShort where
-  arbitrary = CUShort <$> arbitrary
-  shrink (CUShort x) = CUShort <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CInt where
-  arbitrary = CInt <$> arbitrary
-  shrink (CInt x) = CInt <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CUInt where
-  arbitrary = CUInt <$> arbitrary
-  shrink (CUInt x) = CUInt <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CLong where
-  arbitrary = CLong <$> arbitrary
-  shrink (CLong x) = CLong <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CULong where
-  arbitrary = CULong <$> arbitrary
-  shrink (CULong x) = CULong <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CPtrdiff where
-  arbitrary = CPtrdiff <$> arbitrary
-  shrink (CPtrdiff x) = CPtrdiff <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CSize where
-  arbitrary = CSize <$> arbitrary
-  shrink (CSize x) = CSize <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CWchar where
-  arbitrary = CWchar <$> arbitrary
-  shrink (CWchar x) = CWchar <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CSigAtomic where
-  arbitrary = CSigAtomic <$> arbitrary
-  shrink (CSigAtomic x) = CSigAtomic <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CLLong where
-  arbitrary = CLLong <$> arbitrary
-  shrink (CLLong x) = CLLong <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CULLong where
-  arbitrary = CULLong <$> arbitrary
-  shrink (CULLong x) = CULLong <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CIntPtr where
-  arbitrary = CIntPtr <$> arbitrary
-  shrink (CIntPtr x) = CIntPtr <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CUIntPtr where
-  arbitrary = CUIntPtr <$> arbitrary
-  shrink (CUIntPtr x) = CUIntPtr <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CIntMax where
-  arbitrary = CIntMax <$> arbitrary
-  shrink (CIntMax x) = CIntMax <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
 instance Arbitrary CUIntMax where
-  arbitrary = CUIntMax <$> arbitrary
-  shrink (CUIntMax x) = CUIntMax <$> shrink x
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
 
+#ifndef NO_NEWTYPE_DERIVING
+-- The following four types have no Bounded instance,
+-- so we fake it by discovering the bounds at runtime.
 instance Arbitrary CClock where
-  arbitrary = CClock <$> arbitrary
-  shrink (CClock x) = CClock <$> shrink x
+  arbitrary = fmap unBounds arbitrary
+  shrink = shrinkMap unBounds Bounds
 
 instance Arbitrary CTime where
-  arbitrary = CTime <$> arbitrary
-  shrink (CTime x) = CTime <$> shrink x
+  arbitrary = fmap unBounds arbitrary
+  shrink = shrinkMap unBounds Bounds
 
+#ifndef NO_FOREIGN_C_USECONDS
 instance Arbitrary CUSeconds where
-  arbitrary = CUSeconds <$> arbitrary
-  shrink (CUSeconds x) = CUSeconds <$> shrink x
+  arbitrary = fmap unBounds arbitrary
+  shrink = shrinkMap unBounds Bounds
 
 instance Arbitrary CSUSeconds where
-  arbitrary = CSUSeconds <$> arbitrary
-  shrink (CSUSeconds x) = CSUSeconds <$> shrink x
+  arbitrary = fmap unBounds arbitrary
+  shrink = shrinkMap unBounds Bounds
+#endif
+
+newtype Bounds a = Bounds { unBounds :: a }
+  deriving (Eq, Ord, Num, Enum, Real, Show)
+
+instance (Ord a, Num a) => Bounded (Bounds a) where
+  -- assume max has all 1s in binary expansion
+  maxBound = maximum (nubIterate (\x -> 2*x+1) 1)
+  -- assume min has a leading 1 and rest 0s in binary expansion (or is 0)
+  minBound = minimum (0:nubIterate (*2) 1)
+
+instance (Num a, Real a, Enum a) => Integral (Bounds a) where
+  toInteger = fromIntegral . fromEnum
+  x `quotRem` y =
+    let (z, w) = toInteger x `quotRem` toInteger y in
+    (fromInteger z, fromInteger w)
+
+instance (Ord a, Num a, Real a, Enum a) => Arbitrary (Bounds a) where
+  arbitrary = arbitrarySizedBoundedIntegral
+  shrink = shrinkIntegral
+
+-- Like iterate, but stop when you reach an existing value.
+nubIterate :: Eq a => (a -> a) -> a -> [a]
+nubIterate f x = iter [] x
+  where
+    iter xs x
+      | x `elem` xs = []
+      | otherwise = x:iter (x:xs) (f x)
+#endif
 
 instance Arbitrary CFloat where
-  arbitrary = CFloat <$> arbitrary
-  shrink (CFloat x) = CFloat <$> shrink x
+  arbitrary = arbitrarySizedFractional
+  shrink = shrinkRealFrac
 
 instance Arbitrary CDouble where
-  arbitrary = CDouble <$> arbitrary
-  shrink (CDouble x) = CDouble <$> shrink x
-#endif
+  arbitrary = arbitrarySizedFractional
+  shrink = shrinkRealFrac
 
 -- Arbitrary instances for container types
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
