@@ -154,7 +154,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
               Just (rnd,_) -> return rnd
      test MkState{ terminal                  = tm
                  , maxSuccessTests           = maxSuccess a
-                 , maxDiscardedTests         = maxDiscardRatio a * maxSuccess a
+                 , maxDiscardedRatio         = maxDiscardRatio a
                  , computeSize               = case replay a of
                                                  Nothing    -> computeSize'
                                                  Just (_,s) -> computeSize' `at0` s
@@ -207,9 +207,12 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 
 test :: State -> (QCGen -> Int -> Prop) -> IO Result
 test st f
-  | numSuccessTests st   >= maxSuccessTests st   = doneTesting st f
-  | numDiscardedTests st >= maxDiscardedTests st = giveUp st f
-  | otherwise                                    = runATest st f
+  | numSuccessTests st   >= maxSuccessTests st =
+    doneTesting st f
+  | numDiscardedTests st >= maxDiscardedRatio st * maxSuccessTests st =
+    giveUp st f
+  | otherwise =
+    runATest st f
 
 doneTesting :: State -> (QCGen -> Int -> Prop) -> IO Result
 doneTesting st _f
