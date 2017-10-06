@@ -85,11 +85,11 @@ bold s = s -- for now
 -- putting strings
 
 data Terminal
-  = MkTerminal (IORef String) (IORef Int) (String -> IO ()) (String -> IO ())
+  = MkTerminal (IORef ShowS) (IORef Int) (String -> IO ()) (String -> IO ())
 
 newTerminal :: (String -> IO ()) -> (String -> IO ()) -> IO Terminal
 newTerminal out err =
-  do res <- newIORef ""
+  do res <- newIORef (showString "")
      tmp <- newIORef 0
      return (MkTerminal res tmp out err)
 
@@ -112,7 +112,7 @@ withNullTerminal action =
   newTerminal (const (return ())) (const (return ())) >>= action
 
 terminalOutput :: Terminal -> IO String
-terminalOutput (MkTerminal res _ _ _) = readIORef res
+terminalOutput (MkTerminal res _ _ _) = fmap ($ "") (readIORef res)
 
 handle :: Handle -> String -> IO ()
 handle h s = do
@@ -130,7 +130,7 @@ putPart tm@(MkTerminal res _ out _) s =
   do flush tm
      force s
      out s
-     modifyIORef res (++ s)
+     modifyIORef res (. showString s)
   where
     force :: [a] -> IO ()
     force = evaluate . seqList
