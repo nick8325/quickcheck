@@ -1,3 +1,10 @@
+QuickCheck 2.10.1 (release 2017-10-06)
+	* Arbitrary instances for Foreign.C.Types are available in more
+	  GHC versions.
+	* Fixed a bug where withMaxSuccess didn't adjust the allowed
+	  number of discarded tests.
+	* Remove quadratic behaviour in terminal output.
+
 QuickCheck 2.10 (released 2017-06-15)
 	* New combinators:
 		- withMaxSuccess sets the maximum number of test cases for a property.
