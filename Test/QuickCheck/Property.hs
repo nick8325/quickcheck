@@ -1,6 +1,6 @@
 -- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
-#ifdef MANUAL_TYPEABLE
+#ifndef NO_TYPEABLE
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
 #ifndef NO_SAFE_HASKELL
@@ -31,7 +31,7 @@ import Data.Set(Set)
 #ifndef NO_DEEPSEQ
 import Control.DeepSeq
 #endif
-#ifdef MANUAL_TYPEABLE
+#ifndef NO_TYPEABLE
 import Data.Typeable (Typeable)
 #endif
 
@@ -77,7 +77,7 @@ infixr 1 .||.
 
 -- | The type of properties.
 newtype Property = MkProperty { unProperty :: Gen Prop }
-#ifdef MANUAL_TYPEABLE
+#ifndef NO_TYPEABLE
   deriving (Typeable)
 #endif
 
