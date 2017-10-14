@@ -102,6 +102,10 @@ library
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
+  -- Typeable
+  if impl(ghc < 7.10)
+    cpp-options: -DMANUAL_TYPEABLE
+
   -- Use tf-random on newer GHCs.
   if impl(ghc) && !impl(haste)
     Build-depends: tf-random >= 0.4
