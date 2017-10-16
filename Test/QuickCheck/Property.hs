@@ -617,7 +617,7 @@ disjoin ps =
 infix 4 ===
 (===) :: (Eq a, Show a) => a -> a -> Property
 x === y =
-  counterexample (show x ++ interpret res ++ show y) (x == y)
+  counterexample (show x ++ interpret res ++ show y) res
   where
     res = x == y
     interpret True  = " == "
