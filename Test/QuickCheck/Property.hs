@@ -617,7 +617,11 @@ disjoin ps =
 infix 4 ===
 (===) :: (Eq a, Show a) => a -> a -> Property
 x === y =
-  counterexample (show x ++ " /= " ++ show y) (x == y)
+  counterexample (show x ++ interpret res ++ show y) (x == y)
+  where
+    res = x == y
+    interpret True  = " == "
+    interpret False = " /= "
 
 #ifndef NO_DEEPSEQ
 -- | Checks that a value is total, i.e., doesn't crash when evaluated.
