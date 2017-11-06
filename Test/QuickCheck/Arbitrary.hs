@@ -180,7 +180,8 @@ class Arbitrary a where
   --
   -- There is no generic @arbitrary@ implementation included because we don't
   -- know how to make a high-quality one. If you want one, consider using the
-  -- <http://hackage.haskell.org/package/testing-feat testing-feat> package.
+  -- <http://hackage.haskell.org/package/testing-feat testing-feat> or
+  -- <http://hackage.haskell.org/package/generic-random generic-random> packages.
   --
   -- The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>
   -- goes into detail on how to write good generators. Make sure to look at it,
