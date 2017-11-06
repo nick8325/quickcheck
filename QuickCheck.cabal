@@ -118,7 +118,7 @@ library
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
-    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL -DNO_TYPEABLE
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 

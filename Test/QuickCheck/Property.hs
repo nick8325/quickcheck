@@ -1,5 +1,8 @@
 -- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
+#ifndef NO_TYPEABLE
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
 #endif
@@ -27,6 +30,9 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 #ifndef NO_DEEPSEQ
 import Control.DeepSeq
+#endif
+#ifndef NO_TYPEABLE
+import Data.Typeable (Typeable)
 #endif
 
 --------------------------------------------------------------------------
@@ -71,6 +77,9 @@ infixr 1 .||.
 
 -- | The type of properties.
 newtype Property = MkProperty { unProperty :: Gen Prop }
+#ifndef NO_TYPEABLE
+  deriving (Typeable)
+#endif
 
 -- | The class of properties, i.e., types which QuickCheck knows how to test.
 -- Typically a property will be a function returning 'Bool' or 'Property'.

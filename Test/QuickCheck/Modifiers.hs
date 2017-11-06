@@ -8,6 +8,9 @@
 #ifndef NO_NEWTYPE_DERIVING
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 #endif
+#ifndef NO_TYPEABLE
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 -- | Modifiers for test data.
 --
 -- These types do things such as restricting the kind of test data that can be generated.
@@ -73,12 +76,19 @@ import Data.List
   )
 import Data.Ix (Ix)
 
+#ifndef NO_TYPEABLE
+import Data.Typeable (Typeable)
+#endif
+
 --------------------------------------------------------------------------
 -- | @Blind x@: as x, but x does not have to be in the 'Show' class.
 newtype Blind a = Blind {getBlind :: a}
  deriving ( Eq, Ord
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
 #endif
           )
 
@@ -100,6 +110,9 @@ newtype Fixed a = Fixed {getFixed :: a}
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
 #endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
           )
 
 instance Functor Fixed where
@@ -113,7 +126,11 @@ instance Arbitrary a => Arbitrary (Fixed a) where
 --------------------------------------------------------------------------
 -- | @Ordered xs@: guarantees that xs is ordered.
 newtype OrderedList a = Ordered {getOrdered :: [a]}
- deriving ( Eq, Ord, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
 
 instance Functor OrderedList where
   fmap f (Ordered x) = Ordered (map f x)
@@ -130,7 +147,11 @@ instance (Ord a, Arbitrary a) => Arbitrary (OrderedList a) where
 --------------------------------------------------------------------------
 -- | @NonEmpty xs@: guarantees that xs is non-empty.
 newtype NonEmptyList a = NonEmpty {getNonEmpty :: [a]}
- deriving ( Eq, Ord, Show, Read )
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
 
 instance Functor NonEmptyList where
   fmap f (NonEmpty x) = NonEmpty (map f x)
@@ -150,6 +171,9 @@ newtype Positive a = Positive {getPositive :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
 #endif
           )
 
@@ -174,6 +198,9 @@ newtype NonZero a = NonZero {getNonZero :: a}
 #ifndef NO_NEWTYPE_DERIVING
           , Enum
 #endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
           )
 
 instance Functor NonZero where
@@ -190,6 +217,9 @@ newtype NonNegative a = NonNegative {getNonNegative :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
 #endif
           )
 
@@ -220,6 +250,9 @@ newtype Large a = Large {getLarge :: a}
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum, Ix
 #endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
           )
 
 instance Functor Large where
@@ -237,6 +270,9 @@ newtype Small a = Small {getSmall :: a}
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum, Ix
 #endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
           )
 
 instance Functor Small where
@@ -252,6 +288,9 @@ newtype Shrink2 a = Shrink2 {getShrink2 :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
           , Num, Integral, Real, Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
 #endif
           )
 
@@ -349,7 +388,11 @@ instance (Arbitrary a, ShrinkState s a) => Arbitrary (Shrinking s a) where
 --------------------------------------------------------------------------
 -- | @ASCIIString@: generates an ASCII string.
 newtype ASCIIString = ASCIIString {getASCIIString :: String}
-  deriving ( Eq, Ord, Show, Read )
+  deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+           )
 
 instance Arbitrary ASCIIString where
   arbitrary = ASCIIString `fmap` listOf arbitraryASCIIChar
@@ -359,7 +402,11 @@ instance Arbitrary ASCIIString where
 -- | @UnicodeString@: generates a unicode String.
 -- The string will not contain surrogate pairs.
 newtype UnicodeString = UnicodeString {getUnicodeString :: String}
-  deriving ( Eq, Ord, Show, Read )
+  deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+           )
 
 instance Arbitrary UnicodeString where
   arbitrary = UnicodeString `fmap` listOf arbitraryUnicodeChar
@@ -369,7 +416,11 @@ instance Arbitrary UnicodeString where
 -- | @PrintableString@: generates a printable unicode String.
 -- The string will not contain surrogate pairs.
 newtype PrintableString = PrintableString {getPrintableString :: String}
-  deriving ( Eq, Ord, Show, Read )
+  deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+           )
 
 instance Arbitrary PrintableString where
   arbitrary = PrintableString `fmap` listOf arbitraryPrintableChar
