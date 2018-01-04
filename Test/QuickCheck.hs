@@ -158,7 +158,7 @@ module Test.QuickCheck
   , PrintableString(..)
 
     -- ** Functions
-  , Fun
+  , Fun (..)
   , applyFun
   , applyFun2
   , applyFun3
