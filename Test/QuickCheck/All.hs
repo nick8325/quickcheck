@@ -11,6 +11,7 @@ module Test.QuickCheck.All(
   quickCheckAll,
   verboseCheckAll,
   forAllProperties,
+  allProperties,
   -- ** Testing polymorphic properties
   polyQuickCheck,
   polyVerboseCheck,
@@ -123,7 +124,16 @@ monomorphiseType err mono ty = return ty
 -- 'forAllProperties' has the same issue with scoping as 'quickCheckAll':
 -- see the note there about @return []@.
 forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
-forAllProperties = do
+forAllProperties = [| runQuickCheckAll $allProperties |]
+
+-- | List all properties in the current module.
+--
+-- @$'allProperties'@ has type @[('String', 'Property')]@.
+--
+-- 'allProperties' has the same issue with scoping as 'quickCheckAll':
+-- see the note there about @return []@.
+allProperties :: Q Exp
+allProperties = do
   Loc { loc_filename = filename } <- location
   when (filename == "<interactive>") $ error "don't run this interactively"
   ls <- runIO (fmap lines (readUTF8File filename))
@@ -140,7 +150,7 @@ forAllProperties = do
         if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
                                      property $(monomorphic (mkName x))) |] ]
          else return []
-  [| runQuickCheckAll $(fmap (ListE . concat) (mapM quickCheckOne idents)) |]
+  [| $(fmap (ListE . concat) (mapM quickCheckOne idents)) :: [(String, Property)] |]
 
 readUTF8File name = S.openFile name S.ReadMode >>=
                     set_utf8_io_enc >>=

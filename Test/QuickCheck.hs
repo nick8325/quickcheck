@@ -56,6 +56,7 @@ module Test.QuickCheck
   , quickCheckAll
   , verboseCheckAll
   , forAllProperties
+  , allProperties
     -- ** Testing polymorphic properties
   , polyQuickCheck
   , polyVerboseCheck
