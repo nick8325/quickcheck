@@ -48,7 +48,7 @@ instance Functor Gen where
 
 instance Applicative Gen where
   pure  = return
-  (<*>) = ap
+  gf <*> gx = gf >>= \f -> fmap f gx
 
 instance Monad Gen where
   return x =
