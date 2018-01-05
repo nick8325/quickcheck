@@ -211,16 +211,16 @@ instance Show a => Show (InfiniteList a) where
     (if n > 10 then (')':) else id)
 
 instance Arbitrary a => Arbitrary (InfiniteList a) where
-  arbitrary = infiniteListFromData <$> arbitrary
+  arbitrary = fmap infiniteListFromData arbitrary
   shrink (InfiniteList _ info) =
-    infiniteListFromData <$> shrink info
+    map infiniteListFromData (shrink info)
 
 instance Arbitrary a => Arbitrary (InfiniteListInternalData a) where
-  arbitrary = Infinite <$> infiniteList
+  arbitrary = fmap Infinite infiniteList
   shrink (Infinite xs) =
     [FinitePrefix (take n xs) | n <- map (2^) [0..]]
   shrink (FinitePrefix xs) =
-    FinitePrefix <$> shrink xs
+    map FinitePrefix (shrink xs)
 
 --------------------------------------------------------------------------
 -- | @Positive x@: guarantees that @x \> 0@.
