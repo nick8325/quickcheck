@@ -143,6 +143,7 @@ module Test.QuickCheck
   , Fixed(..)
   , OrderedList(..)
   , NonEmptyList(..)
+  , InfiniteList(..)
   , Positive(..)
   , NonZero(..)
   , NonNegative(..)
