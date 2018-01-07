@@ -36,6 +36,8 @@ module Test.QuickCheck.Arbitrary
   , shrink2
 
   -- ** Helper functions for implementing arbitrary
+  , arbitraryProduct2
+  , arbitraryProduct3
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
   , arbitrarySizedNatural         -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
@@ -973,6 +975,16 @@ instance Arbitrary ExitCode where
 
 
 -- ** Helper functions for implementing arbitrary
+
+-- | Generate values with a binary constructor.
+arbitraryProduct2 :: (Arbitrary a, Arbitrary b) => (a -> b -> r) -> Gen r
+arbitraryProduct2 f = liftA2 f arbitrary arbitrary
+
+-- | Generate values with a ternary constructor.
+arbitraryProduct3
+  :: (Arbitrary a, Arbitrary b, Arbitrary c)
+  => (a -> b -> c -> r) -> Gen r
+arbitraryProduct3 f = liftA3 f arbitrary arbitrary arbitrary
 
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
