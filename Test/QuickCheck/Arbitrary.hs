@@ -38,6 +38,7 @@ module Test.QuickCheck.Arbitrary
   -- ** Helper functions for implementing arbitrary
   , arbitraryApply2
   , arbitraryApply3
+  , arbitraryApply4
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
   , arbitrarySizedNatural         -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
@@ -985,6 +986,12 @@ arbitraryApply3
   :: (Arbitrary a, Arbitrary b, Arbitrary c)
   => (a -> b -> c -> r) -> Gen r
 arbitraryApply3 f = liftA3 f arbitrary arbitrary arbitrary
+
+-- | Apply a function of arity 4 to random arguments.
+arbitraryApply4
+  :: (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
+  => (a -> b -> c -> d -> r) -> Gen r
+arbitraryApply4 f = arbitraryApply3 (uncurry f)
 
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.

@@ -109,6 +109,7 @@ module Test.QuickCheck
     -- ** Helper functions for implementing arbitrary
   , arbitraryApply2
   , arbitraryApply3
+  , arbitraryApply4
   , arbitrarySizedIntegral
   , arbitrarySizedNatural
   , arbitrarySizedFractional
