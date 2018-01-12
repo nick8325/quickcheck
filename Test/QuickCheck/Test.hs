@@ -304,10 +304,7 @@ runATest st f =
                 } f
 
        MkResult{ok = Just False} -> -- failed test
-         do if expect res
-              then putPart (terminal st) (bold "*** Failed! ")
-              else putPart (terminal st) "+++ OK, failed as expected. "
-            (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
+         do (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
               return Success{ labels = summary st,
@@ -329,6 +326,44 @@ runATest st f =
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
+
+failureSummary :: State -> P.Result -> String
+failureSummary st res = fst (failureSummaryAndReason st res)
+
+failureReason :: State -> P.Result -> [String]
+failureReason st res = snd (failureSummaryAndReason st res)
+
+failureSummaryAndReason :: State -> P.Result -> (String, [String])
+failureSummaryAndReason st res = (summary, full)
+  where
+    summary =
+      header ++
+      short 26 (oneLine reason ++ " ") ++
+      count ++ "..."
+
+    full =
+      (header ++
+       (if isOneLine reason then reason ++ " " else "") ++
+       count ++ ":"):
+      if isOneLine reason then [] else lines reason
+
+    reason = P.reason res
+
+    header =
+      if expect res then
+        bold "*** Failed! "
+      else "+++ OK, failed as expected. "
+
+    count =
+      "(after " ++ number (numSuccessTests st+1) "test" ++
+      concat [
+        " and " ++
+        show (numSuccessShrinks st) ++
+        concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ] ++
+        " shrink" ++
+        (if numSuccessShrinks st == 1 && numTryShrinks st == 0 then "" else "s")
+        | numSuccessShrinks st > 0 || numTryShrinks st > 0 ] ++
+      ")"
 
 summary :: State -> [(String, Double)]
 summary st = reverse
@@ -408,20 +443,7 @@ localMin st res _ ts
     localMinFound st res
 localMin st res _ ts = do
   r <- tryEvaluateIO $
-    putTemp (terminal st)
-      ( short 26 (oneLine (P.reason res))
-     ++ " (after " ++ number (numSuccessTests st+1) "test"
-     ++ concat [ " and "
-              ++ show (numSuccessShrinks st)
-              ++ concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ]
-              ++ " shrink"
-              ++ (if numSuccessShrinks st == 1
-                  && numTryShrinks st == 0
-                  then "" else "s")
-               | numSuccessShrinks st > 0 || numTryShrinks st > 0
-               ]
-     ++ ")..."
-      )
+    putTemp (terminal st) (failureSummary st res)
   case r of
     Left err ->
       localMinFound st (exception "Exception while printing status message" err) { callbacks = callbacks res }
@@ -447,21 +469,7 @@ localMin' st res (t:ts) =
 
 localMinFound :: State -> P.Result -> IO (Int, Int, Int, P.Result)
 localMinFound st res =
-  do let report = concat [
-           "(after " ++ number (numSuccessTests st+1) "test",
-           concat [ " and " ++ number (numSuccessShrinks st) "shrink"
-                  | numSuccessShrinks st > 0
-                  ],
-           "): "
-           ]
-     if isOneLine (P.reason res)
-       then putLine (terminal st) (P.reason res ++ " " ++ report)
-       else do
-         putLine (terminal st) report
-         sequence_
-           [ putLine (terminal st) msg
-           | msg <- lines (P.reason res)
-           ]
+  do sequence_ [ putLine (terminal st) msg | msg <- failureReason st res ]
      callbackPostFinalFailure st res
      -- NB no need to check if callbacks threw an exception because
      -- we are about to return to the user anyway
