@@ -359,11 +359,13 @@ failureSummaryAndReason st res = (summary, full)
       concat [
         " and " ++
         show (numSuccessShrinks st) ++
-        concat [ "." ++ show (numTryShrinks st) | full, numTryShrinks st > 0 ] ++
+        concat [ "." ++ show (numTryShrinks st) | showNumTryShrinks ] ++
         " shrink" ++
-        (if numSuccessShrinks st == 1 && numTryShrinks st == 0 then "" else "s")
-        | numSuccessShrinks st > 0 || numTryShrinks st > 0 ] ++
+        (if numSuccessShrinks st == 1 && not showNumTryShrinks then "" else "s")
+        | numSuccessShrinks st > 0 || showNumTryShrinks ] ++
       ")"
+      where
+        showNumTryShrinks = full && numTryShrinks st > 0
 
 summary :: State -> [(String, Double)]
 summary st = reverse
