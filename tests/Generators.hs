@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, Rank2Types, NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, Rank2Types, NoMonomorphismRestriction, CPP #-}
 import Test.QuickCheck
 import Test.QuickCheck.Gen.Unsafe
 import Data.List
@@ -6,6 +6,9 @@ import Data.Int
 import Data.Word
 import Data.Version (showVersion, parseVersion)
 import Text.ParserCombinators.ReadP (readP_to_S)
+#if MIN_VERSION_base(4,8,0)
+import Numeric.Natural
+#endif
 
 newtype Path a = Path [a] deriving (Show, Functor)
 
@@ -56,6 +59,11 @@ prop_word = largeProp
 
 prop_word32 :: Path Word32 -> Property
 prop_word32 = largeProp
+
+#if MIN_VERSION_base(4,8,0)
+prop_natural :: Path Natural -> Bool
+prop_natural = path (>= 0)
+#endif
 
 prop_integer :: Path Integer -> Bool
 prop_integer = smallProp

@@ -163,6 +163,10 @@ import Data.Functor.Compose
 import Data.Functor.Product
 #endif
 
+#if MIN_VERSION_base(4,8,0)
+import Numeric.Natural
+#endif
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
@@ -604,6 +608,12 @@ instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
       <- shrink (q, (r, (s, (t, (u, (v, (w, (x, (y, z))))))))) ]
 
 -- typical instance for primitive (numerical) types
+
+#if MIN_VERSION_base(4,8,0)
+instance Arbitrary Natural where
+  arbitrary = fromInteger <$> suchThat arbitrary (>= 0)
+  shrink x = [fromInteger y | y <- shrink (toInteger x), y >= 0]
+#endif
 
 instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
