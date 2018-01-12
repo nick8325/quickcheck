@@ -1,4 +1,19 @@
-QuickCheck 2.10.1 (release 2017-10-06)
+QuickCheck 2.11 (released 2018-01-12)
+	* New features:
+		- InfiniteList modifier generates infinite lists and shows
+		  only the relevant part.
+		- applyArbitrary2/3/4 for applying a function to random
+		  arguments.
+		- Template Haskell function allProperties returns all
+		  properties in a module.
+
+	* Applicative Gen instances do less splitting.
+	* Property now has a Typeable instance.
+	* (===) now prints correct output when the property is true.
+	* Test.QuickCheck now exports Fun constructor.
+	* verboseCheck output is now slightly less confusing.
+
+QuickCheck 2.10.1 (released 2017-10-06)
 	* Arbitrary instances for Foreign.C.Types are available in more
 	  GHC versions.
 	* Fixed a bug where withMaxSuccess didn't adjust the allowed
