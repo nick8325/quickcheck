@@ -179,7 +179,7 @@ set_utf8_io_enc h = return h
 -- and then execute @runTests@.
 --
 -- Note: the bizarre @return []@ in the example above is needed on
--- GHC 7.8; without it, 'quickCheckAll' will not be able to find
+-- GHC 7.8 and later; without it, 'quickCheckAll' will not be able to find
 -- any of the properties. For the curious, the @return []@ is a
 -- Template Haskell splice that makes GHC insert the empty list
 -- of declarations at that point in the program; GHC typechecks
