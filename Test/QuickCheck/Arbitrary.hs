@@ -36,9 +36,9 @@ module Test.QuickCheck.Arbitrary
   , shrink2
 
   -- ** Helper functions for implementing arbitrary
-  , arbitraryApply2
-  , arbitraryApply3
-  , arbitraryApply4
+  , applyArbitrary2
+  , applyArbitrary3
+  , applyArbitrary4
   , arbitrarySizedIntegral        -- :: Integral a => Gen a
   , arbitrarySizedNatural         -- :: Integral a => Gen a
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
@@ -978,20 +978,20 @@ instance Arbitrary ExitCode where
 -- ** Helper functions for implementing arbitrary
 
 -- | Apply a binary function to random arguments.
-arbitraryApply2 :: (Arbitrary a, Arbitrary b) => (a -> b -> r) -> Gen r
-arbitraryApply2 f = liftA2 f arbitrary arbitrary
+applyArbitrary2 :: (Arbitrary a, Arbitrary b) => (a -> b -> r) -> Gen r
+applyArbitrary2 f = liftA2 f arbitrary arbitrary
 
 -- | Apply a ternary function to random arguments.
-arbitraryApply3
+applyArbitrary3
   :: (Arbitrary a, Arbitrary b, Arbitrary c)
   => (a -> b -> c -> r) -> Gen r
-arbitraryApply3 f = liftA3 f arbitrary arbitrary arbitrary
+applyArbitrary3 f = liftA3 f arbitrary arbitrary arbitrary
 
 -- | Apply a function of arity 4 to random arguments.
-arbitraryApply4
+applyArbitrary4
   :: (Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d)
   => (a -> b -> c -> d -> r) -> Gen r
-arbitraryApply4 f = arbitraryApply3 (uncurry f)
+applyArbitrary4 f = applyArbitrary3 (uncurry f)
 
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.

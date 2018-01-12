@@ -107,9 +107,9 @@ module Test.QuickCheck
   , shrink2
 
     -- ** Helper functions for implementing arbitrary
-  , arbitraryApply2
-  , arbitraryApply3
-  , arbitraryApply4
+  , applyArbitrary2
+  , applyArbitrary3
+  , applyArbitrary4
   , arbitrarySizedIntegral
   , arbitrarySizedNatural
   , arbitrarySizedFractional
