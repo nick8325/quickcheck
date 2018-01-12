@@ -356,8 +356,13 @@ failureSummaryAndReason st res = (summary, full)
 
     count full =
       "(after " ++ number (numSuccessTests st+1) "test" ++
-      concat [" and " ++ number (numSuccessShrinks st) "shrink" | numSuccessShrinks st > 0 ] ++
-      concat [" and " ++ number (numTryShrinks st) "shrink attempt" | numTryShrinks st > 0, full ] ++
+      concat [
+        " and " ++
+        show (numSuccessShrinks st) ++
+        concat [ "." ++ show (numTryShrinks st) | full, numTryShrinks st > 0 ] ++
+        " shrink" ++
+        (if numSuccessShrinks st == 1 && numTryShrinks st == 0 then "" else "s")
+        | numSuccessShrinks st > 0 || numTryShrinks st > 0 ] ++
       ")"
 
 summary :: State -> [(String, Double)]
