@@ -119,15 +119,9 @@ handle h s = do
   hPutStr h s
   hFlush h
 
-flush :: Terminal -> IO ()
-flush (MkTerminal _ tmp _ err) =
-  do n <- readIORef tmp
-     writeIORef tmp 0
-     err (replicate n ' ' ++ replicate n '\b')
-
 putPart, putTemp, putLine :: Terminal -> String -> IO ()
 putPart tm@(MkTerminal res _ out _) s =
-  do flush tm
+  do putTemp tm ""
      force s
      out s
      modifyIORef res (. showString s)
@@ -142,9 +136,11 @@ putPart tm@(MkTerminal res _ out _) s =
 putLine tm s = putPart tm (s ++ "\n")
 
 putTemp tm@(MkTerminal _ tmp _ err) s =
-  do flush tm
-     err (s ++ [ '\b' | _ <- s ])
-     modifyIORef tmp (+ length s)
+  do n <- readIORef tmp
+     err $
+       replicate n ' ' ++ replicate n '\b' ++
+       s ++ [ '\b' | _ <- s ]
+     writeIORef tmp (length s)
 
 --------------------------------------------------------------------------
 -- the end.
