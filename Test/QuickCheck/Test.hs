@@ -339,12 +339,12 @@ failureSummaryAndReason st res = (summary, full)
     summary =
       header ++
       short 26 (oneLine reason ++ " ") ++
-      count ++ "..."
+      count True ++ "..."
 
     full =
       (header ++
        (if isOneLine reason then reason ++ " " else "") ++
-       count ++ ":"):
+       count False ++ ":"):
       if isOneLine reason then [] else lines reason
 
     reason = P.reason res
@@ -354,12 +354,12 @@ failureSummaryAndReason st res = (summary, full)
         bold "*** Failed! "
       else "+++ OK, failed as expected. "
 
-    count =
+    count full =
       "(after " ++ number (numSuccessTests st+1) "test" ++
       concat [
         " and " ++
         show (numSuccessShrinks st) ++
-        concat [ "." ++ show (numTryShrinks st) | numTryShrinks st > 0 ] ++
+        concat [ "." ++ show (numTryShrinks st) | full, numTryShrinks st > 0 ] ++
         " shrink" ++
         (if numSuccessShrinks st == 1 && numTryShrinks st == 0 then "" else "s")
         | numSuccessShrinks st > 0 || numTryShrinks st > 0 ] ++
