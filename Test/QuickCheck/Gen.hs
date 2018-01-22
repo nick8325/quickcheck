@@ -156,11 +156,13 @@ gen `suchThatMap` f =
 -- | Tries to generate a value that satisfies a predicate.
 -- If it fails to do so after enough attempts, returns @Nothing@.
 suchThatMaybe :: Gen a -> (a -> Bool) -> Gen (Maybe a)
-gen `suchThatMaybe` p = sized (try 0 . max 1)
+gen `suchThatMaybe` p = sized (\n -> try n (2*n))
  where
-  try _ 0 = return Nothing
-  try k n = do x <- resize (2*k+n) gen
-               if p x then return (Just x) else try (k+1) (n-1)
+  try m n
+    | m > n = return Nothing
+    | otherwise = do
+        x <- resize m gen
+        if p x then return (Just x) else try (m+1) n
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.
