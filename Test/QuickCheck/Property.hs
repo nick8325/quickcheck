@@ -506,16 +506,27 @@ forAll :: (Show a, Testable prop)
        => Gen a -> (a -> prop) -> Property
 forAll gen pf = forAllShrink gen (\_ -> []) pf
 
+-- | Like 'forAll', but with an explicitly given show function.
+forAllShow :: Testable prop
+           => Gen a -> (a -> String) -> (a -> prop) -> Property
+forAllShow gen shower pf = forAllShrinkShow gen (\_ -> []) shower pf
+
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
-forAllShrink gen shrinker pf =
+forAllShrink gen shrinker = forAllShrinkShow gen shrinker show
+
+-- | Like 'forAllShrink', but with an explicitly given show function.
+forAllShrinkShow
+  :: Testable prop
+  => Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
+forAllShrinkShow gen shrinker shower pf =
   again $
   MkProperty $
   gen >>= \x ->
     unProperty $
     shrinking shrinker x $ \x' ->
-      counterexample (show x') (pf x')
+      counterexample (shower x') (pf x')
 
 -- | Nondeterministic choice: 'p1' '.&.' 'p2' picks randomly one of
 -- 'p1' and 'p2' to test. If you test the property 100 times it
