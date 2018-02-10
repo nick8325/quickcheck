@@ -182,6 +182,8 @@ module Test.QuickCheck
   , forAllShrink
   , forAllShow
   , forAllShrinkShow
+  , forAllBlind
+  , forAllShrinkBlind
   , shrinking
   , (==>)
   , (===)

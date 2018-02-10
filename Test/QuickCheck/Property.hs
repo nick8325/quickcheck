@@ -511,6 +511,11 @@ forAllShow :: Testable prop
            => Gen a -> (a -> String) -> (a -> prop) -> Property
 forAllShow gen shower pf = forAllShrinkShow gen (\_ -> []) shower pf
 
+-- | Like 'forAll', but without printing the generated value.
+forAllBlind :: Testable prop
+           => Gen a -> (a -> prop) -> Property
+forAllBlind gen pf = forAllShrinkBlind gen (\_ -> []) pf
+
 -- | Like 'forAll', but tries to shrink the argument for failing test cases.
 forAllShrink :: (Show a, Testable prop)
              => Gen a -> (a -> [a]) -> (a -> prop) -> Property
@@ -521,12 +526,18 @@ forAllShrinkShow
   :: Testable prop
   => Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
 forAllShrinkShow gen shrinker shower pf =
+  forAllShrinkBlind gen shrinker (\x -> counterexample (shower x) (pf x))
+
+-- | Like 'forAllShrink', but without printing the generated value.
+forAllShrinkBlind
+  :: Testable prop
+  => Gen a -> (a -> [a]) -> (a -> prop) -> Property
+forAllShrinkBlind gen shrinker pf =
   again $
   MkProperty $
   gen >>= \x ->
     unProperty $
-    shrinking shrinker x $ \x' ->
-      counterexample (shower x') (pf x')
+    shrinking shrinker x pf
 
 -- | Nondeterministic choice: 'p1' '.&.' 'p2' picks randomly one of
 -- 'p1' and 'p2' to test. If you test the property 100 times it
