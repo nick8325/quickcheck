@@ -454,6 +454,9 @@ shrinkFun shr (Map g h p) =
 data Fun a b = Fun (a :-> b, b, Shrunk) (a -> b)
 data Shrunk = Shrunk | NotShrunk deriving Eq
 
+instance Functor (Fun a) where
+  fmap f (Fun (p, d, s) g) = Fun (fmap f p, f d, s) (f . g)
+
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 -- | A modifier for testing functions.
 --
