@@ -436,14 +436,14 @@ insufficientlyCovered st =
 
 foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 foundFailure st res ts =
-  do localMin st{ numTryShrinks = 0 } res res ts
+  do localMin st{ numTryShrinks = 0 } res ts
 
-localMin :: State -> P.Result -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 -- Don't try to shrink for too long
-localMin st res _ ts
+localMin st res ts
   | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st =
     localMinFound st res
-localMin st res _ ts = do
+localMin st res ts = do
   r <- tryEvaluateIO $
     putTemp (terminal st) (failureSummary st res)
   case r of
@@ -465,9 +465,9 @@ localMin' st res (t:ts) =
     res' <- callbackPostTest st res'
     if ok res' == Just False
       then localMin st{ numSuccessShrinks = numSuccessShrinks st + 1,
-                        numTryShrinks     = 0 } res' res ts'
+                        numTryShrinks     = 0 } res' ts'
       else localMin st{ numTryShrinks    = numTryShrinks st + 1,
-                        numTotTryShrinks = numTotTryShrinks st + 1 } res res ts
+                        numTotTryShrinks = numTotTryShrinks st + 1 } res ts
 
 localMinFound :: State -> P.Result -> IO (Int, Int, Int, P.Result)
 localMinFound st res =
