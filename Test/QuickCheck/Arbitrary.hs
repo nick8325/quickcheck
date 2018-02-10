@@ -755,53 +755,26 @@ instance Arbitrary CUIntMax where
   arbitrary = arbitrarySizedBoundedIntegral
   shrink = shrinkIntegral
 
-#ifndef NO_NEWTYPE_DERIVING
+#ifndef NO_CTYPES_CONSTRUCTORS
 -- The following four types have no Bounded instance,
 -- so we fake it by discovering the bounds at runtime.
 instance Arbitrary CClock where
-  arbitrary = fmap unBounds arbitrary
-  shrink = shrinkMap unBounds Bounds
+  arbitrary = fmap CClock arbitrary
+  shrink (CClock x) = map CClock (shrink x)
 
 instance Arbitrary CTime where
-  arbitrary = fmap unBounds arbitrary
-  shrink = shrinkMap unBounds Bounds
+  arbitrary = fmap CTime arbitrary
+  shrink (CTime x) = map CTime (shrink x)
 
 #ifndef NO_FOREIGN_C_USECONDS
 instance Arbitrary CUSeconds where
-  arbitrary = fmap unBounds arbitrary
-  shrink = shrinkMap unBounds Bounds
+  arbitrary = fmap CUSeconds arbitrary
+  shrink (CUSeconds x) = map CUSeconds (shrink x)
 
 instance Arbitrary CSUSeconds where
-  arbitrary = fmap unBounds arbitrary
-  shrink = shrinkMap unBounds Bounds
+  arbitrary = fmap CSUSeconds arbitrary
+  shrink (CSUSeconds x) = map CSUSeconds (shrink x)
 #endif
-
-newtype Bounds a = Bounds { unBounds :: a }
-  deriving (Eq, Ord, Num, Enum, Real, Show)
-
-instance (Ord a, Num a) => Bounded (Bounds a) where
-  -- assume max has all 1s in binary expansion
-  maxBound = maximum (nubIterate (\x -> 2*x+1) 1)
-  -- assume min has a leading 1 and rest 0s in binary expansion (or is 0)
-  minBound = minimum (0:nubIterate (*2) 1)
-
-instance (Num a, Real a, Enum a) => Integral (Bounds a) where
-  toInteger = fromIntegral . fromEnum
-  x `quotRem` y =
-    let (z, w) = toInteger x `quotRem` toInteger y in
-    (fromInteger z, fromInteger w)
-
-instance (Ord a, Num a, Real a, Enum a) => Arbitrary (Bounds a) where
-  arbitrary = arbitrarySizedBoundedIntegral
-  shrink = shrinkIntegral
-
--- Like iterate, but stop when you reach an existing value.
-nubIterate :: Eq a => (a -> a) -> a -> [a]
-nubIterate f x = iter [] x
-  where
-    iter xs x
-      | x `elem` xs = []
-      | otherwise = x:iter (x:xs) (f x)
 #endif
 
 instance Arbitrary CFloat where

@@ -92,8 +92,8 @@ library
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
 
-  if !impl(ghc >= 7.2)
-    cpp-options: -DNO_FOREIGN_C_USECONDS
+  if !impl(ghc >= 7.4)
+    cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
 
   -- The new generics appeared in GHC 7.2...
   if impl(ghc < 7.2)
