@@ -30,6 +30,10 @@ Description:
   A user of QuickCheck has written an unofficial, but detailed, tutorial which
   you can find at
   <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>.
+  .
+  The <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances>
+  companion package provides instances for types in Haskell Platform packages
+  with the cost of additional dependencies.
 
 extra-source-files:
   README
