@@ -180,6 +180,8 @@ module Test.QuickCheck
     -- ** Property combinators
   , forAll
   , forAllShrink
+  , forAllShow
+  , forAllShrinkShow
   , shrinking
   , (==>)
   , (===)
