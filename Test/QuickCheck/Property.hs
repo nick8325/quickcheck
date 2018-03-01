@@ -131,11 +131,19 @@ morallyDubiousIOProperty = ioProperty
 --
 -- Warning: any random values generated inside of the argument to @ioProperty@
 -- will not currently be shrunk. For best results, generate all random values
--- before calling @ioProperty@.
+-- before calling @ioProperty@, or use 'idempotentIOProperty' if that is safe.
 ioProperty :: Testable prop => IO prop -> Property
-ioProperty =
+ioProperty prop = idempotentIOProperty (fmap noShrinking prop)
+
+-- | Do I/O inside a property.
+--
+-- Warning: during shrinking, the I/O may not always be re-executed.
+-- In particular, if the inner property generates random data, then during the
+-- shrinking of that data, the outer I/O will not be re-executed.
+idempotentIOProperty :: Testable prop => IO prop -> Property
+idempotentIOProperty =
   MkProperty . fmap (MkProp . ioRose . fmap unProp) .
-  promote . fmap (unProperty . noShrinking)
+  promote . fmap (unProperty . property)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f = forAllShrink arbitrary shrink f
