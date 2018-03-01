@@ -191,6 +191,7 @@ module Test.QuickCheck
   , total
 #endif
   , ioProperty
+  , idempotentIOProperty
     -- *** Controlling property execution
   , verbose
   , once
