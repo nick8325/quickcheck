@@ -71,6 +71,7 @@ import qualified Data.Sequence as Sequence
 import Data.Int
 import Data.Complex
 import Data.Foldable(toList)
+import qualified Data.Monoid as Monoid
 
 #ifndef NO_FIXED
 import Data.Fixed
@@ -336,6 +337,34 @@ instance Function Word32 where
 
 instance Function Word64 where
   function = functionIntegral
+
+-- instances for Data.Monoid newtypes
+
+instance Function a => Function (Monoid.Dual a) where
+  function = functionMap Monoid.getDual Monoid.Dual
+
+instance Function Monoid.All where
+  function = functionMap Monoid.getAll Monoid.All
+
+instance Function Monoid.Any where
+  function = functionMap Monoid.getAny Monoid.Any
+
+instance Function a => Function (Monoid.Sum a) where
+  function = functionMap Monoid.getSum Monoid.Sum
+
+instance Function a => Function (Monoid.Product a) where
+  function = functionMap Monoid.getProduct Monoid.Product
+
+instance Function a => Function (Monoid.First a) where
+  function = functionMap Monoid.getFirst Monoid.First
+
+instance Function a => Function (Monoid.Last a) where
+  function = functionMap Monoid.getLast Monoid.Last
+
+#if MIN_VERSION_base(4,8,0)
+instance Function (f a) => Function (Monoid.Alt f a) where
+  function = functionMap Monoid.getAlt Monoid.Alt
+#endif
 
 -- poly instances
 
