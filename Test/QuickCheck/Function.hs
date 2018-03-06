@@ -71,6 +71,8 @@ import qualified Data.Sequence as Sequence
 import Data.Int
 import Data.Complex
 import Data.Foldable(toList)
+import Data.Functor.Const
+import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
 #ifndef NO_FIXED
@@ -180,6 +182,12 @@ functionMapWith function g h f = Map g h (function (\b -> f (h b)))
 
 instance Function () where
   function f = Unit (f ())
+
+instance Function a => Function (Const a b) where
+  function = functionMap (\(Const a) -> a) (\a -> Const a)
+
+instance Function a => Function (Identity a) where
+  function = functionMap (\(Identity a) -> a) (\a -> Identity a)
 
 instance (Function a, Function b) => Function (a,b) where
   function = functionPairWith function function
