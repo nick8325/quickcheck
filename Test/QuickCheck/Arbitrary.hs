@@ -1102,7 +1102,7 @@ shrinkRealFracToPrecision :: RealFrac a
                    -> a   -- ^ Value to shrink
                    -> [a]
 shrinkRealFracToPrecision ε x
-  | x < 0       = -x : map negate (shrinkRealFracToPrecision ε $ -x)
+  | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision ε $ -x))
   | x < ε       = [0]
   | (x-intgPart>ε)
                 = intgShrinks ++ [intgPart]
