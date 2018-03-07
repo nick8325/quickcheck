@@ -59,6 +59,7 @@ module Test.QuickCheck.Function
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
 
+import Control.Applicative
 import Data.Char
 import Data.Word
 import Data.List( intersperse )
@@ -184,10 +185,10 @@ instance Function () where
   function f = Unit (f ())
 
 instance Function a => Function (Const a b) where
-  function = functionMap (\(Const a) -> a) (\a -> Const a)
+  function = functionMap getConst Const
 
 instance Function a => Function (Identity a) where
-  function = functionMap (\(Identity a) -> a) (\a -> Identity a)
+  function = functionMap runIdentity Identity
 
 instance (Function a, Function b) => Function (a,b) where
   function = functionPairWith function function
