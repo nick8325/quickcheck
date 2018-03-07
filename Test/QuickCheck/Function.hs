@@ -72,7 +72,6 @@ import qualified Data.Sequence as Sequence
 import Data.Int
 import Data.Complex
 import Data.Foldable(toList)
-import Data.Functor.Const
 import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
