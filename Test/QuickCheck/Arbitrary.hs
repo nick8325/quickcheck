@@ -1104,6 +1104,8 @@ shrinkRealFracToPrecision :: RealFrac a
 shrinkRealFracToPrecision ε x
   | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision ε $ -x))
   | x < ε       = [0]
+  | not (x==x)  = []
+  | not (2*x>x) = 0 : takeWhile (<x) ((2^).(^2)<$>[0..])
   | (x-intgPart>ε)
                 = intgShrinks ++ [intgPart]
                    ++ map ((intgPart+) . recip)
