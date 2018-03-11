@@ -59,6 +59,7 @@ module Test.QuickCheck.Function
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
 
+import Control.Applicative
 import Data.Char
 import Data.Word
 import Data.List( intersperse )
@@ -71,6 +72,7 @@ import qualified Data.Sequence as Sequence
 import Data.Int
 import Data.Complex
 import Data.Foldable(toList)
+import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
 #ifndef NO_FIXED
@@ -180,6 +182,12 @@ functionMapWith function g h f = Map g h (function (\b -> f (h b)))
 
 instance Function () where
   function f = Unit (f ())
+
+instance Function a => Function (Const a b) where
+  function = functionMap getConst Const
+
+instance Function a => Function (Identity a) where
+  function = functionMap runIdentity Identity
 
 instance (Function a, Function b) => Function (a,b) where
   function = functionPairWith function function
