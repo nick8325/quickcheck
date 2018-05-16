@@ -230,7 +230,7 @@ data Result
   , theException  :: Maybe AnException -- ^ the exception thrown, if any
   , abort         :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests :: Maybe Int         -- ^ stop after this many tests
-  , labels        :: Map String Int    -- ^ all labels used by this property
+  , labels        :: Map String Double -- ^ all labels used by this property
   , stamp         :: Set String        -- ^ the collected labels for this test case
   , callbacks     :: [Callback]        -- ^ the callbacks for this test case
   , testCase      :: [String]          -- ^ the generated test case
@@ -471,7 +471,7 @@ classify b s = cover b 0 s
 -- *** Insufficient coverage after 100 tests (only 24% non-trivial, not 50%).
 cover :: Testable prop =>
          Bool   -- ^ @True@ if the test case belongs to the class.
-      -> Int    -- ^ The required percentage (0-100) of test cases.
+      -> Double -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
 cover x n s =

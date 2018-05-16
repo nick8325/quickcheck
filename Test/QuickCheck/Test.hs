@@ -424,12 +424,12 @@ percentage :: Integral a => State -> a -> Double
 percentage st n =
   fromIntegral n * 100 / fromIntegral (numSuccessTests st)
 
-insufficientlyCovered :: State -> [(String, Int, Double)]
+insufficientlyCovered :: State -> [(String, Double, Double)]
 insufficientlyCovered st =
   [ (l, reqP, p)
   | (l, reqP) <- Map.toList (S.labels st),
     let p = percentage st (labelCount l st),
-    p < fromIntegral reqP ]
+    p < reqP ]
 
 --------------------------------------------------------------------------
 -- main shrinking loop
