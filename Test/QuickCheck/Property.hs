@@ -663,9 +663,9 @@ x === y =
     interpret False = " /= "
 
 -- | Like '===', but checks for inequality instead of equality
-infix 4 /==
-(/==) :: (Eq a, Show a) => a -> a -> Property
-x /== y =
+infix 4 =/=
+(=/=) :: (Eq a, Show a) => a -> a -> Property
+x =/= y =
   counterexample (show x ++ interpret res ++ show y) res
   where
     res = x /= y

@@ -187,7 +187,7 @@ module Test.QuickCheck
   , shrinking
   , (==>)
   , (===)
-  , (/==)
+  , (=/=)
 #ifndef NO_DEEPSEQ
   , total
 #endif
