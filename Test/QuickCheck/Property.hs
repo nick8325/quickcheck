@@ -662,7 +662,7 @@ x === y =
     interpret True  = " == "
     interpret False = " /= "
 
--- | Like '===', but expects inequality instead of equality
+-- | Like '===', but checks for inequality instead of equality
 infix 4 /==
 (/==) :: (Eq a, Show a) => a -> a -> Property
 x /== y =
