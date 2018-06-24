@@ -662,6 +662,16 @@ x === y =
     interpret True  = " == "
     interpret False = " /= "
 
+-- | Like '===', but checks for inequality instead of equality
+infix 4 =/=
+(=/=) :: (Eq a, Show a) => a -> a -> Property
+x =/= y =
+  counterexample (show x ++ interpret res ++ show y) res
+  where
+    res = x /= y
+    interpret True  = " /= "
+    interpret False = " == "
+
 #ifndef NO_DEEPSEQ
 -- | Checks that a value is total, i.e., doesn't crash when evaluated.
 total :: NFData a => a -> Property
