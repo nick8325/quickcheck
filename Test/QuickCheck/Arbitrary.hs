@@ -1093,14 +1093,28 @@ shrinkIntegral x =
             (True,  False) -> a + b < 0
             (False, True)  -> a + b > 0
 
--- | Shrink a fraction.
+-- | Shrink a fraction, via continued-fraction approximations.
 shrinkRealFrac :: RealFrac a => a -> [a]
-shrinkRealFrac x =
-  nub $
-  [ -x
-  | x < 0
-  ] ++
-  map fromInteger (shrinkIntegral (truncate x))
+shrinkRealFrac a = shrinkRealFracToPrecision (abs a*1e-6) a
+
+shrinkRealFracToPrecision :: RealFrac a
+                   => a   -- ^ "Epsilon" – the minimum deviation we consider
+                   -> a   -- ^ Value to shrink
+                   -> [a]
+shrinkRealFracToPrecision ε x
+  | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision ε $ -x))
+  | x < ε       = [0]
+  | not (x==x)  = []
+  | not (2*x>x) = 0 : takeWhile (<x) ((2^).(^2)<$>[0..])
+  | (x-intgPart>ε)
+                = intgShrinks ++ [intgPart]
+                   ++ map ((intgPart+) . recip)
+                          (filter (>0)
+                            . shrinkRealFracToPrecision (ε/(x-intgPart))
+                                  $ 1/(x-intgPart))
+  | otherwise   = intgShrinks
+ where intgPart = fromInteger $ truncate x
+       intgShrinks = map fromInteger . shrinkIntegral $ truncate x
 
 --------------------------------------------------------------------------
 -- ** CoArbitrary
