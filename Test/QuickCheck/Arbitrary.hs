@@ -989,8 +989,8 @@ arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n ->
     let n' = toInteger n in
-      do a <- choose ((-n') * precision, n' * precision)
-         b <- choose (1, precision)
+      do b <- choose (1, precision)
+         a <- choose ((-n') * b, n' * b)
          return (fromRational (a % b))
  where
   precision = 9999999999999 :: Integer
