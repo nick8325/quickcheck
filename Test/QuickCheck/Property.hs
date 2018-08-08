@@ -16,7 +16,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State hiding (labels)
+import Test.QuickCheck.State hiding (labels, classifications, coverage)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -224,16 +224,17 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok            :: Maybe Bool        -- ^ result of the test case; Nothing = discard
-  , expect        :: Bool              -- ^ indicates what the expected result of the property is
-  , reason        :: String            -- ^ a message indicating what went wrong
-  , theException  :: Maybe AnException -- ^ the exception thrown, if any
-  , abort         :: Bool              -- ^ if True, the test should not be repeated
-  , maybeNumTests :: Maybe Int         -- ^ stop after this many tests
-  , labels        :: Map String Double -- ^ all labels used by this property
-  , stamp         :: Set String        -- ^ the collected labels for this test case
-  , callbacks     :: [Callback]        -- ^ the callbacks for this test case
-  , testCase      :: [String]          -- ^ the generated test case
+  { ok              :: Maybe Bool        -- ^ result of the test case; Nothing = discard
+  , expect          :: Bool              -- ^ indicates what the expected result of the property is
+  , reason          :: String            -- ^ a message indicating what went wrong
+  , theException    :: Maybe AnException -- ^ the exception thrown, if any
+  , abort           :: Bool              -- ^ if True, the test should not be repeated
+  , maybeNumTests   :: Maybe Int         -- ^ stop after this many tests
+  , labels          :: [String]
+  , classifications :: [(String, String)]
+  , coverage        :: [(String, [(String, Double)])] -- values may be bottom
+  , callbacks       :: [Callback]        -- ^ the callbacks for this test case
+  , testCase        :: [String]          -- ^ the generated test case
   }
 
 exception :: String -> AnException -> Result
@@ -258,16 +259,17 @@ succeeded, failed, rejected :: Result
   where
     result =
       MkResult
-      { ok            = undefined
-      , expect        = True
-      , reason        = ""
-      , theException  = Nothing
-      , abort         = True
-      , maybeNumTests = Nothing
-      , labels        = Map.empty
-      , stamp         = Set.empty
-      , callbacks     = []
-      , testCase      = []
+      { ok              = undefined
+      , expect          = True
+      , reason          = ""
+      , theException    = Nothing
+      , abort           = True
+      , maybeNumTests   = Nothing
+      , labels          = []
+      , classifications = []
+      , coverage        = []
+      , callbacks       = []
+      , testCase        = []
       }
 
 --------------------------------------------------------------------------
@@ -413,7 +415,10 @@ withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n }
 -- 4% length of input is 6
 -- ...
 label :: Testable prop => String -> prop -> Property
-label s = classify True s
+label s =
+  s `deepseq`
+  mapTotalResult $
+    \res -> res { labels = s:labels res }
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
@@ -449,11 +454,16 @@ collect x = label (show x)
 --
 -- >>> quickCheck prop_sorted_sort
 -- +++ OK, passed 100 tests (22% non-trivial).
-classify :: Testable prop =>
-            Bool    -- ^ @True@ if the test case should be labelled.
+classify :: (Show a, Testable prop) =>
+            a       -- ^ XXX FIXME
          -> String  -- ^ Label.
          -> prop -> Property
-classify b s = cover b 0 s
+classify x s =
+  description `deepseq`
+  mapTotalResult $
+    \res -> res { classifications = (s, description):classifications res }
+  where
+    description = show x
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
@@ -474,14 +484,19 @@ cover :: Testable prop =>
       -> Double -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover x n s =
-  x `seq` n `seq` s `listSeq`
+cover x p s =
+  covers [(True, p)] s . classify x s
+
+covers :: (Show a, Testable prop) =>
+  [(a, Double)] -> String -> prop -> Property
+covers xs table =
+  -- N.B. don't deepseq ys, to avoid calling 'show'
+  -- on every test case execution
+  table `deepseq`
   mapTotalResult $
-    \res -> res {
-      labels = Map.insertWith max s n (labels res),
-      stamp = if x then Set.insert s (stamp res) else stamp res }
-  where [] `listSeq` z = z
-        (x:xs) `listSeq` z = x `seq` xs `listSeq` z
+    \res -> res { coverage = (table, ys):coverage res }
+  where
+    ys = [(show x, p) | (x, p) <- xs]
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),
@@ -592,9 +607,11 @@ conjoin ps =
 
   addCallbacks result r =
     r { callbacks = callbacks result ++ callbacks r }
+  -- XXX add coverage in all cases
   addLabels result r =
-    r { labels = Map.unionWith max (labels result) (labels r),
-        stamp = Set.union (stamp result) (stamp r) }
+    r { labels = labels result ++ labels r,
+        classifications = classifications result ++ classifications r,
+        coverage = coverage result ++ coverage r }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -630,8 +647,9 @@ disjoin ps =
                    -- test case has failed anyway
                    abort = False,
                    maybeNumTests = Nothing,
-                   labels = Map.empty,
-                   stamp = Set.empty,
+                   labels = [],
+                   classifications = [],
+                   coverage = [],
                    callbacks =
                      callbacks result1 ++
                      [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++

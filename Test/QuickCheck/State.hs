@@ -25,9 +25,10 @@ data State
   , numSuccessTests           :: !Int                 -- ^ the current number of tests that have succeeded
   , numDiscardedTests         :: !Int                 -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: !Int                 -- ^ the number of discarded tests since the last successful test
-  , labels                    :: !(Map String Double) -- ^ all labels that have been defined so far
-  , collected                 :: ![Set String]        -- ^ all labels that have been collected so far
-  , expectedFailure           :: !Bool                -- ^ indicates if the property is expected to fail
+  , labels                    :: !(Map [String] Int)
+  , classifications           :: !(Map (String, String) Int)
+  , coverage                  :: !(Map String [(String, Double)]) -- values of this map may be bottom
+  , expected                  :: !Bool                -- ^ indicates the expected result of the property
   , randomSeed                :: !QCGen               -- ^ the current random seed
 
                                                       -- shrinking

@@ -9,10 +9,10 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels ) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classifications, coverage ) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State hiding (labels)
+import Test.QuickCheck.State hiding (labels, classifications, coverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
@@ -27,6 +27,8 @@ import qualified Data.Map as Map
 import qualified Data.Map as Map
 #endif
 import qualified Data.Set as Set
+import Data.Set(Set)
+import Data.Map(Map)
 
 import Data.Char
   ( isSpace
@@ -78,13 +80,17 @@ data Result
   -- | A successful test run
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
-    , labels         :: [(String,Double)] -- ^ Labels and frequencies found during all successful tests
+    , labels          :: !(Map [String] Int)
+    , classifications :: !(Map (String, String) Int)
+    , coverage        :: !(Map String [(String, Double)])
     , output         :: String            -- ^ Printed output
     }
   -- | Given up
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
+    , labels                    :: !(Map [String] Int)
+    , classifications           :: !(Map (String, String) Int)
+    , coverage                  :: !(Map String [(String, Double)])
     , output         :: String            --   Printed output
     }
   -- | A failed test run
@@ -97,20 +103,24 @@ data Result
     , usedSize        :: Int               -- ^ What was the test size
     , reason          :: String            -- ^ Why did the property fail
     , theException    :: Maybe AnException -- ^ The exception the property threw, if any
-    , labels          :: [(String,Double)] --   Labels and frequencies found during all successful tests
     , output          :: String            --   Printed output
     , failingTestCase :: [String]          -- ^ The test case which provoked the failure
+    , features        :: Set String
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
+    , labels                    :: !(Map [String] Int)
+    , classifications           :: !(Map (String, String) Int)
+    , coverage                  :: !(Map String [(String, Double)])
     , output         :: String            --   Printed output
     }
  -- | The tests passed but a use of 'cover' had insufficient coverage
  | InsufficientCoverage
     { numTests       :: Int               --   Number of tests performed
-    , labels         :: [(String,Double)] --   Labels and frequencies found during all successful tests
+    , labels                    :: !(Map [String] Int)
+    , classifications           :: !(Map (String, String) Int)
+    , coverage                  :: !(Map String [(String, Double)])
     , output         :: String            --   Printed output
     }
  deriving ( Show )
@@ -163,8 +173,9 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
-                 , collected                 = []
-                 , expectedFailure           = False
+                 , S.classifications         = Map.empty
+                 , S.coverage                = Map.empty
+                 , expected                  = True
                  , randomSeed                = rnd
                  , numSuccessShrinks         = 0
                  , numTryShrinks             = 0
@@ -216,7 +227,7 @@ test st f
 
 doneTesting :: State -> (QCGen -> Int -> Prop) -> IO Result
 doneTesting st _f
-  | not (expectedFailure st) = do
+  | expected st == False = do
       putPart (terminal st)
         ( bold ("*** Failed!")
        ++ " Passed "
@@ -242,7 +253,7 @@ doneTesting st _f
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (summary st) theOutput)
+      return (k (numSuccessTests st) (S.labels st) (S.classifications st) (S.coverage st) theOutput)
 
 giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
 giveUp st _f =
@@ -256,7 +267,9 @@ giveUp st _f =
      success st
      theOutput <- terminalOutput (terminal st)
      return GaveUp{ numTests = numSuccessTests st
-                  , labels   = summary st
+                  , labels   = S.labels st
+                  , classifications = S.classifications st
+                  , coverage = S.coverage st
                   , output   = theOutput
                   }
 
@@ -277,20 +290,20 @@ runATest st f =
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
-         cons x xs
-           | Set.null x = xs
-           | otherwise = x:xs
-
      case res of
-       MkResult{ok = Just True, stamp = stamp, expect = expect, maybeNumTests = mnt} -> -- successful test
+       MkResult{ok = Just True, expect = expect, maybeNumTests = mnt} -> -- successful test
          do continue doneTesting
               st{ numSuccessTests           = numSuccessTests st + 1
                 , numRecentlyDiscardedTests = 0
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
-                , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
-                , collected                 = stamp `cons` collected st
-                , expectedFailure           = expect
+                , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
+                , S.classifications =
+                  foldr (uncurry (Map.insertWith (+))) (S.classifications st)
+                    [(x, 1) | x <- P.classifications res]
+                , S.coverage =
+                  Map.union (S.coverage st) (Map.fromList (P.coverage res))
+                , expected                  = expect
                 } f
 
        MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt} -> -- discarded test
@@ -299,15 +312,22 @@ runATest st f =
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
-                , S.labels                  = Map.unionWith max (S.labels st) (P.labels res)
-                , expectedFailure           = expect
+                , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
+                , S.classifications =
+                  foldr (uncurry (Map.insertWith (+))) (S.classifications st)
+                    [(x, 1) | x <- P.classifications res]
+                , S.coverage =
+                  Map.union (S.coverage st) (Map.fromList (P.coverage res))
+                , expected                  = expect
                 } f
 
        MkResult{ok = Just False} -> -- failed test
          do (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
-              return Success{ labels = summary st,
+              return Success{ labels = S.labels st,
+                              classifications = S.classifications st,
+                              coverage = S.coverage st,
                               numTests = numSuccessTests st+1,
                               output = theOutput }
              else do
@@ -321,8 +341,8 @@ runATest st f =
                             , output          = theOutput
                             , reason          = P.reason res
                             , theException    = P.theException res
-                            , labels          = summary st
                             , failingTestCase = testCase
+                            , features        = Set.fromList (P.labels res ++ [ x ++ "=" ++ y | (x, y) <- P.classifications res ])
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
@@ -367,18 +387,20 @@ failureSummaryAndReason st res = (summary, full)
       where
         showNumTryShrinks = full && numTryShrinks st > 0
 
-summary :: State -> [(String, Double)]
-summary st = reverse
-           . sortBy (comparing snd)
-           . map (\ss -> (head ss, fromIntegral (length ss) * 100 / fromIntegral (numSuccessTests st)))
-           . group
-           . sort
-           $ [ concat (intersperse ", " s')
-             | s <- collected st
-               -- HACK: don't print out labels that were created by 'cover'.
-             , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
-             , not (null s')
-             ]
+-- summary :: State -> Map (Maybe String) Table
+-- -- summary st = reverse
+-- --            . sortBy (comparing snd)
+-- --            . map (\ss -> (head ss, fromIntegral (length ss) * 100 / fromIntegral (numSuccessTests st)))
+-- --            . group
+-- --            . sort
+-- --            $ [ concat (intersperse ", " s')
+-- --              | s <- collected st
+-- --                -- HACK: don't print out labels that were created by 'cover'.
+-- --              , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
+-- --              , not (null s')
+-- --              ]
+
+-- summary = S.tables
 
 success :: State -> IO ()
 success st =
@@ -393,7 +415,8 @@ success st =
                 mapM_ (putLine $ terminal st) cases
  where
   allLabels :: [String]
-  allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
+  allLabels = []
+  -- allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
 
   covers :: [String]
   covers = [ ("only " ++ formatLabel (numSuccessTests st) False (l, p) ++ ", not " ++ show reqP ++ "%")
@@ -418,18 +441,20 @@ labelCount :: String -> State -> Int
 labelCount l st =
   -- XXX in case of a disjunction, a label can occur several times,
   -- need to think what to do there
-  length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
+  -- length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
+  0
 
 percentage :: Integral a => State -> a -> Double
 percentage st n =
   fromIntegral n * 100 / fromIntegral (numSuccessTests st)
 
 insufficientlyCovered :: State -> [(String, Double, Double)]
-insufficientlyCovered st =
-  [ (l, reqP, p)
-  | (l, reqP) <- Map.toList (S.labels st),
-    let p = percentage st (labelCount l st),
-    p < reqP ]
+insufficientlyCovered st = []
+-- insufficientlyCovered st =
+--   [ (l, reqP, p)
+--   | (l, reqP) <- Map.toList (S.labels st),
+--     let p = percentage st (labelCount l st),
+--     p < reqP ]
 
 --------------------------------------------------------------------------
 -- main shrinking loop
