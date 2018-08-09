@@ -39,11 +39,13 @@ import Data.List
   , sortBy
   , group
   , intersperse
+  , intercalate
   )
 
 import Data.Maybe(fromMaybe)
 import Data.Ord(comparing)
 import Text.Printf(printf)
+import Data.Either(lefts, rights)
 
 --------------------------------------------------------------------------
 -- quickCheck
@@ -81,16 +83,16 @@ data Result
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
     , labels          :: !(Map [String] Int)
-    , classifications :: !(Map (String, String) Int)
-    , coverage        :: !(Map String [(String, Double)])
+    , classifications :: !(Map String (Map String Int))
+    , coverage        :: !(Map String (Map String Double))
     , output         :: String            -- ^ Printed output
     }
   -- | Given up
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map (String, String) Int)
-    , coverage                  :: !(Map String [(String, Double)])
+    , classifications           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map String (Map String Double))
     , output         :: String            --   Printed output
     }
   -- | A failed test run
@@ -111,16 +113,16 @@ data Result
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map (String, String) Int)
-    , coverage                  :: !(Map String [(String, Double)])
+    , classifications           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map String (Map String Double))
     , output         :: String            --   Printed output
     }
  -- | The tests passed but a use of 'cover' had insufficient coverage
  | InsufficientCoverage
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map (String, String) Int)
-    , coverage                  :: !(Map String [(String, Double)])
+    , classifications           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map String (Map String Double))
     , output         :: String            --   Printed output
     }
  deriving ( Show )
@@ -299,8 +301,10 @@ runATest st f =
                 , randomSeed                = rnd2
                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
                 , S.classifications =
-                  foldr (uncurry (Map.insertWith (+))) (S.classifications st)
-                    [(x, 1) | x <- P.classifications res]
+                  Map.unionWith (Map.unionWith (+))
+                    (S.classifications st)
+                    (Map.fromListWith (Map.unionWith (+))
+                     [(x, Map.singleton y 1) | (x, y) <- P.classifications res])
                 , S.coverage =
                   Map.union (S.coverage st) (Map.fromList (P.coverage res))
                 , expected                  = expect
@@ -314,8 +318,10 @@ runATest st f =
                 , randomSeed                = rnd2
                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
                 , S.classifications =
-                  foldr (uncurry (Map.insertWith (+))) (S.classifications st)
-                    [(x, 1) | x <- P.classifications res]
+                  Map.unionWith (Map.unionWith (+))
+                    (S.classifications st)
+                    (Map.fromListWith (Map.unionWith (+))
+                     [(x, Map.singleton y 1) | (x, y) <- P.classifications res])
                 , S.coverage =
                   Map.union (S.coverage st) (Map.fromList (P.coverage res))
                 , expected                  = expect
@@ -405,22 +411,78 @@ failureSummaryAndReason st res = (summary, full)
 success :: State -> IO ()
 success st =
   case allLabels ++ covers of
-    []    -> do putLine (terminal st) "."
-    [pt]  -> do putLine (terminal st)
-                  ( " ("
-                 ++ dropWhile isSpace pt
-                 ++ ")."
-                  )
+    [] | null longTables ->
+      do putLine (terminal st) "."
+    [pt] | null longTables ->
+      do putLine (terminal st)
+           ( " ("
+          ++ dropWhile isSpace pt
+          ++ ")."
+           )
     cases -> do putLine (terminal st) ":"
-                mapM_ (putLine $ terminal st) cases
+                mapM_ (putLine $ terminal st) $
+                  cases ++
+                  concat ["":xss | xss <- longTables]
  where
   allLabels :: [String]
-  allLabels = []
+  allLabels =
+    [ formatLabel (numSuccessTests st) True (intercalate ", " labels, fromIntegral n / fromIntegral (numSuccessTests st)) | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
+    lefts tables
+
+  longTables :: [[String]]
+  longTables = rights tables
+
+  tables :: [Either String [String]]
+  tables = [showTable table m | (table, m) <- Map.toList (S.classifications st)]
+
   -- allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
 
   covers :: [String]
   covers = [ ("only " ++ formatLabel (numSuccessTests st) False (l, p) ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
+
+showTable :: String -> Map String Int -> Either String [String]
+showTable table m
+  | all (`elem` ["False", "True"]) (Map.keys m) =
+    oneLine (Map.findWithDefault 0 "True" m) table
+  | otherwise =
+    case Map.toList m of
+      [(k, v)] ->
+        oneLine v (table ++ " " ++ k)
+      kvs ->
+        manyLines kvs
+  where
+    k = sum (Map.elems m)
+    oneLine n descr =
+      Left (formatLabel k True (descr, 100 * fromIntegral n / fromIntegral k))
+
+    manyLines kvs =
+      Right . tabulate . map format .
+      -- Descending order of occurrences
+      reverse . sortBy (comparing snd) $ kvs
+      where
+        format (key, v) =
+          formatLabel k True (key, 100 * fromIntegral v / fromIntegral k)
+
+    tabulate rows =
+      [sep,
+       border '|' ' ' (centre bodywidth table),
+       sep] ++
+      map (border '|' ' ' . centre headerwidth . ljust bodywidth) rows ++
+      [sep]
+      where
+        headerwidth = length table
+        bodywidth = maximum (map length rows)
+        width = max headerwidth bodywidth
+        
+        sep = border '+' '-' $ replicate width '-'
+        border x y xs = [x, y] ++ ljust width xs ++ [y, x]
+
+        ljust n xs = xs ++ replicate (n - length xs) ' '
+        rjust n xs = replicate (n - length xs) ' ' ++ xs
+        centre n xs =
+          ljust n $
+          replicate ((n - length xs) `div` 2) ' ' ++ xs
 
 formatLabel :: Int -> Bool -> (String, Double) -> String
 formatLabel n pad (x, p) = showP pad p ++ " " ++ x

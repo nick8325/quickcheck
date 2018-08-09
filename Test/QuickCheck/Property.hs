@@ -232,7 +232,7 @@ data Result
   , maybeNumTests   :: Maybe Int         -- ^ stop after this many tests
   , labels          :: [String]
   , classifications :: [(String, String)]
-  , coverage        :: [(String, [(String, Double)])] -- values may be bottom
+  , coverage        :: [(String, Map String Double)] -- values may be bottom
   , callbacks       :: [Callback]        -- ^ the callbacks for this test case
   , testCase        :: [String]          -- ^ the generated test case
   }
@@ -494,7 +494,7 @@ covers xs table =
   -- on every test case execution
   table `deepseq`
   mapTotalResult $
-    \res -> res { coverage = (table, ys):coverage res }
+    \res -> res { coverage = (table, Map.fromList ys):coverage res }
   where
     ys = [(show x, p) | (x, p) <- xs]
 
