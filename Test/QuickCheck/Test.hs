@@ -466,17 +466,20 @@ showTable table m
 
     tabulate rows =
       [sep,
-       border '|' ' ' (centre bodywidth table),
+       border '|' ' ' table,
+       border '|' ' ' total,
        sep] ++
-      map (border '|' ' ' . centre headerwidth . ljust bodywidth) rows ++
+      map (border '|' ' ' . ljust bodywidth) rows ++
       [sep]
       where
-        headerwidth = length table
+        headerwidth = max (length table) (length total)
         bodywidth = maximum (map length rows)
         width = max headerwidth bodywidth
+
+        total = printf "(%d in total)" k
         
         sep = border '+' '-' $ replicate width '-'
-        border x y xs = [x, y] ++ ljust width xs ++ [y, x]
+        border x y xs = [x, y] ++ centre width xs ++ [y, x]
 
         ljust n xs = xs ++ replicate (n - length xs) ' '
         rjust n xs = replicate (n - length xs) ' ' ++ xs
