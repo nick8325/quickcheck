@@ -62,6 +62,11 @@ module Test.QuickCheck
   , polyVerboseCheck
   , monomorphic
 #endif
+    -- ** Feature-based testing
+  , collectFeatures
+  , collectFeaturesWith
+  , collectFeaturesWithResult
+  , collectFeaturesResult
 
     -- * Random generation
   , Gen
@@ -234,6 +239,7 @@ import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Function
+import Test.QuickCheck.Features
 #ifndef NO_TEMPLATE_HASKELL
 import Test.QuickCheck.All
 #endif

@@ -76,7 +76,8 @@ library
     Test.QuickCheck.Poly,
     Test.QuickCheck.State,
     Test.QuickCheck.Random,
-    Test.QuickCheck.Exception
+    Test.QuickCheck.Exception,
+    Test.QuickCheck.Features
 
   -- GHC-specific modules.
   if impl(ghc)

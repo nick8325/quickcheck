@@ -160,7 +160,11 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
+quickCheckWithResult a p =
+  withState a (\s -> test s (unGen (unProperty (property p))))
+
+withState :: Args -> (State -> IO a) -> IO a
+withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
      rnd <- case replay a of
               Nothing      -> newQCGen
               Just (rnd,_) -> return rnd
@@ -182,7 +186,7 @@ quickCheckWithResult a p = (if chatty a then withStdioTerminal else withNullTerm
                  , numSuccessShrinks         = 0
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
-                 } (unGen (unProperty (property p)))
+                 }
   where computeSize' n d
           -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
@@ -348,7 +352,7 @@ runATest st f =
                             , reason          = P.reason res
                             , theException    = P.theException res
                             , failingTestCase = testCase
-                            , features        = Set.fromList (P.labels res ++ [ x ++ "=" ++ y | (x, y) <- P.classifications res ])
+                            , features        = P.stamp res
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
