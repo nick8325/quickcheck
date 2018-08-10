@@ -365,14 +365,26 @@ whenFail' m =
 -- | Prints out the generated testcase every time the property is tested.
 -- Only variables quantified over /inside/ the 'verbose' are printed.
 verbose :: Testable prop => prop -> Property
-verbose = mapResult (\res -> res { callbacks = newCallbacks (callbacks res) ++ callbacks res })
-  where newCallbacks cbs =
-          PostTest Counterexample (\st res -> putLine (terminal st) (status res ++ ":")):
-          [ PostTest Counterexample f | PostFinalFailure Counterexample f <- cbs ] ++
-          [ PostTest Counterexample (\st res -> putLine (terminal st) "") ]
+verbose = mapResult (\res -> res { callbacks = newCallback (callbacks res):callbacks res })
+  where newCallback cbs =
+          PostTest Counterexample $ \st res -> do
+            putLine (terminal st) (status res ++ ":")
+            sequence_ [ f st res | PostFinalFailure Counterexample f <- cbs ]
+            putLine (terminal st) ""
         status MkResult{ok = Just True} = "Passed"
         status MkResult{ok = Just False} = "Failed"
         status MkResult{ok = Nothing} = "Skipped (precondition false)"
+
+-- | Prints out the generated testcase every time the property fails, including during shrinking.
+-- Only variables quantified over /inside/ the 'verboseShrinking' are printed.
+verboseShrinking :: Testable prop => prop -> Property
+verboseShrinking = mapResult (\res -> res { callbacks = newCallback (callbacks res):callbacks res })
+  where newCallback cbs =
+          PostTest Counterexample $ \st res ->
+            when (ok res == Just False) $ do
+              putLine (terminal st) "Failed:"
+              sequence_ [ f st res | PostFinalFailure Counterexample f <- cbs ]
+              putLine (terminal st) ""
 
 -- | Indicates that a property is supposed to fail.
 -- QuickCheck will report an error if it does not fail.

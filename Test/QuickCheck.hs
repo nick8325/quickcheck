@@ -200,6 +200,7 @@ module Test.QuickCheck
   , idempotentIOProperty
     -- *** Controlling property execution
   , verbose
+  , verboseShrinking
   , once
   , again
   , withMaxSuccess
