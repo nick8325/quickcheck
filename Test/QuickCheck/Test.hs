@@ -9,10 +9,10 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classifications, coverage ) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, tables ) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State hiding (labels, classifications, coverage)
+import Test.QuickCheck.State hiding (labels, tables, coverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
@@ -83,16 +83,16 @@ data Result
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
     , labels          :: !(Map [String] Int)
-    , classifications :: !(Map String (Map String Int))
-    , coverage        :: !(Map String (Map String Double))
+    , tables          :: !(Map String (Map String Int))
+    , coverage        :: !(Map (Maybe String) (Map String Double))
     , output         :: String            -- ^ Printed output
     }
   -- | Given up
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map String (Map String Double))
+    , tables           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
     }
   -- | A failed test run
@@ -113,16 +113,16 @@ data Result
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map String (Map String Double))
+    , tables           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
     }
  -- | The tests passed but a use of 'cover' had insufficient coverage
  | InsufficientCoverage
     { numTests       :: Int               --   Number of tests performed
     , labels                    :: !(Map [String] Int)
-    , classifications           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map String (Map String Double))
+    , tables           :: !(Map String (Map String Int))
+    , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
     }
  deriving ( Show )
@@ -179,7 +179,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
-                 , S.classifications         = Map.empty
+                 , S.tables         = Map.empty
                  , S.coverage                = Map.empty
                  , expected                  = True
                  , randomSeed                = rnd
@@ -259,7 +259,7 @@ doneTesting st _f
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (S.labels st) (S.classifications st) (S.coverage st) theOutput)
+      return (k (numSuccessTests st) (S.labels st) (S.tables st) (S.coverage st) theOutput)
 
 giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
 giveUp st _f =
@@ -274,7 +274,7 @@ giveUp st _f =
      theOutput <- terminalOutput (terminal st)
      return GaveUp{ numTests = numSuccessTests st
                   , labels   = S.labels st
-                  , classifications = S.classifications st
+                  , tables = S.tables st
                   , coverage = S.coverage st
                   , output   = theOutput
                   }
@@ -304,13 +304,13 @@ runATest st f =
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                , S.classifications =
+                , S.tables =
                   Map.unionWith (Map.unionWith (+))
-                    (S.classifications st)
+                    (S.tables st)
                     (Map.fromListWith (Map.unionWith (+))
-                     [(x, Map.singleton y 1) | (x, y) <- P.classifications res])
+                     [(x, Map.singleton y 1) | (x, y) <- P.tables res])
                 , S.coverage =
-                  Map.union (S.coverage st) (Map.fromList (P.coverage res))
+                  Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
                 , expected                  = expect
                 } f
 
@@ -321,13 +321,13 @@ runATest st f =
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                , S.classifications =
+                , S.tables =
                   Map.unionWith (Map.unionWith (+))
-                    (S.classifications st)
+                    (S.tables st)
                     (Map.fromListWith (Map.unionWith (+))
-                     [(x, Map.singleton y 1) | (x, y) <- P.classifications res])
+                     [(x, Map.singleton y 1) | (x, y) <- P.tables res])
                 , S.coverage =
-                  Map.union (S.coverage st) (Map.fromList (P.coverage res))
+                  Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
                 , expected                  = expect
                 } f
 
@@ -336,7 +336,7 @@ runATest st f =
             theOutput <- terminalOutput (terminal st)
             if not (expect res) then
               return Success{ labels = S.labels st,
-                              classifications = S.classifications st,
+                              tables = S.tables st,
                               coverage = S.coverage st,
                               numTests = numSuccessTests st+1,
                               output = theOutput }
@@ -437,7 +437,7 @@ success st =
   longTables = rights tables
 
   tables :: [Either String [String]]
-  tables = [showTable table m | (table, m) <- Map.toList (S.classifications st)]
+  tables = [showTable table m | (table, m) <- Map.toList (S.tables st)]
 
   -- allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
 

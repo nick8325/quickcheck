@@ -16,7 +16,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State hiding (labels, classifications, coverage)
+import Test.QuickCheck.State hiding (labels, tables, coverage)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -231,15 +231,16 @@ data Result
   , abort           :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests   :: Maybe Int         -- ^ stop after this many tests
   , labels          :: [String]
-  , classifications :: [(String, String)]
-  , coverage        :: [(String, Map String Double)] -- values may be bottom
+  , tables          :: [(String, String)]
+  , labelCoverage   :: Map String Double
+  , tableCoverage   :: [(String, Map String Double)] -- values may be bottom
   , callbacks       :: [Callback]        -- ^ the callbacks for this test case
   , testCase        :: [String]          -- ^ the generated test case
   }
 
 stamp :: Result -> Set String
 stamp res =
-  Set.fromList (labels res ++ [x ++ "=" ++ y | (x, y) <- classifications res])
+  Set.fromList (labels res ++ [x ++ "=" ++ y | (x, y) <- tables res])
 
 exception :: String -> AnException -> Result
 exception msg err
@@ -270,8 +271,9 @@ succeeded, failed, rejected :: Result
       , abort           = True
       , maybeNumTests   = Nothing
       , labels          = []
-      , classifications = []
-      , coverage        = []
+      , tables          = []
+      , labelCoverage   = Map.empty
+      , tableCoverage   = []
       , callbacks       = []
       , testCase        = []
       }
@@ -419,10 +421,7 @@ withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n }
 -- 4% length of input is 6
 -- ...
 label :: Testable prop => String -> prop -> Property
-label s =
-  s `deepseq`
-  mapTotalResult $
-    \res -> res { labels = s:labels res }
+label s = classify True s
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
@@ -458,16 +457,20 @@ collect x = label (show x)
 --
 -- >>> quickCheck prop_sorted_sort
 -- +++ OK, passed 100 tests (22% non-trivial).
-classify :: (Show a, Testable prop) =>
-            a       -- ^ XXX FIXME
+classify :: Testable prop =>
+            Bool    -- ^ XXX FIXME
          -> String  -- ^ Label.
          -> prop -> Property
 classify x s =
-  description `deepseq`
+  s `deepseq`
   mapTotalResult $
-    \res -> res { classifications = (s, description):classifications res }
-  where
-    description = show x
+    \res -> res { labels = s:labels res }
+
+tabulate :: Testable prop => String -> String -> prop -> Property
+tabulate key value =
+  key `deepseq` value `deepseq`
+  mapTotalResult $
+    \res -> res { tables = (key, value):tables res }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
@@ -489,7 +492,9 @@ cover :: Testable prop =>
       -> String -- ^ Label for the test case class.
       -> prop -> Property
 cover x p s =
-  covers [(True, p)] s . classify x s
+  mapTotalResult f . classify x s
+  where
+    f res = res { labelCoverage = Map.insertWith min s p (labelCoverage res) }
 
 covers :: (Show a, Testable prop) =>
   [(a, Double)] -> String -> prop -> Property
@@ -498,7 +503,7 @@ covers xs table =
   -- on every test case execution
   table `deepseq`
   mapTotalResult $
-    \res -> res { coverage = (table, Map.fromList ys):coverage res }
+    \res -> res { tableCoverage = (table, Map.fromList ys):tableCoverage res }
   where
     ys = [(show x, p) | (x, p) <- xs]
 
@@ -614,8 +619,9 @@ conjoin ps =
   -- XXX add coverage in all cases
   addLabels result r =
     r { labels = labels result ++ labels r,
-        classifications = classifications result ++ classifications r,
-        coverage = coverage result ++ coverage r }
+        tables = tables result ++ tables r,
+        labelCoverage = Map.unionWith min (labelCoverage result) (labelCoverage r),
+        tableCoverage = tableCoverage result ++ tableCoverage r }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -652,8 +658,9 @@ disjoin ps =
                    abort = False,
                    maybeNumTests = Nothing,
                    labels = [],
-                   classifications = [],
-                   coverage = [],
+                   tables = [],
+                   labelCoverage = Map.empty,
+                   tableCoverage = [],
                    callbacks =
                      callbacks result1 ++
                      [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
