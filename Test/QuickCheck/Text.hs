@@ -10,6 +10,7 @@ module Test.QuickCheck.Text
   , isOneLine
   , bold
   , ljust, rjust, centre, lpercent, rpercent, lpercentage, rpercentage
+  , drawTable, Cell(..)
 
   , newTerminal
   , withStdioTerminal
@@ -39,6 +40,7 @@ import System.IO
   )
 
 import Data.IORef
+import Data.List
 import Text.Printf
 import Test.QuickCheck.Exception
 
@@ -105,6 +107,43 @@ lpercentage p n =
 rpercentage p n = padding ++ lpercentage p n
   where
     padding = if p < 10 then " " else ""
+
+data Cell = LJust String | RJust String | Centred String deriving Show
+
+text :: Cell -> String
+text (LJust xs) = xs
+text (RJust xs) = xs
+text (Centred xs) = xs
+
+-- Flatten a table into a list of rows
+flattenRows :: [[Cell]] -> [String]
+flattenRows rows = map row rows
+  where
+    cols = transpose rows
+    widths = map (maximum . map (length . text)) cols
+
+    row cells = intercalate " " (zipWith cell widths cells)
+    cell n (LJust xs) = ljust n xs
+    cell n (RJust xs) = rjust n xs
+    cell n (Centred xs) = centre n xs
+
+-- Draw a table given a header and contents
+drawTable :: [String] -> [[Cell]] -> [String]
+drawTable headers table =
+  [line] ++
+  [border '|' ' ' header | header <- headers] ++
+  [line | not (null headers) && not (null rows)] ++
+  [border '|' ' ' row | row <- rows] ++
+  [line]
+  where
+    rows = flattenRows table
+
+    headerwidth = maximum (0:map length headers)
+    bodywidth = maximum (0:map length rows)
+    width = max headerwidth bodywidth
+
+    line = border '+' '-' $ replicate width '-'
+    border x y xs = [x, y] ++ centre width xs ++ [y, x]
 
 bold :: String -> String
 -- not portable:

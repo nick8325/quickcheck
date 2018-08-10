@@ -441,7 +441,7 @@ showTable table m =
       Left (rpercent n k ++ " " ++ descr)
 
     manyLines kvs =
-      Right . tabulate . map format .
+      Right . drawTable [table, total] . map format .
       -- Descending order of occurrences
       reverse . sortBy (comparing snd) .
       -- If #occurences the same, sort in increasing order of key
@@ -449,31 +449,10 @@ showTable table m =
       reverse . sortBy (comparing fst) $ kvs
       where
         format (key, v) =
-          rpercent v k ++ " " ++ key
-
-    tabulate rows =
-      [sep,
-       border '|' ' ' table,
-       border '|' ' ' total,
-       sep] ++
-      map (border '|' ' ' . ljust bodywidth) rows ++
-      [sep]
-      where
-        headerwidth = max (length table) (length total)
-        bodywidth = maximum (map length rows)
-        width = max headerwidth bodywidth
+          [RJust (rpercent v k), LJust key]
 
         total = printf "(%d in total)" k
         
-        sep = border '+' '-' $ replicate width '-'
-        border x y xs = [x, y] ++ centre width xs ++ [y, x]
-
-        ljust n xs = xs ++ replicate (n - length xs) ' '
-        rjust n xs = replicate (n - length xs) ' ' ++ xs
-        centre n xs =
-          ljust n $
-          replicate ((n - length xs) `div` 2) ' ' ++ xs
-
 insufficientlyCovered :: State -> [(String, Double, Double)]
 insufficientlyCovered st = []
 -- insufficientlyCovered st =
