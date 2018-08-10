@@ -446,15 +446,12 @@ success st =
            | (l, reqP, p) <- insufficientlyCovered st ]
 
 showTable :: String -> Map String Int -> Either String [String]
-showTable table m
-  | all (`elem` ["False", "True"]) (Map.keys m) =
-    oneLine (Map.findWithDefault 0 "True" m) table
-  | otherwise =
-    case Map.toList m of
-      [(k, v)] ->
-        oneLine v (table ++ " " ++ k)
-      kvs ->
-        manyLines kvs
+showTable table m =
+  case Map.toList m of
+    [(k, v)] ->
+      oneLine v (table ++ " " ++ k)
+    kvs ->
+      manyLines kvs
   where
     k = sum (Map.elems m)
     oneLine n descr =
