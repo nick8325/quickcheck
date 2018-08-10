@@ -1,4 +1,4 @@
--- | Terminal control. Internal QuickCheck module.
+-- | Terminal control and text helper functions. Internal QuickCheck module.
 module Test.QuickCheck.Text
   ( Str(..)
   , ranges
@@ -9,6 +9,7 @@ module Test.QuickCheck.Text
   , oneLine
   , isOneLine
   , bold
+  , ljust, rjust, centre, lpercent, rpercent, lpercentage, rpercentage
 
   , newTerminal
   , withStdioTerminal
@@ -38,6 +39,7 @@ import System.IO
   )
 
 import Data.IORef
+import Text.Printf
 import Test.QuickCheck.Exception
 
 --------------------------------------------------------------------------
@@ -75,6 +77,34 @@ oneLine = unwords . words
 
 isOneLine :: String -> Bool
 isOneLine xs = '\n' `notElem` xs
+
+ljust n xs = xs ++ replicate (n - length xs) ' '
+rjust n xs = replicate (n - length xs) ' ' ++ xs
+centre n xs =
+  ljust n $
+  replicate ((n - length xs) `div` 2) ' ' ++ xs
+
+lpercent, rpercent :: (Integral a, Integral b) => a -> b -> String
+lpercent n k =
+  lpercentage (100 * fromIntegral n / fromIntegral k) k
+
+rpercent n k =
+  rpercentage (100 * fromIntegral n / fromIntegral k) k
+
+lpercentage, rpercentage :: Integral a => Double -> a -> String
+lpercentage p n =
+  printf "%.*f" places p ++ "%"
+  where
+    -- Show no decimal places if k <= 100,
+    -- one decimal place if k <= 1000,
+    -- two decimal places if k <= 10000, and so on.
+    places :: Integer
+    places =
+      ceiling (logBase 10 (fromIntegral n) - 2 :: Double) `max` 0
+
+rpercentage p n = padding ++ lpercentage p n
+  where
+    padding = if p < 10 then " " else ""
 
 bold :: String -> String
 -- not portable:

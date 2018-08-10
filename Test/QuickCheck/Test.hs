@@ -397,21 +397,6 @@ failureSummaryAndReason st res = (summary, full)
       where
         showNumTryShrinks = full && numTryShrinks st > 0
 
--- summary :: State -> Map (Maybe String) Table
--- -- summary st = reverse
--- --            . sortBy (comparing snd)
--- --            . map (\ss -> (head ss, fromIntegral (length ss) * 100 / fromIntegral (numSuccessTests st)))
--- --            . group
--- --            . sort
--- --            $ [ concat (intersperse ", " s')
--- --              | s <- collected st
--- --                -- HACK: don't print out labels that were created by 'cover'.
--- --              , let s' = [ t | t <- Set.toList s, Map.lookup t (S.labels st) == Just 0 ]
--- --              , not (null s')
--- --              ]
-
--- summary = S.tables
-
 success :: State -> IO ()
 success st =
   case allLabels ++ covers of
@@ -430,7 +415,7 @@ success st =
  where
   allLabels :: [String]
   allLabels =
-    [ formatLabel (numSuccessTests st) True (intercalate ", " labels, 100 * fromIntegral n / fromIntegral (numSuccessTests st)) | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
+    [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
     lefts tables
 
   longTables :: [[String]]
@@ -439,10 +424,8 @@ success st =
   tables :: [Either String [String]]
   tables = [showTable table m | (table, m) <- Map.toList (S.tables st)]
 
-  -- allLabels = map (formatLabel (numSuccessTests st) True) (summary st)
-
   covers :: [String]
-  covers = [ ("only " ++ formatLabel (numSuccessTests st) False (l, p) ++ ", not " ++ show reqP ++ "%")
+  covers = [ ("only " ++ lpercentage p (numSuccessTests st) ++ " " ++ ", not " ++ show reqP ++ "%")
            | (l, reqP, p) <- insufficientlyCovered st ]
 
 showTable :: String -> Map String Int -> Either String [String]
@@ -455,7 +438,7 @@ showTable table m =
   where
     k = sum (Map.elems m)
     oneLine n descr =
-      Left (formatLabel k True (descr, 100 * fromIntegral n / fromIntegral k))
+      Left (rpercent n k ++ " " ++ descr)
 
     manyLines kvs =
       Right . tabulate . map format .
@@ -466,7 +449,7 @@ showTable table m =
       reverse . sortBy (comparing fst) $ kvs
       where
         format (key, v) =
-          formatLabel k True (key, 100 * fromIntegral v / fromIntegral k)
+          rpercent v k ++ " " ++ key
 
     tabulate rows =
       [sep,
@@ -490,32 +473,6 @@ showTable table m =
         centre n xs =
           ljust n $
           replicate ((n - length xs) `div` 2) ' ' ++ xs
-
-formatLabel :: Int -> Bool -> (String, Double) -> String
-formatLabel n pad (x, p) = showP pad p ++ " " ++ x
- where
-  showP :: Bool -> Double -> String
-  showP pad p =
-    (if pad && p < 10 then " " else "") ++
-    printf "%.*f" places p ++ "%"
-
-  -- Show no decimal places if <= 100 successful tests,
-  -- one decimal place if <= 1000 successful tests,
-  -- two decimal places if <= 10000 successful tests, and so on.
-  places :: Integer
-  places =
-    ceiling (logBase 10 (fromIntegral n) - 2 :: Double) `max` 0
-
-labelCount :: String -> State -> Int
-labelCount l st =
-  -- XXX in case of a disjunction, a label can occur several times,
-  -- need to think what to do there
-  -- length [ l' | l' <- concat (map Set.toList (collected st)), l == l' ]
-  0
-
-percentage :: Integral a => State -> a -> Double
-percentage st n =
-  fromIntegral n * 100 / fromIntegral (numSuccessTests st)
 
 insufficientlyCovered :: State -> [(String, Double, Double)]
 insufficientlyCovered st = []
