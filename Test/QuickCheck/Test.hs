@@ -117,14 +117,6 @@ data Result
     , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
     }
- -- | The tests passed but a use of 'cover' had insufficient coverage
- | InsufficientCoverage
-    { numTests       :: Int               --   Number of tests performed
-    , labels                    :: !(Map [String] Int)
-    , tables           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map (Maybe String) (Map String Double))
-    , output         :: String            --   Printed output
-    }
  deriving ( Show )
 
 -- | Check if the test run result was a success
@@ -241,13 +233,6 @@ doneTesting st _f
        ++ " tests (expected failure)"
         )
       finished NoExpectedFailure
-  | not (null (insufficientlyCovered st)) = do
-      putPart (terminal st)
-        ( bold ("*** Insufficient coverage after ")
-       ++ show (numSuccessTests st)
-       ++ " tests"
-        )
-      finished InsufficientCoverage
   | otherwise = do
       putPart (terminal st)
         ( "+++ OK, passed "
@@ -399,7 +384,7 @@ failureSummaryAndReason st res = (summary, full)
 
 success :: State -> IO ()
 success st =
-  case allLabels ++ covers of
+  case allLabels of
     [] | null longTables ->
       do putLine (terminal st) "."
     [pt] | null longTables ->
@@ -415,6 +400,9 @@ success st =
  where
   allLabels :: [String]
   allLabels =
+    [ "only " ++ lpercent n (numSuccessTests st) ++ " " ++ label ++ ", but expected " ++ lpercentage p (numSuccessTests st)
+    | (label, n, p) <- insufficientlyCoveredLabels ] ++
+    ["" | not (null insufficientlyCoveredLabels) && not (Map.null (Map.delete [] (S.labels st)))] ++
     [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
     lefts tables
 
@@ -422,23 +410,31 @@ success st =
   longTables = rights tables
 
   tables :: [Either String [String]]
-  tables = [showTable table m | (table, m) <- Map.toList (S.tables st)]
+  tables =
+    [ showTable table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
+    | (table, m) <- Map.toList (S.tables st) ]
 
-  covers :: [String]
-  covers = [ ("only " ++ lpercentage p (numSuccessTests st) ++ " " ++ ", not " ++ show reqP ++ "%")
-           | (l, reqP, p) <- insufficientlyCovered st ]
+  labelCounts :: Map String Int
+  labelCounts =
+    -- N.B. if a test case contains repeated labels, this only counts
+    -- them once (as we want)
+    Map.unionsWith (+) $
+      [ Map.fromList [(x, n) | x <- xs]
+      | (xs, n) <- Map.toList (S.labels st) ] ++
+      [ Map.singleton x 0 | x <- Map.keys (Map.findWithDefault Map.empty Nothing (S.coverage st)) ]
 
-showTable :: String -> Map String Int -> Either String [String]
-showTable table m =
-  case Map.toList m of
-    [(k, v)] ->
-      oneLine v (table ++ " " ++ k)
-    kvs ->
-      manyLines kvs
+  insufficientlyCoveredLabels :: [(String, Int, Double)]
+  insufficientlyCoveredLabels =
+    [ (label, n, p)
+    | (label, n) <- Map.toList labelCounts,
+      Just p <- [Map.lookup Nothing (S.coverage st) >>= Map.lookup label],
+      fromIntegral n < p * fromIntegral (numSuccessTests st) ]
+
+showTable :: String -> Map String Int -> Map String Double -> Either String [String]
+showTable table m cov =
+  manyLines (Map.toList (addCoverage m))
   where
     k = sum (Map.elems m)
-    oneLine n descr =
-      Left (rpercent n k ++ " " ++ descr)
 
     manyLines kvs =
       Right . drawTable [table, total] . map format .
@@ -449,18 +445,20 @@ showTable table m =
       reverse . sortBy (comparing fst) $ kvs
       where
         format (key, v) =
-          [RJust (rpercent v k), LJust key]
+          [RJust (rpercent v k), LJust (coverage key v)]
 
         total = printf "(%d in total)" k
-        
-insufficientlyCovered :: State -> [(String, Double, Double)]
-insufficientlyCovered st = []
--- insufficientlyCovered st =
---   [ (l, reqP, p)
---   | (l, reqP) <- Map.toList (S.labels st),
---     let p = percentage st (labelCount l st),
---     p < reqP ]
 
+    coverage label n =
+      case Map.lookup label cov of
+        Just p | fromIntegral n < p * fromIntegral k ->
+          label ++ " (expected " ++ lpercentage p k ++ ")"
+        _ -> label
+
+    addCoverage m =
+      Map.unionWith (+) m
+        (Map.fromList [(x, 0) | x <- Map.keys cov])
+        
 --------------------------------------------------------------------------
 -- main shrinking loop
 
