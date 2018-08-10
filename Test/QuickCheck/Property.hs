@@ -499,11 +499,11 @@ cover x p s =
   where
     f res = res { labelCoverage = Map.insertWith min s p (labelCoverage res) }
 
-tabulate :: Testable prop => String -> String -> prop -> Property
-tabulate key value =
-  key `deepseq` value `deepseq`
+tabulate :: Testable prop => String -> [String] -> prop -> Property
+tabulate key values =
+  key `deepseq` values `deepseq`
   mapTotalResult $
-    \res -> res { tables = (key, value):tables res }
+    \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
