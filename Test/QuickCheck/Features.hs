@@ -22,11 +22,6 @@ prop_noNewFeatures features prop =
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
-prop_evenOrOddOrLessThan30 :: Integer -> Property
-prop_evenOrOddOrLessThan30 n =
-  classify (even n) "n is even" $
-  classify (odd n) "n is odd" (n < 30)
-
 collectFeatures :: Testable prop => prop -> IO ()
 collectFeatures prop = collectFeaturesWith stdArgs prop
 
