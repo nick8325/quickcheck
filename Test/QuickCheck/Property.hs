@@ -462,12 +462,6 @@ classify x s =
   mapTotalResult $
     \res -> res { labels = s:labels res }
 
-tabulate :: Testable prop => String -> String -> prop -> Property
-tabulate key value =
-  key `deepseq` value `deepseq`
-  mapTotalResult $
-    \res -> res { tables = (key, value):tables res }
-
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
 -- with a false precondition) do not affect coverage.
@@ -492,16 +486,20 @@ cover x p s =
   where
     f res = res { labelCoverage = Map.insertWith min s p (labelCoverage res) }
 
-covers :: (Show a, Testable prop) =>
-  [(a, Double)] -> String -> prop -> Property
-covers xs table =
-  -- N.B. don't deepseq ys, to avoid calling 'show'
+tabulate :: Testable prop => String -> String -> prop -> Property
+tabulate key value =
+  key `deepseq` value `deepseq`
+  mapTotalResult $
+    \res -> res { tables = (key, value):tables res }
+
+coverTable :: Testable prop =>
+  String -> [(String, Double)] -> prop -> Property
+coverTable table xs =
+  -- N.B. don't deepseq ys, to avoid doing a lot of work
   -- on every test case execution
   table `deepseq`
   mapTotalResult $
-    \res -> res { tableCoverage = (table, Map.fromList ys):tableCoverage res }
-  where
-    ys = [(show x, p) | (x, p) <- xs]
+    \res -> res { tableCoverage = (table, Map.fromList xs):tableCoverage res }
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),

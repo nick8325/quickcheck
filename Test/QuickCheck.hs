@@ -223,7 +223,7 @@ module Test.QuickCheck
   , classify
   , cover
   , tabulate
-  , covers
+  , coverTable
     -- *** Miscellaneous
   , Discard(..)
   , discard
