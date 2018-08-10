@@ -454,7 +454,7 @@ collect x = label (show x)
 -- >>> quickCheck prop_sorted_sort
 -- +++ OK, passed 100 tests (22% non-trivial).
 classify :: Testable prop =>
-            Bool    -- ^ XXX FIXME
+            Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
 classify False s = property
