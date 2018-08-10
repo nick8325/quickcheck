@@ -352,7 +352,7 @@ runATest st f =
                             , reason          = P.reason res
                             , theException    = P.theException res
                             , failingTestCase = testCase
-                            , features        = P.stamp res
+                            , features        = Set.fromList (P.labels res)
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)

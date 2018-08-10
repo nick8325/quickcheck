@@ -238,10 +238,6 @@ data Result
   , testCase        :: [String]          -- ^ the generated test case
   }
 
-stamp :: Result -> Set String
-stamp res =
-  Set.fromList (labels res ++ [x ++ "=" ++ y | (x, y) <- tables res])
-
 exception :: String -> AnException -> Result
 exception msg err
   | isDiscard err = rejected

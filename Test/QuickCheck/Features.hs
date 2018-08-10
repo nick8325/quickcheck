@@ -18,7 +18,7 @@ prop_noNewFeatures features prop =
     f res =
       case ok res of
         Just True
-          | not (stamp res `Set.isSubsetOf` features) ->
+          | not (Set.fromList (P.labels res) `Set.isSubsetOf` features) ->
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
