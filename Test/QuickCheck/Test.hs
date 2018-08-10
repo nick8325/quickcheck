@@ -463,7 +463,10 @@ showTable table m
     manyLines kvs =
       Right . tabulate . map format .
       -- Descending order of occurrences
-      reverse . sortBy (comparing snd) $ kvs
+      reverse . sortBy (comparing snd) .
+      -- If #occurences the same, sort in increasing order of key
+      -- (note: works because sortBy is stable)
+      reverse . sortBy (comparing fst) $ kvs
       where
         format (key, v) =
           formatLabel k True (key, 100 * fromIntegral v / fromIntegral k)
