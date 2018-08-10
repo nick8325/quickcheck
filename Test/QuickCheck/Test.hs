@@ -430,7 +430,7 @@ success st =
  where
   allLabels :: [String]
   allLabels =
-    [ formatLabel (numSuccessTests st) True (intercalate ", " labels, fromIntegral n / fromIntegral (numSuccessTests st)) | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
+    [ formatLabel (numSuccessTests st) True (intercalate ", " labels, 100 * fromIntegral n / fromIntegral (numSuccessTests st)) | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
     lefts tables
 
   longTables :: [[String]]

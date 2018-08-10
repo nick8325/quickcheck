@@ -457,7 +457,8 @@ classify :: Testable prop =>
             Bool    -- ^ XXX FIXME
          -> String  -- ^ Label.
          -> prop -> Property
-classify x s =
+classify False s = property
+classify True s =
   s `deepseq`
   mapTotalResult $
     \res -> res { labels = s:labels res }
