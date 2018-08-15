@@ -647,7 +647,6 @@ disjoin ps =
     do result1 <- p
        case ok result1 of
          _ | not (expect result1) -> return expectFailureError
-         Just True -> return result1
          Just False -> do
            result2 <- q
            return $
@@ -676,12 +675,19 @@ disjoin ps =
                      testCase result1 ++
                      testCase result2 }
                Nothing -> result2
-         Nothing -> do
-           result2 <- q
-           return (case ok result2 of
-                     _ | not (expect result2) -> expectFailureError
-                     Just True -> result2
-                     _ -> result1)
+         -- The "obvious" semantics of .||. has:
+         --   discard .||. true = true
+         --   discard .||. discard = discard
+         -- but this implementation gives discard .||. true = discard.
+         -- This is reasonable because evaluating result2 in the case
+         -- that result1 discards is just busy-work - it won't ever
+         -- cause the property to fail. On the other hand, discarding
+         -- instead of returning true causes us to execute one more
+         -- test case - but assuming that preconditions are cheap to
+         -- evaluate, this is no more work than evaluating result2
+         -- would be, while (unlike evaluating result2) it might catch
+         -- a bug.
+         _ -> return result1
 
   expectFailureError = failed { reason = "expectFailure may not occur inside a disjunction" }
   sep [] s = s
