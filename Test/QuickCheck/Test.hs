@@ -305,12 +305,6 @@ runATest st f =
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
                 , randomSeed                = rnd2
-                , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                , S.tables =
-                  Map.unionWith (Map.unionWith (+))
-                    (S.tables st)
-                    (Map.fromListWith (Map.unionWith (+))
-                     [(x, Map.singleton y 1) | (x, y) <- P.tables res])
                 , S.coverage =
                   Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
                 , expected                  = expect
