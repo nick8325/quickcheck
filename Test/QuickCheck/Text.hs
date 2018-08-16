@@ -14,6 +14,7 @@ module Test.QuickCheck.Text
 
   , newTerminal
   , withStdioTerminal
+  , withHandleTerminal
   , withNullTerminal
   , terminalOutput
   , handle
@@ -170,12 +171,23 @@ withBuffering action = do
   hSetBuffering stderr LineBuffering
   action `finally` hSetBuffering stderr mode
 
+withHandleTerminal :: Handle -> Maybe Handle -> (Terminal -> IO a) -> IO a
+withHandleTerminal outh merrh action = do
+  let
+    err =
+      case merrh of
+        Nothing -> const (return ())
+        Just errh -> handle errh
+  newTerminal (handle outh) err >>= action
+
 withStdioTerminal :: (Terminal -> IO a) -> IO a
 withStdioTerminal action = do
   isatty <- hIsTerminalDevice stderr
-  let err = if isatty then handle stderr else const (return ())
-  withBuffering (newTerminal (handle stdout) err >>= action)
-
+  if isatty then
+    withBuffering (withHandleTerminal stdout (Just stderr) action)
+   else
+    withBuffering (withHandleTerminal stdout Nothing action)
+  
 withNullTerminal :: (Terminal -> IO a) -> IO a
 withNullTerminal action =
   newTerminal (const (return ())) (const (return ())) >>= action
