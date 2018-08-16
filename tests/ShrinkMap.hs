@@ -9,4 +9,6 @@ prop_shrinkOrderedList :: [Int] -> Bool
 prop_shrinkOrderedList xs = all isSorted (shrinkOrderedList xs)
   where isSorted x = x == sort x 
 
-main = $quickCheckAll
+return []
+
+main = do True <- $quickCheckAll; return ()

@@ -136,7 +136,6 @@ prop_reachesBound_Int8 = reachesBound :: Int8 -> Property
 prop_reachesBound_Int16 = reachesBound :: Int16 -> Property
 prop_reachesBound_Int32 = reachesBound :: Int32 -> Property
 prop_reachesBound_Int64 = reachesBound :: Int64 -> Property
-prop_reachesBound_Word = reachesBound :: Word -> Property
 prop_reachesBound_Word8 = reachesBound :: Word8 -> Property
 prop_reachesBound_Word16 = reachesBound :: Word16 -> Property
 prop_reachesBound_Word32 = reachesBound :: Word32 -> Property
@@ -155,4 +154,4 @@ prop_B1 :: B1 -> Property
 prop_B1 (B1 n) = expectFailure $ n === n + 1
 
 return []
-main = $forAllProperties (quickCheckWithResult stdArgs { maxShrinks = 10000 }) >>= print
+main = do True <- $forAllProperties (quickCheckWithResult stdArgs { maxShrinks = 10000 }); return ()

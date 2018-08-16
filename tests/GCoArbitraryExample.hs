@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, ScopedTypeVariables #-}
+{-# LANGUAGE DeriveGeneric, ScopedTypeVariables, TemplateHaskell #-}
 
 module Main where
 
@@ -15,6 +15,9 @@ instance CoArbitrary a => CoArbitrary (D a)
 instance (Show a, Read a) => Function (D a) where
   function = functionShow
 
-main :: IO ()
-main = quickCheck $ \(Fun _ f) ->
+prop_coarbitrary (Fun _ f) =
+  expectFailure $
   f (C1 (2::Int)) `elem` [0, 1 :: Int]
+
+return []
+main = do True <- $quickCheckAll; return ()

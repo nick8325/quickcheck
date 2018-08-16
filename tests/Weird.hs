@@ -80,4 +80,4 @@ monoNil  = $(monomorphic '[])
 monoCons = $(monomorphic '(:))
 
 return []
-main = $quickCheckAll -- UTF8 test: Привет!
+main = do True <- $quickCheckAll; return () -- UTF8 test: Привет!
