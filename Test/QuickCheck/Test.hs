@@ -422,7 +422,7 @@ success st =
     [ (label, n, p)
     | (label, n) <- Map.toList labelCounts,
       Just p <- [Map.lookup Nothing (S.coverage st) >>= Map.lookup label],
-      fromIntegral n < p * fromIntegral (numSuccessTests st) ]
+      100 * fromIntegral n < p * fromIntegral (numSuccessTests st) ]
 
 showTable :: String -> Map String Int -> Map String Double -> Either String [String]
 showTable table m cov =
