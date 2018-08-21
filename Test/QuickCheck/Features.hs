@@ -22,17 +22,17 @@ prop_noNewFeatures features prop =
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
-collectFeatures :: Testable prop => prop -> IO ()
-collectFeatures prop = collectFeaturesWith stdArgs prop
+labelledExamples :: Testable prop => prop -> IO ()
+labelledExamples prop = labelledExamplesWith stdArgs prop
 
-collectFeaturesWith :: Testable prop => Args -> prop -> IO ()
-collectFeaturesWith args prop = collectFeaturesWithResult args prop >> return ()
+labelledExamplesWith :: Testable prop => Args -> prop -> IO ()
+labelledExamplesWith args prop = labelledExamplesWithResult args prop >> return ()
 
-collectFeaturesResult :: Testable prop => prop -> IO Result
-collectFeaturesResult prop = collectFeaturesWithResult stdArgs prop
+labelledExamplesResult :: Testable prop => prop -> IO Result
+labelledExamplesResult prop = labelledExamplesWithResult stdArgs prop
 
-collectFeaturesWithResult :: Testable prop => Args -> prop -> IO Result
-collectFeaturesWithResult args prop =
+labelledExamplesWithResult :: Testable prop => Args -> prop -> IO Result
+labelledExamplesWithResult args prop =
   withState args $ \state -> do
     let
       loop feats state = withNullTerminal $ \nullterm -> do

@@ -63,10 +63,10 @@ module Test.QuickCheck
   , monomorphic
 #endif
     -- ** Feature-based testing
-  , collectFeatures
-  , collectFeaturesWith
-  , collectFeaturesWithResult
-  , collectFeaturesResult
+  , labelledExamples
+  , labelledExamplesWith
+  , labelledExamplesWithResult
+  , labelledExamplesResult
 
     -- * Random generation
   , Gen
