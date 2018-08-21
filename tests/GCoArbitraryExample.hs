@@ -17,6 +17,7 @@ instance (Show a, Read a) => Function (D a) where
 
 prop_coarbitrary (Fun _ f) =
   expectFailure $
+  withMaxSuccess 1000 $
   f (C1 (2::Int)) `elem` [0, 1 :: Int]
 
 return []

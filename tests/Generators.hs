@@ -26,7 +26,7 @@ path :: (a -> Bool) -> Path a -> Bool
 path p (Path xs) = all p xs
 
 somePath :: (a -> Bool) -> Path a -> Property
-somePath p = expectFailure . path (not . p)
+somePath p = expectFailure . withMaxSuccess 1000 . path (not . p)
 
 newtype Extremal a = Extremal { getExtremal :: a } deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
 
