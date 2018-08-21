@@ -82,6 +82,7 @@ data Result
   -- | A successful test run
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
+    , numDiscarded   :: Int               -- ^ Number of tests skipped
     , labels          :: !(Map [String] Int)
     , tables          :: !(Map String (Map String Int))
     , coverage        :: !(Map (Maybe String) (Map String Double))
@@ -90,6 +91,7 @@ data Result
   -- | Given up
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
+    , numDiscarded   :: Int               -- ^ Number of tests skipped
     , labels                    :: !(Map [String] Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
@@ -98,6 +100,7 @@ data Result
   -- | A failed test run
   | Failure
     { numTests        :: Int               --   Number of tests performed
+    , numDiscarded   :: Int               -- ^ Number of tests skipped
     , numShrinks      :: Int               -- ^ Number of successful shrinking steps performed
     , numShrinkTries  :: Int               -- ^ Number of unsuccessful shrinking steps performed
     , numShrinkFinal  :: Int               -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
@@ -112,6 +115,7 @@ data Result
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
+    , numDiscarded   :: Int               -- ^ Number of tests skipped
     , labels                    :: !(Map [String] Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
@@ -229,22 +233,21 @@ doneTesting st _f
       putPart (terminal st)
         ( bold ("*** Failed!")
        ++ " Passed "
-       ++ show (numSuccessTests st)
-       ++ " tests (expected failure)"
+       ++ showTestCount st
+       ++ " (expected failure)"
         )
       finished NoExpectedFailure
   | otherwise = do
       putPart (terminal st)
         ( "+++ OK, passed "
-       ++ show (numSuccessTests st)
-       ++ " tests"
+       ++ showTestCount st
         )
       finished Success
   where
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (S.labels st) (S.tables st) (S.coverage st) theOutput)
+      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.tables st) (S.coverage st) theOutput)
 
 giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
 giveUp st _f =
@@ -252,27 +255,32 @@ giveUp st _f =
      putPart (terminal st)
        ( bold ("*** Gave up!")
       ++ " Passed only "
-      ++ show (numSuccessTests st)
+      ++ showTestCount st
       ++ " tests"
        )
      success st
      theOutput <- terminalOutput (terminal st)
      return GaveUp{ numTests = numSuccessTests st
+                  , numDiscarded = numDiscardedTests st
                   , labels   = S.labels st
                   , tables = S.tables st
                   , coverage = S.coverage st
                   , output   = theOutput
                   }
 
+showTestCount :: State -> String
+showTestCount st =
+     number (numSuccessTests st) "test"
+  ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
+            | numDiscardedTests st > 0
+            ]
+
 runATest :: State -> (QCGen -> Int -> Prop) -> IO Result
 runATest st f =
   do -- CALLBACK before_test
      putTemp (terminal st)
         ( "("
-       ++ number (numSuccessTests st) "test"
-       ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
-                 | numDiscardedTests st > 0
-                 ]
+       ++ showTestCount st
        ++ ")"
         )
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
@@ -318,12 +326,14 @@ runATest st f =
                               tables = S.tables st,
                               coverage = S.coverage st,
                               numTests = numSuccessTests st+1,
+                              numDiscarded = numDiscardedTests st,
                               output = theOutput }
              else do
               testCase <- mapM showCounterexample (P.testCase res)
               return Failure{ usedSeed        = randomSeed st -- correct! (this will be split first)
                             , usedSize        = size
                             , numTests        = numSuccessTests st+1
+                            , numDiscarded    = numDiscardedTests st
                             , numShrinks      = numShrinks
                             , numShrinkTries  = totFailed
                             , numShrinkFinal  = lastFailed
