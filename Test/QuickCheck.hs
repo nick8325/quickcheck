@@ -204,6 +204,7 @@ module Test.QuickCheck
   , once
   , again
   , withMaxSuccess
+  , checkCoverage
   , within
   , noShrinking
     -- *** Conjunction and disjunction

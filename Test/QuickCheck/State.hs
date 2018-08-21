@@ -17,6 +17,7 @@ data State
   { terminal                  :: Terminal             -- ^ the current terminal
   , maxSuccessTests           :: Int                  -- ^ maximum number of successful tests needed
   , maxDiscardedRatio         :: Int                  -- ^ maximum number of discarded tests per successful test
+  , coverageConfidence        :: Maybe Integer
   , computeSize               :: Int -> Int -> Int    -- ^ how to compute the size of test cases from
                                                       --   #tests and #discarded tests
   , numTotMaxShrinks          :: !Int                 -- ^ How many shrinks to try before giving up

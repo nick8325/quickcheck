@@ -1,7 +1,7 @@
 -- | The main test loop.
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 module Test.QuickCheck.Test where
 
@@ -9,7 +9,7 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, tables ) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State hiding (labels, tables, coverage)
@@ -42,10 +42,13 @@ import Data.List
   , intercalate
   )
 
-import Data.Maybe(fromMaybe)
+import Data.Maybe(fromMaybe, isNothing)
 import Data.Ord(comparing)
 import Text.Printf(printf)
 import Data.Either(lefts, rights)
+import Data.Number.Erf(invnormcdf)
+import Control.Monad
+import Data.Bits
 
 --------------------------------------------------------------------------
 -- quickCheck
@@ -157,7 +160,31 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
-  withState a (\s -> test s (unGen (unProperty (property p))))
+  withState a (\s -> test s (property p))
+
+coverageProp :: Integer -> State -> Property -> Property
+coverageProp err st prop
+  | and [ sufficientlyCovered err tot n p
+        | (_, _, tot, n, p) <- allCoverage st ] =
+    once True
+  | or [ insufficientlyCovered (Just err) tot n p
+       | (_, _, tot, n, p) <- allCoverage st ] =
+    foldr counterexample (property failed{P.reason = "Insufficient coverage"}) (allTables st)
+  | otherwise = prop
+
+-- https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval
+wilson :: Integer -> Integer -> Double -> Double
+wilson k n z =
+  (p + z*z/(2*nf) + z*sqrt (p*(1-p)/nf + z*z/(4*nf*nf)))/(1 + z*z/nf)
+  where
+    nf = fromIntegral n
+    p = fromIntegral k / fromIntegral n
+
+wilsonLow :: Integer -> Integer -> Double -> Double
+wilsonLow k n a = wilson k n (invnormcdf (a/2))
+
+wilsonHigh :: Integer -> Integer -> Double -> Double
+wilsonHigh k n a = wilson k n (invnormcdf (1-a/2))
 
 withState :: Args -> (State -> IO a) -> IO a
 withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
@@ -166,6 +193,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
               Just (rnd,_) -> return rnd
      test MkState{ terminal                  = tm
                  , maxSuccessTests           = maxSuccess a
+                 , coverageConfidence        = Nothing
                  , maxDiscardedRatio         = maxDiscardRatio a
                  , computeSize               = case replay a of
                                                  Nothing    -> computeSize'
@@ -218,16 +246,16 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 --------------------------------------------------------------------------
 -- main test loop
 
-test :: State -> (QCGen -> Int -> Prop) -> IO Result
+test :: State -> Property -> IO Result
 test st f
-  | numSuccessTests st   >= maxSuccessTests st =
+  | numSuccessTests st   >= maxSuccessTests st && isNothing (coverageConfidence st) =
     doneTesting st f
-  | numDiscardedTests st >= maxDiscardedRatio st * maxSuccessTests st =
+  | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) =
     giveUp st f
   | otherwise =
     runATest st f
 
-doneTesting :: State -> (QCGen -> Int -> Prop) -> IO Result
+doneTesting :: State -> Property -> IO Result
 doneTesting st _f
   | expected st == False = do
       putPart (terminal st)
@@ -249,7 +277,7 @@ doneTesting st _f
       theOutput <- terminalOutput (terminal st)
       return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.tables st) (S.coverage st) theOutput)
 
-giveUp :: State -> (QCGen -> Int -> Prop) -> IO Result
+giveUp :: State -> Property -> IO Result
 giveUp st _f =
   do -- CALLBACK gave_up?
      putPart (terminal st)
@@ -275,7 +303,7 @@ showTestCount st =
             | numDiscardedTests st > 0
             ]
 
-runATest :: State -> (QCGen -> Int -> Prop) -> IO Result
+runATest :: State -> Property -> IO Result
 runATest st f =
   do -- CALLBACK before_test
      putTemp (terminal st)
@@ -283,18 +311,25 @@ runATest st f =
        ++ showTestCount st
        ++ ")"
         )
+     let powerOfTwo n = n .&. (n - 1) == 0
+     let f_or_cov =
+           case coverageConfidence st of
+             Just n | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
+               coverageProp n st f
+             _ -> f
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
-     MkRose res ts <- protectRose (reduceRose (unProp (f rnd1 size)))
+     MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
      res <- callbackPostTest st res
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
      case res of
-       MkResult{ok = Just True, expect = expect, maybeNumTests = mnt} -> -- successful test
+       MkResult{ok = Just True, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- successful test
          do continue doneTesting
               st{ numSuccessTests           = numSuccessTests st + 1
                 , numRecentlyDiscardedTests = 0
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
+                , coverageConfidence        = mcc `mplus` coverageConfidence st
                 , randomSeed                = rnd2
                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
                 , S.tables =
@@ -307,11 +342,12 @@ runATest st f =
                 , expected                  = expect
                 } f
 
-       MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt} -> -- discarded test
+       MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- discarded test
          do continue giveUp
               st{ numDiscardedTests         = numDiscardedTests st + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
                 , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
+                , coverageConfidence        = mcc `mplus` coverageConfidence st
                 , randomSeed                = rnd2
                 , S.coverage =
                   Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
@@ -387,20 +423,22 @@ failureSummaryAndReason st res = (summary, full)
         showNumTryShrinks = full && numTryShrinks st > 0
 
 success :: State -> IO ()
-success st =
-  case allLabels of
-    [] | null longTables ->
-      do putLine (terminal st) "."
-    [pt] | null longTables ->
-      do putLine (terminal st)
-           ( " ("
-          ++ dropWhile isSpace pt
-          ++ ")."
-           )
-    cases -> do putLine (terminal st) ":"
-                mapM_ (putLine $ terminal st) $
-                  cases ++
-                  concat ["":xss | xss <- longTables]
+allTables :: State -> [String]
+success = snd . successAndTables
+allTables = fst . successAndTables
+successAndTables st =
+  (allTables,
+   case allLabels of
+     [] | null longTables ->
+       do putLine (terminal st) "."
+     [pt] | null longTables ->
+       do putLine (terminal st)
+            ( " ("
+           ++ dropWhile isSpace pt
+           ++ ")."
+            )
+     _ -> do putLine (terminal st) ":"
+             mapM_ (putLine $ terminal st) allTables)
  where
   allLabels :: [String]
   allLabels =
@@ -413,26 +451,61 @@ success st =
   longTables :: [[String]]
   longTables = rights tables
 
+  allTables :: [String]
+  allTables =
+    allLabels ++
+    concat ["":xss | xss <- longTables]
+
   tables :: [Either String [String]]
   tables =
     [ showTable table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
     | (table, m) <- Map.toList (S.tables st) ]
 
-  labelCounts :: Map String Int
-  labelCounts =
-    -- N.B. if a test case contains repeated labels, this only counts
-    -- them once (as we want)
-    Map.unionsWith (+) $
-      [ Map.fromList [(x, n) | x <- xs]
-      | (xs, n) <- Map.toList (S.labels st) ] ++
-      [ Map.singleton x 0 | x <- Map.keys (Map.findWithDefault Map.empty Nothing (S.coverage st)) ]
-
   insufficientlyCoveredLabels :: [(String, Int, Double)]
   insufficientlyCoveredLabels =
     [ (label, n, p)
-    | (label, n) <- Map.toList labelCounts,
-      Just p <- [Map.lookup Nothing (S.coverage st) >>= Map.lookup label],
-      100 * fromIntegral n < p * fromIntegral (numSuccessTests st) ]
+    | (Nothing, label, tot, n, p) <- allCoverage st,
+      insufficientlyCovered (coverageConfidence st) tot n p ]
+
+allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
+allCoverage st =
+  [ (key, value, tot, n, p)
+  | (key, m) <- Map.toList (S.coverage st),
+    (value, p) <- Map.toList m,
+    let tot =
+          case key of
+            Just key -> Map.findWithDefault 0 key totals
+            Nothing -> numSuccessTests st,
+    let n = Map.findWithDefault 0 value (Map.findWithDefault Map.empty key combinedCounts) ]
+  where
+    combinedCounts :: Map (Maybe String) (Map String Int)
+    combinedCounts =
+      Map.insert Nothing labelCounts
+        (Map.mapKeys Just (S.tables st))
+
+    totals :: Map String Int
+    totals = fmap (sum . Map.elems) (S.tables st)
+
+    labelCounts :: Map String Int
+    labelCounts =
+      -- N.B. if a test case contains repeated labels, this only counts
+      -- them once (as we want)
+      Map.unionsWith (+) $
+        [ Map.fromList [(x, n) | x <- xs]
+        | (xs, n) <- Map.toList (S.labels st) ] ++
+        [ Map.singleton x 0 | x <- Map.keys (Map.findWithDefault Map.empty Nothing (S.coverage st)) ]
+
+sufficientlyCovered :: Integer -> Int -> Int -> Double -> Bool
+sufficientlyCovered err n k p =
+  -- Accept the coverage if, with high confidence, the actual probability is
+  -- at least 0.9 times the required one.
+  wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= 0.9 * 0.01 * p
+
+insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
+insufficientlyCovered Nothing n k p =
+  fromIntegral k < 0.01 * p * fromIntegral n
+insufficientlyCovered (Just err) n k p =
+  wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < 0.01 * p
 
 showTable :: String -> Map String Int -> Map String Double -> Either String [String]
 showTable table m cov =

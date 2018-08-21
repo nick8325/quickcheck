@@ -224,18 +224,19 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok              :: Maybe Bool        -- ^ result of the test case; Nothing = discard
-  , expect          :: Bool              -- ^ indicates what the expected result of the property is
-  , reason          :: String            -- ^ a message indicating what went wrong
-  , theException    :: Maybe AnException -- ^ the exception thrown, if any
-  , abort           :: Bool              -- ^ if True, the test should not be repeated
-  , maybeNumTests   :: Maybe Int         -- ^ stop after this many tests
-  , labels          :: [String]
-  , tables          :: [(String, String)]
-  , labelCoverage   :: Map String Double
-  , tableCoverage   :: [(String, Map String Double)] -- values may be bottom
-  , callbacks       :: [Callback]        -- ^ the callbacks for this test case
-  , testCase        :: [String]          -- ^ the generated test case
+  { ok                 :: Maybe Bool        -- ^ result of the test case; Nothing = discard
+  , expect             :: Bool              -- ^ indicates what the expected result of the property is
+  , reason             :: String            -- ^ a message indicating what went wrong
+  , theException       :: Maybe AnException -- ^ the exception thrown, if any
+  , abort              :: Bool              -- ^ if True, the test should not be repeated
+  , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
+  , maybeCheckCoverage :: Maybe Integer
+  , labels             :: [String]
+  , tables             :: [(String, String)]
+  , labelCoverage      :: Map String Double
+  , tableCoverage      :: [(String, Map String Double)] -- values may be bottom
+  , callbacks          :: [Callback]        -- ^ the callbacks for this test case
+  , testCase           :: [String]          -- ^ the generated test case
   }
 
 exception :: String -> AnException -> Result
@@ -260,18 +261,19 @@ succeeded, failed, rejected :: Result
   where
     result =
       MkResult
-      { ok              = undefined
-      , expect          = True
-      , reason          = ""
-      , theException    = Nothing
-      , abort           = True
-      , maybeNumTests   = Nothing
-      , labels          = []
-      , tables          = []
-      , labelCoverage   = Map.empty
-      , tableCoverage   = []
-      , callbacks       = []
-      , testCase        = []
+      { ok                 = undefined
+      , expect             = True
+      , reason             = ""
+      , theException       = Nothing
+      , abort              = True
+      , maybeNumTests      = Nothing
+      , maybeCheckCoverage = Nothing
+      , labels             = []
+      , tables             = []
+      , labelCoverage      = Map.empty
+      , tableCoverage      = []
+      , callbacks          = []
+      , testCase           = []
       }
 
 --------------------------------------------------------------------------
@@ -410,6 +412,9 @@ again = mapTotalResult (\res -> res{ abort = False })
 -- will test @p@ up to 1000 times.
 withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+
+checkCoverage :: Testable prop => Integer -> prop -> Property
+checkCoverage n = n `seq` mapTotalResult (\res -> res{ maybeCheckCoverage = Just n })
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
@@ -597,7 +602,6 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
-  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (conj id roses))
@@ -637,7 +641,6 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
-  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
@@ -663,6 +666,7 @@ disjoin ps =
                    -- test case has failed anyway
                    abort = False,
                    maybeNumTests = Nothing,
+                   maybeCheckCoverage = Nothing,
                    labels = [],
                    tables = [],
                    labelCoverage = Map.empty,

@@ -36,7 +36,7 @@ collectFeaturesWithResult args prop =
   withState args $ \state -> do
     let
       loop feats state = withNullTerminal $ \nullterm -> do
-        res <- test state{terminal = nullterm} (unGen (unProperty (property (prop_noNewFeatures feats prop))))
+        res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
         case res of
           Failure{reason = "New feature found"} -> do
             putLine (terminal state) $
