@@ -502,7 +502,7 @@ cover :: Testable prop =>
 cover x p s =
   mapTotalResult f . classify x s
   where
-    f res = res { labelCoverage = Map.insertWith min s p (labelCoverage res) }
+    f res = res { labelCoverage = Map.insertWith min s (p/100) (labelCoverage res) }
 
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
@@ -513,11 +513,11 @@ tabulate key values =
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
-  -- N.B. don't deepseq ys, to avoid doing a lot of work
-  -- on every test case execution
   table `deepseq`
   mapTotalResult $
-    \res -> res { tableCoverage = (table, Map.fromList xs):tableCoverage res }
+    \res -> res { tableCoverage = (table, Map.fromList ys):tableCoverage res }
+  where
+    ys = [(x, p/100) | (x, p) <- xs]
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),

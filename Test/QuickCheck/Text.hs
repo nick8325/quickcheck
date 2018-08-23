@@ -89,14 +89,14 @@ centre n xs =
 
 lpercent, rpercent :: (Integral a, Integral b) => a -> b -> String
 lpercent n k =
-  lpercentage (100 * fromIntegral n / fromIntegral k) k
+  lpercentage (fromIntegral n / fromIntegral k) k
 
 rpercent n k =
-  rpercentage (100 * fromIntegral n / fromIntegral k) k
+  rpercentage (fromIntegral n / fromIntegral k) k
 
 lpercentage, rpercentage :: Integral a => Double -> a -> String
 lpercentage p n =
-  printf "%.*f" places p ++ "%"
+  printf "%.*f" places (100*p) ++ "%"
   where
     -- Show no decimal places if k <= 100,
     -- one decimal place if k <= 1000,
@@ -107,7 +107,7 @@ lpercentage p n =
 
 rpercentage p n = padding ++ lpercentage p n
   where
-    padding = if p < 10 then " " else ""
+    padding = if p < 0.1 then " " else ""
 
 data Cell = LJust String | RJust String | Centred String deriving Show
 
