@@ -602,6 +602,7 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (conj id roses))
@@ -641,6 +642,7 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
+  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
