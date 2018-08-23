@@ -130,7 +130,7 @@ prop_nonnegative_bound = somePathInt getNonNegative (== 0)
 
 reachesBound :: (Bounded a, Integral a, Arbitrary a) =>
   a -> Property
-reachesBound x = expectFailure (x < 3 * (maxBound `div` 4))
+reachesBound x = withMaxTests 1000 (expectFailure (x < 3 * (maxBound `div` 4)))
 
 prop_reachesBound_Int8 = reachesBound :: Int8 -> Property
 prop_reachesBound_Int16 = reachesBound :: Int16 -> Property
