@@ -91,4 +91,4 @@ prop_terminal cmds =
         hClose writeh
 
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
