@@ -182,3 +182,11 @@ Test-Suite test-quickcheck-terminal
     build-depends: base, process, deepseq, QuickCheck
     if !impl(ghc >= 7.10) || impl(haste)
         buildable: False
+
+Test-Suite test-quickcheck-monadfix
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: MonadFix.hs
+    build-depends: base, QuickCheck
+    if !impl(ghc >= 7.10) || impl(haste)
+        buildable: False

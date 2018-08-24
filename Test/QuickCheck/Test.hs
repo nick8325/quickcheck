@@ -529,6 +529,7 @@ showTable table m cov =
 
     coverage label n =
       case Map.lookup label cov of
+        -- XXX use statistical checks here
         Just p | fromIntegral n < p * fromIntegral k ->
           label ++ " (expected " ++ lpercentage p k ++ ")"
         _ -> label
