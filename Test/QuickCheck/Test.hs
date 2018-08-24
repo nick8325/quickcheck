@@ -442,29 +442,30 @@ successAndTables st =
  where
   allLabels :: [String]
   allLabels =
-    [ "only " ++ lpercent n (numSuccessTests st) ++ " " ++ label ++ ", but expected " ++ lpercentage p (numSuccessTests st)
-    | (label, n, p) <- insufficientlyCoveredLabels ] ++
-    ["" | not (null insufficientlyCoveredLabels) && not (Map.null (Map.delete [] (S.labels st)))] ++
     [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
     lefts tables
 
   longTables :: [[String]]
-  longTables = rights tables
+  longTables =
+    rights tables ++
+    [ [ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
+      ++ lpercent n (numSuccessTests st) ++ " " ++ label ++ ", but expected " ++ lpercentage p (numSuccessTests st)
+      | (mtable, label, n, p) <- insufficientlyCoveredLabels ]
+    | not (null insufficientlyCoveredLabels) ]
 
   allTables :: [String]
   allTables =
-    allLabels ++
-    concat ["":xss | xss <- longTables]
+    intercalate [""] (allLabels:longTables)
 
   tables :: [Either String [String]]
   tables =
     [ showTable table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
     | (table, m) <- Map.toList (S.tables st) ]
 
-  insufficientlyCoveredLabels :: [(String, Int, Double)]
+  insufficientlyCoveredLabels :: [(Maybe String, String, Int, Double)]
   insufficientlyCoveredLabels =
-    [ (label, n, p)
-    | (Nothing, label, tot, n, p) <- allCoverage st,
+    [ (table, label, n, p)
+    | (table, label, tot, n, p) <- allCoverage st,
       insufficientlyCovered (coverageConfidence st) tot n p ]
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
