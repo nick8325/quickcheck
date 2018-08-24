@@ -21,6 +21,9 @@ import Control.Monad
   , filterM
   )
 
+import Control.Monad.Fix
+  ( MonadFix(..) )
+
 import Control.Applicative
   ( Applicative(..) )
 
@@ -61,6 +64,12 @@ instance Monad Gen where
           let MkGen m' = k (m r1 n)
           in m' r2 n
     )
+
+instance MonadFix Gen where
+  mfix f =
+    MkGen $ \r n ->
+      let a = unGen (f a) r n
+      in a
 
 --------------------------------------------------------------------------
 -- ** Primitive generator combinators
