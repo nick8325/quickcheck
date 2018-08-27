@@ -438,10 +438,7 @@ successAndTables st =
  where
   allLabels :: [String]
   allLabels =
-    [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels
-    | (labels, n) <-
-      sortBy (comparing (\(x, y) -> (-y, x))) $
-      Map.toList (S.labels st), not (null labels)]
+    showTable (numSuccessTests st) Nothing (Map.mapKeys (intercalate ",") (Map.filterWithKey (\l _ -> not (null l)) (S.labels st))) Map.empty
 
   output :: [String]
   output =
@@ -457,7 +454,7 @@ successAndTables st =
 
   tables :: [[String]]
   tables =
-    [ showTable (sum (Map.elems m)) table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
+    [ showTable (sum (Map.elems m)) (Just table) m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
     | (table, m) <- Map.toList (S.tables st) ]
 
   insufficientlyCoveredLabels :: [(Maybe String, String, Int, Double)]
@@ -506,12 +503,12 @@ insufficientlyCovered Nothing n k p =
 insufficientlyCovered (Just err) n k p =
   wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < p
 
-showTable :: Int -> String -> Map String Int -> Map String Double -> [String]
-showTable k table m cov =
+showTable :: Int -> Maybe String -> Map String Int -> Map String Double -> [String]
+showTable k mtable m cov =
   manyLines (Map.toList (addCoverage m))
   where
     manyLines kvs =
-      [table ++ " " ++ total ++ ":"] ++
+      [table ++ " " ++ total ++ ":" | Just table <- [mtable]] ++
       (map format .
        -- Descending order of occurrences
        reverse . sortBy (comparing snd) .
