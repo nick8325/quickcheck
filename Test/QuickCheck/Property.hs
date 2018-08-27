@@ -16,7 +16,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State hiding (labels, tables, coverage)
+import Test.QuickCheck.State hiding (labels, covers, tables, coverage)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -232,6 +232,7 @@ data Result
   , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
   , maybeCheckCoverage :: Maybe Integer
   , labels             :: [Maybe String]
+  , covers             :: Set String
   , tables             :: Map String (Map String Int)
   , labelCoverage      :: Map String Double
   , tableCoverage      :: Map String (Map String Double)
@@ -269,6 +270,7 @@ succeeded, failed, rejected :: Result
       , maybeNumTests      = Nothing
       , maybeCheckCoverage = Nothing
       , labels             = []
+      , covers             = Set.empty
       , tables             = Map.empty
       , labelCoverage      = Map.empty
       , tableCoverage      = Map.empty
@@ -502,9 +504,13 @@ cover :: Testable prop =>
       -> String -- ^ Label for the test case class.
       -> prop -> Property
 cover x p s =
-  mapTotalResult f . classify x s
+  mapTotalResult f . clas x s
   where
     f res = res { labelCoverage = Map.insertWith min s (p/100) (labelCoverage res) }
+    clas False _ = property
+    clas True x =
+      x `deepseq`
+      mapTotalResult (\res -> res { covers = Set.insert x (covers res) })
 
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
@@ -633,6 +639,7 @@ conjoin ps =
   -- XXX add coverage in all cases
   addLabels result r =
     r { labels = labels result ++ labels r,
+        covers = Set.union (covers result) (covers r),
         tables = Map.unionWith (Map.unionWith (+)) (tables result) (tables r),
         labelCoverage = Map.unionWith min (labelCoverage result) (labelCoverage r),
         tableCoverage = Map.unionWith (Map.unionWith min) (tableCoverage result) (tableCoverage r) }
@@ -672,6 +679,7 @@ disjoin ps =
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
                    labels = [],
+                   covers = Set.empty,
                    tables = Map.empty,
                    labelCoverage = Map.empty,
                    tableCoverage = Map.empty,

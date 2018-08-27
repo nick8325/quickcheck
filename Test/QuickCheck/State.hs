@@ -27,6 +27,7 @@ data State
   , numDiscardedTests         :: !Int                 -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: !Int                 -- ^ the number of discarded tests since the last successful test
   , labels                    :: !(Map [Maybe String] Int)
+  , covers                    :: !(Map String Int)
   , tables                    :: !(Map String (Map String Int))
   , coverage                  :: !(Map (Maybe String) (Map String Double))
   , expected                  :: !Bool                -- ^ indicates the expected result of the property

@@ -9,10 +9,10 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, tables ), (.&.) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, covers, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State hiding (labels, tables, coverage)
+import Test.QuickCheck.State hiding (labels, covers, tables, coverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
@@ -204,6 +204,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
+                 , S.covers                  = Map.empty
                  , S.tables         = Map.empty
                  , S.coverage                = Map.empty
                  , expected                  = True
@@ -328,6 +329,7 @@ runATest st f =
      let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
                  , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
                  , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
+                 , S.covers = Map.unionWith (+) (S.covers st) (Map.fromSet (const 1) (P.covers res))
                  , S.tables = Map.unionWith (Map.unionWith (+)) (S.tables st) (P.tables res)
                  , S.coverage =
                    Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
@@ -485,20 +487,11 @@ allCoverage st =
   where
     combinedCounts :: Map (Maybe String) (Map String Int)
     combinedCounts =
-      Map.insert Nothing labelCounts
+      Map.insert Nothing (S.covers st)
         (Map.mapKeys Just (S.tables st))
 
     totals :: Map String Int
     totals = fmap (sum . Map.elems) (S.tables st)
-
-    labelCounts :: Map String Int
-    labelCounts =
-      -- N.B. if a test case contains repeated labels, this only counts
-      -- them once (as we want)
-      Map.unionsWith (+) $
-        [ Map.fromList [(x, n) | Just x <- xs]
-        | (xs, n) <- Map.toList (S.labels st) ] ++
-        [ Map.singleton x 0 | x <- Map.keys (Map.findWithDefault Map.empty Nothing (S.coverage st)) ]
 
 sufficientlyCovered :: Integer -> Int -> Int -> Double -> Bool
 sufficientlyCovered err n k p =
