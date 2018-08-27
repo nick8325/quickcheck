@@ -9,7 +9,7 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), features, (.&.) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
 import Test.QuickCheck.State hiding (labels, classes, tables, coverage)
