@@ -107,20 +107,10 @@ prop_Insert x (h :: Heap Int) =
   insert x h ==? (x : toList h)
 
 prop_RemoveMin (h :: Heap Int) =
-  tabulate "sum" ["kadfposadkfssdopfkaof" ++ show (sum (toList h))] $
-  tabulate "size" [show (size h)] $
-  coverTable "size" [("3000000", 89)] $
-  classify (sum (toList h) < 0) "sum negative" $
-  cover False 99 "false" $
-  cover (size h > 1) 99 "non-trivial" $
+  cover (size h > 1) 80 "non-trivial" $
   case removeMin h of
-    Nothing     ->
-      label "removeMin returns Nothing" $
-      h ==? []
-    Just (x,h') ->
-      label "removeMin returns Just" $
-      label (case h' of Empty -> "removeMin results in empty heap"; _ -> "removeMin results in non-empty heap") $
-      x == minimum (toList h) && h' ==? (toList h \\ [x])
+    Nothing     -> h ==? []
+    Just (x,h') -> x == minimum (toList h) && h' ==? (toList h \\ [x])
 
 prop_Merge h1 (h2 :: Heap Int) =
   (h1 `merge` h2) ==? (toList h1 ++ toList h2)
