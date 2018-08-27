@@ -1,6 +1,6 @@
 module Test.QuickCheck.Features where
 
-import Test.QuickCheck.Property hiding (Result, reason, features)
+import Test.QuickCheck.Property hiding (Result, reason)
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Test
 import Test.QuickCheck.Gen
