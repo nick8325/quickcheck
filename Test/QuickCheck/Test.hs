@@ -438,7 +438,10 @@ successAndTables st =
  where
   allLabels :: [String]
   allLabels =
-    [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels | (labels, n) <- Map.toList (S.labels st), not (null labels)] ++
+    [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels
+    | (labels, n) <-
+      sortBy (comparing (\(x, y) -> (-y, x))) $
+      Map.toList (labelsWithoutCoverage st), not (null labels)] ++
     lefts tables
 
   longTables :: [[String]]
@@ -463,6 +466,12 @@ successAndTables st =
     [ (table, label, n, p)
     | (table, label, tot, n, p) <- allCoverage st,
       insufficientlyCovered (coverageConfidence st) tot n p ]
+
+labelsWithoutCoverage :: State -> Map [String] Int
+labelsWithoutCoverage st =
+  Map.mapKeysWith (+) (filter (not . isCoverage)) (S.labels st)
+  where
+    isCoverage l = Map.findWithDefault 0 l (Map.findWithDefault Map.empty Nothing (S.coverage st)) /= 0
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
 allCoverage st =

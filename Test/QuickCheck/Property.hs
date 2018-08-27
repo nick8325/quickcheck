@@ -513,7 +513,7 @@ tabulate key values =
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
-  table `deepseq`
+  table `deepseq` ys `deepseq`
   mapTotalResult $
     \res -> res { tableCoverage = Map.insertWith (Map.unionWith min) table (Map.fromListWith min ys) (tableCoverage res) }
   where
