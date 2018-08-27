@@ -324,52 +324,47 @@ runATest st f =
 
      let continue break st' | abort res = break st'
                             | otherwise = test st'
+
+     let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
+                 , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
+                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
+                 , S.tables = Map.unionWith (Map.unionWith (+)) (S.tables st) (P.tables res)
+                 , S.coverage =
+                   Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
+                 , expected = expect res }
+                
+           
      case res of
-       MkResult{ok = Just True, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- successful test
+       MkResult{ok = Just True} -> -- successful test
          do continue doneTesting
-              st{ numSuccessTests           = numSuccessTests st + 1
-                , numRecentlyDiscardedTests = 0
-                , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
-                , coverageConfidence        = mcc `mplus` coverageConfidence st
-                , randomSeed                = rnd2
-                , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                , S.tables =
-                  Map.unionWith (Map.unionWith (+))
-                    (S.tables st)
-                    (P.tables res)
-                , S.coverage =
-                  Map.unions [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
-                , expected                  = expect
-                } f
+              st'{ numSuccessTests           = numSuccessTests st' + 1
+                 , numRecentlyDiscardedTests = 0
+                 , randomSeed = rnd2
+                 } f
 
        MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- discarded test
          do continue giveUp
-              st{ numDiscardedTests         = numDiscardedTests st + 1
-                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
-                , maxSuccessTests           = fromMaybe (maxSuccessTests st) mnt
-                , coverageConfidence        = mcc `mplus` coverageConfidence st
-                , randomSeed                = rnd2
-                , S.coverage =
-                  Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
-                , expected                  = expect
-                } f
+              st'{ numDiscardedTests         = numDiscardedTests st' + 1
+                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
+                 , randomSeed = rnd2
+                 } f
 
        MkResult{ok = Just False} -> -- failed test
-         do (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
-            theOutput <- terminalOutput (terminal st)
+         do (numShrinks, totFailed, lastFailed, res) <- foundFailure st' res ts
+            theOutput <- terminalOutput (terminal st')
             if not (expect res) then
-              return Success{ labels = S.labels st,
-                              tables = S.tables st,
-                              coverage = S.coverage st,
-                              numTests = numSuccessTests st+1,
-                              numDiscarded = numDiscardedTests st,
+              return Success{ labels = S.labels st',
+                              tables = S.tables st',
+                              coverage = S.coverage st',
+                              numTests = numSuccessTests st'+1,
+                              numDiscarded = numDiscardedTests st',
                               output = theOutput }
              else do
               testCase <- mapM showCounterexample (P.testCase res)
-              return Failure{ usedSeed        = randomSeed st -- correct! (this will be split first)
+              return Failure{ usedSeed        = randomSeed st' -- correct! (this will be split first)
                             , usedSize        = size
-                            , numTests        = numSuccessTests st+1
-                            , numDiscarded    = numDiscardedTests st
+                            , numTests        = numSuccessTests st'+1
+                            , numDiscarded    = numDiscardedTests st'
                             , numShrinks      = numShrinks
                             , numShrinkTries  = totFailed
                             , numShrinkFinal  = lastFailed
