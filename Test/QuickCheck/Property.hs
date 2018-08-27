@@ -232,9 +232,9 @@ data Result
   , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
   , maybeCheckCoverage :: Maybe Integer
   , labels             :: [String]
-  , tables             :: [(String, String)]
+  , tables             :: Map String (Map String Int)
   , labelCoverage      :: Map String Double
-  , tableCoverage      :: [(String, Map String Double)] -- values may be bottom
+  , tableCoverage      :: Map String (Map String Double)
   , callbacks          :: [Callback]        -- ^ the callbacks for this test case
   , testCase           :: [String]          -- ^ the generated test case
   }
@@ -269,9 +269,9 @@ succeeded, failed, rejected :: Result
       , maybeNumTests      = Nothing
       , maybeCheckCoverage = Nothing
       , labels             = []
-      , tables             = []
+      , tables             = Map.empty
       , labelCoverage      = Map.empty
-      , tableCoverage      = []
+      , tableCoverage      = Map.empty
       , callbacks          = []
       , testCase           = []
       }
@@ -508,14 +508,14 @@ tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
   key `deepseq` values `deepseq`
   mapTotalResult $
-    \res -> res { tables = [(key, value) | value <- values] ++ tables res }
+    \res -> res { tables = Map.insertWith (Map.unionWith (+)) key (Map.fromListWith (+) [(value, 1) | value <- values]) (tables res) }
 
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
   table `deepseq`
   mapTotalResult $
-    \res -> res { tableCoverage = (table, Map.fromList ys):tableCoverage res }
+    \res -> res { tableCoverage = Map.insertWith (Map.unionWith min) table (Map.fromListWith min ys) (tableCoverage res) }
   where
     ys = [(x, p/100) | (x, p) <- xs]
 
@@ -631,9 +631,9 @@ conjoin ps =
   -- XXX add coverage in all cases
   addLabels result r =
     r { labels = labels result ++ labels r,
-        tables = tables result ++ tables r,
+        tables = Map.unionWith (Map.unionWith (+)) (tables result) (tables r),
         labelCoverage = Map.unionWith min (labelCoverage result) (labelCoverage r),
-        tableCoverage = tableCoverage result ++ tableCoverage r }
+        tableCoverage = Map.unionWith (Map.unionWith min) (tableCoverage result) (tableCoverage r) }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -670,9 +670,9 @@ disjoin ps =
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
                    labels = [],
-                   tables = [],
+                   tables = Map.empty,
                    labelCoverage = Map.empty,
-                   tableCoverage = [],
+                   tableCoverage = Map.empty,
                    callbacks =
                      callbacks result1 ++
                      [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++

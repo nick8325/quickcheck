@@ -113,7 +113,8 @@ data Result
     , theException    :: Maybe AnException -- ^ The exception the property threw, if any
     , output          :: String            --   Printed output
     , failingTestCase :: [String]          -- ^ The test case which provoked the failure
-    , features        :: Set String
+    , failingLabels   :: [String]
+    , failingTables   :: Map String (Map String Int)
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
@@ -335,10 +336,9 @@ runATest st f =
                 , S.tables =
                   Map.unionWith (Map.unionWith (+))
                     (S.tables st)
-                    (Map.fromListWith (Map.unionWith (+))
-                     [(x, Map.singleton y 1) | (x, y) <- P.tables res])
+                    (P.tables res)
                 , S.coverage =
-                  Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
+                  Map.unions [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
                 , expected                  = expect
                 } f
 
@@ -350,7 +350,7 @@ runATest st f =
                 , coverageConfidence        = mcc `mplus` coverageConfidence st
                 , randomSeed                = rnd2
                 , S.coverage =
-                  Map.unions [S.coverage st, Map.mapKeys Just (Map.fromList (P.tableCoverage res)), Map.singleton Nothing (P.labelCoverage res)]
+                  Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
                 , expected                  = expect
                 } f
 
@@ -377,7 +377,8 @@ runATest st f =
                             , reason          = P.reason res
                             , theException    = P.theException res
                             , failingTestCase = testCase
-                            , features        = Set.fromList (P.labels res)
+                            , failingLabels   = P.labels res
+                            , failingTables   = P.tables res
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
