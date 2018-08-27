@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 module Test.QuickCheck.Features where
 
 import Test.QuickCheck.Property hiding (Result, reason)
@@ -8,7 +9,15 @@ import Test.QuickCheck.State
 import Test.QuickCheck.Text
 import qualified Data.Set as Set
 import Data.Set(Set)
+#if defined(MIN_VERSION_containers)
+#if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
+#else
+import qualified Data.Map as Map
+#endif
+#else
+import qualified Data.Map as Map
+#endif
 import Data.List
 import Data.IORef
 
