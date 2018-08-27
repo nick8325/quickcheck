@@ -9,10 +9,10 @@ module Test.QuickCheck.Test where
 -- imports
 
 import Test.QuickCheck.Gen
-import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, covers, tables ), (.&.) )
+import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), features, (.&.) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State hiding (labels, covers, tables, coverage)
+import Test.QuickCheck.State hiding (labels, classes, tables, coverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
@@ -42,7 +42,7 @@ import Data.List
   , intercalate
   )
 
-import Data.Maybe(fromMaybe, isNothing)
+import Data.Maybe(fromMaybe, isNothing, catMaybes)
 import Data.Ord(comparing)
 import Text.Printf(printf)
 import Data.Either(lefts, rights)
@@ -86,7 +86,8 @@ data Result
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels          :: !(Map [Maybe String] Int)
+    , labels          :: !(Map [String] Int)
+    , classes         :: !(Map String Int)
     , tables          :: !(Map String (Map String Int))
     , coverage        :: !(Map (Maybe String) (Map String Double))
     , output         :: String            -- ^ Printed output
@@ -95,7 +96,8 @@ data Result
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [Maybe String] Int)
+    , labels                    :: !(Map [String] Int)
+    , classes         :: !(Map String Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
@@ -113,14 +115,15 @@ data Result
     , theException    :: Maybe AnException -- ^ The exception the property threw, if any
     , output          :: String            --   Printed output
     , failingTestCase :: [String]          -- ^ The test case which provoked the failure
-    , failingLabels   :: [Maybe String]
-    , failingTables   :: Map String (Map String Int)
+    , failingLabels   :: [String]
+    , failingClasses  :: Set String
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [Maybe String] Int)
+    , labels                    :: !(Map [String] Int)
+    , classes         :: !(Map String Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
@@ -204,7 +207,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
-                 , S.covers                  = Map.empty
+                 , S.classes                 = Map.empty
                  , S.tables         = Map.empty
                  , S.coverage                = Map.empty
                  , expected                  = True
@@ -277,7 +280,7 @@ doneTesting st _f
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.tables st) (S.coverage st) theOutput)
+      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) (S.coverage st) theOutput)
 
 giveUp :: State -> Property -> IO Result
 giveUp st _f =
@@ -293,6 +296,7 @@ giveUp st _f =
      return GaveUp{ numTests = numSuccessTests st
                   , numDiscarded = numDiscardedTests st
                   , labels   = S.labels st
+                  , classes  = S.classes st
                   , tables = S.tables st
                   , coverage = S.coverage st
                   , output   = theOutput
@@ -329,7 +333,7 @@ runATest st f =
      let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
                  , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
                  , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                 , S.covers = Map.unionWith (+) (S.covers st) (Map.fromSet (const 1) (P.covers res))
+                 , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (Set.toList (P.classes res)) (repeat 1)))
                  , S.tables = Map.unionWith (Map.unionWith (+)) (S.tables st) (P.tables res)
                  , S.coverage =
                    Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
@@ -356,6 +360,7 @@ runATest st f =
             theOutput <- terminalOutput (terminal st')
             if not (expect res) then
               return Success{ labels = S.labels st',
+                              classes = S.classes st',
                               tables = S.tables st',
                               coverage = S.coverage st',
                               numTests = numSuccessTests st'+1,
@@ -375,7 +380,7 @@ runATest st f =
                             , theException    = P.theException res
                             , failingTestCase = testCase
                             , failingLabels   = P.labels res
-                            , failingTables   = P.tables res
+                            , failingClasses  = P.classes res
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
@@ -442,14 +447,15 @@ successAndTables st =
   allLabels =
     intercalate [""] $
       [ showTable (numSuccessTests st) Nothing m
-      | m <- Map.elems numberedLabels ]
+      | m <- S.classes st:Map.elems numberedLabels,
+        not (Map.null m) ]
 
   numberedLabels :: Map Int (Map String Int)
   numberedLabels =
     Map.fromListWith (Map.unionWith (+)) $
       [ (i, Map.singleton l n)
       | (labels, n) <- Map.toList (S.labels st),
-        (i, Just l) <- zip [0..] labels ]
+        (i, l) <- zip [0..] labels ]
 
   output :: [String]
   output =
@@ -487,7 +493,7 @@ allCoverage st =
   where
     combinedCounts :: Map (Maybe String) (Map String Int)
     combinedCounts =
-      Map.insert Nothing (S.covers st)
+      Map.insert Nothing (S.classes st)
         (Map.mapKeys Just (S.tables st))
 
     totals :: Map String Int

@@ -1,6 +1,6 @@
 module Test.QuickCheck.Features where
 
-import Test.QuickCheck.Property hiding (Result, reason)
+import Test.QuickCheck.Property hiding (Result, reason, features)
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Test
 import Test.QuickCheck.Gen
@@ -12,14 +12,18 @@ import Data.List
 import Data.IORef
 import Data.Maybe
 
+features :: [String] -> Set String -> Set String
+features labels classes =
+  Set.fromList labels `Set.union` classes
+
 prop_noNewFeatures :: Testable prop => Set String -> prop -> Property
-prop_noNewFeatures features prop =
+prop_noNewFeatures feats prop =
   mapResult f prop
   where
     f res =
       case ok res of
         Just True
-          | not (Set.fromList (catMaybes (P.labels res)) `Set.isSubsetOf` features) ->
+          | not (features (P.labels res) (P.classes res) `Set.isSubsetOf` feats) ->
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
@@ -39,15 +43,15 @@ labelledExamplesWithResult args prop =
       loop :: Set String -> State -> IO Result
       loop feats state = withNullTerminal $ \nullterm -> do
         res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
+        let feats' = features (failingLabels res) (failingClasses res)
         case res of
           Failure{reason = "New feature found"} -> do
-            let features = Set.fromList (catMaybes (failingLabels res))
             putLine (terminal state) $
               "*** Found new test case exercising feature " ++ 
-              intercalate ", " (Set.toList (features Set.\\ feats))
+              intercalate ", " (Set.toList (feats' Set.\\ feats))
             mapM_ (putLine (terminal state)) (failingTestCase res)
             putStrLn ""
-            loop (Set.union feats features)
+            loop (Set.union feats feats')
               state{randomSeed = usedSeed res, computeSize = computeSize state `at0` usedSize res}
           _ -> do
             out <- terminalOutput nullterm

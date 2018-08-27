@@ -16,7 +16,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State hiding (labels, covers, tables, coverage)
+import Test.QuickCheck.State hiding (labels, classes, tables, coverage)
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -34,6 +34,7 @@ import Control.DeepSeq
 #ifndef NO_TYPEABLE
 import Data.Typeable (Typeable)
 #endif
+import Data.Maybe
 
 --------------------------------------------------------------------------
 -- fixities
@@ -231,8 +232,8 @@ data Result
   , abort              :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
   , maybeCheckCoverage :: Maybe Integer
-  , labels             :: [Maybe String]
-  , covers             :: Set String
+  , labels             :: [String]
+  , classes            :: Set String
   , tables             :: Map String (Map String Int)
   , labelCoverage      :: Map String Double
   , tableCoverage      :: Map String (Map String Double)
@@ -270,7 +271,7 @@ succeeded, failed, rejected :: Result
       , maybeNumTests      = Nothing
       , maybeCheckCoverage = Nothing
       , labels             = []
-      , covers             = Set.empty
+      , classes            = Set.empty
       , tables             = Map.empty
       , labelCoverage      = Map.empty
       , tableCoverage      = Map.empty
@@ -436,7 +437,10 @@ checkCoverage n = n `seq` mapTotalResult (\res -> res{ maybeCheckCoverage = Just
 -- 4% length of input is 6
 -- ...
 label :: Testable prop => String -> prop -> Property
-label s = classify True s
+label s =
+  s `deepseq`
+  mapTotalResult $
+    \res -> res { labels = s:labels res }
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.
@@ -476,13 +480,11 @@ classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
-classify False s =
-  mapTotalResult $
-    \res -> res { labels = Nothing:labels res }
+classify False _ = property
 classify True s =
   s `deepseq`
   mapTotalResult $
-    \res -> res { labels = Just s:labels res }
+    \res -> res { classes = Set.insert s (classes res) }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
@@ -503,14 +505,9 @@ cover :: Testable prop =>
       -> Double -- ^ The required percentage (0-100) of test cases.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover x p s =
-  mapTotalResult f . clas x s
+cover x p s = mapTotalResult f . classify x s
   where
     f res = res { labelCoverage = Map.insertWith min s (p/100) (labelCoverage res) }
-    clas False _ = property
-    clas True x =
-      x `deepseq`
-      mapTotalResult (\res -> res { covers = Set.insert x (covers res) })
 
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
@@ -639,7 +636,7 @@ conjoin ps =
   -- XXX add coverage in all cases
   addLabels result r =
     r { labels = labels result ++ labels r,
-        covers = Set.union (covers result) (covers r),
+        classes = Set.union (classes result) (classes r),
         tables = Map.unionWith (Map.unionWith (+)) (tables result) (tables r),
         labelCoverage = Map.unionWith min (labelCoverage result) (labelCoverage r),
         tableCoverage = Map.unionWith (Map.unionWith min) (tableCoverage result) (tableCoverage r) }
@@ -679,7 +676,7 @@ disjoin ps =
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
                    labels = [],
-                   covers = Set.empty,
+                   classes = Set.empty,
                    tables = Map.empty,
                    labelCoverage = Map.empty,
                    tableCoverage = Map.empty,
