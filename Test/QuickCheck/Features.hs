@@ -10,6 +10,7 @@ import qualified Data.Set as Set
 import Data.Set(Set)
 import Data.List
 import Data.IORef
+import Data.Maybe
 
 prop_noNewFeatures :: Testable prop => Set String -> prop -> Property
 prop_noNewFeatures features prop =
@@ -18,7 +19,7 @@ prop_noNewFeatures features prop =
     f res =
       case ok res of
         Just True
-          | not (Set.fromList (P.labels res) `Set.isSubsetOf` features) ->
+          | not (Set.fromList (catMaybes (P.labels res)) `Set.isSubsetOf` features) ->
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
@@ -40,7 +41,7 @@ labelledExamplesWithResult args prop =
         res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
         case res of
           Failure{reason = "New feature found"} -> do
-            let features = Set.fromList (failingLabels res)
+            let features = Set.fromList (catMaybes (failingLabels res))
             putLine (terminal state) $
               "*** Found new test case exercising feature " ++ 
               intercalate ", " (Set.toList (features Set.\\ feats))

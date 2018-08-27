@@ -86,7 +86,7 @@ data Result
   = Success
     { numTests       :: Int               -- ^ Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels          :: !(Map [String] Int)
+    , labels          :: !(Map [Maybe String] Int)
     , tables          :: !(Map String (Map String Int))
     , coverage        :: !(Map (Maybe String) (Map String Double))
     , output         :: String            -- ^ Printed output
@@ -95,7 +95,7 @@ data Result
   | GaveUp
     { numTests       :: Int               --   Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [String] Int)
+    , labels                    :: !(Map [Maybe String] Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
@@ -113,14 +113,14 @@ data Result
     , theException    :: Maybe AnException -- ^ The exception the property threw, if any
     , output          :: String            --   Printed output
     , failingTestCase :: [String]          -- ^ The test case which provoked the failure
-    , failingLabels   :: [String]
+    , failingLabels   :: [Maybe String]
     , failingTables   :: Map String (Map String Int)
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests       :: Int               --   Number of tests performed
     , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [String] Int)
+    , labels                    :: !(Map [Maybe String] Int)
     , tables           :: !(Map String (Map String Int))
     , coverage                  :: !(Map (Maybe String) (Map String Double))
     , output         :: String            --   Printed output
@@ -438,7 +438,16 @@ successAndTables st =
  where
   allLabels :: [String]
   allLabels =
-    showTable (numSuccessTests st) Nothing (Map.mapKeys (intercalate ",") (Map.filterWithKey (\l _ -> not (null l)) (S.labels st))) Map.empty
+    intercalate [""] $
+      [ showTable (numSuccessTests st) Nothing m
+      | m <- Map.elems numberedLabels ]
+
+  numberedLabels :: Map Int (Map String Int)
+  numberedLabels =
+    Map.fromListWith (Map.unionWith (+)) $
+      [ (i, Map.singleton l n)
+      | (labels, n) <- Map.toList (S.labels st),
+        (i, Just l) <- zip [0..] labels ]
 
   output :: [String]
   output =
@@ -454,7 +463,7 @@ successAndTables st =
 
   tables :: [[String]]
   tables =
-    [ showTable (sum (Map.elems m)) (Just table) m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
+    [ showTable (sum (Map.elems m)) (Just table) m
     | (table, m) <- Map.toList (S.tables st) ]
 
   insufficientlyCoveredLabels :: [(Maybe String, String, Int, Double)]
@@ -487,7 +496,7 @@ allCoverage st =
       -- N.B. if a test case contains repeated labels, this only counts
       -- them once (as we want)
       Map.unionsWith (+) $
-        [ Map.fromList [(x, n) | x <- xs]
+        [ Map.fromList [(x, n) | Just x <- xs]
         | (xs, n) <- Map.toList (S.labels st) ] ++
         [ Map.singleton x 0 | x <- Map.keys (Map.findWithDefault Map.empty Nothing (S.coverage st)) ]
 
@@ -503,35 +512,21 @@ insufficientlyCovered Nothing n k p =
 insufficientlyCovered (Just err) n k p =
   wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < p
 
-showTable :: Int -> Maybe String -> Map String Int -> Map String Double -> [String]
-showTable k mtable m cov =
-  manyLines (Map.toList (addCoverage m))
+showTable :: Int -> Maybe String -> Map String Int -> [String]
+showTable k mtable m =
+  [table ++ " " ++ total ++ ":" | Just table <- [mtable]] ++
+  (map format .
+   -- Descending order of occurrences
+   reverse . sortBy (comparing snd) .
+   -- If #occurences the same, sort in increasing order of key
+   -- (note: works because sortBy is stable)
+   reverse . sortBy (comparing fst) $ Map.toList m)
   where
-    manyLines kvs =
-      [table ++ " " ++ total ++ ":" | Just table <- [mtable]] ++
-      (map format .
-       -- Descending order of occurrences
-       reverse . sortBy (comparing snd) .
-       -- If #occurences the same, sort in increasing order of key
-       -- (note: works because sortBy is stable)
-       reverse . sortBy (comparing fst) $ kvs)
-      where
-        format (key, v) =
-          rpercent v k ++ " " ++ coverage key v
+    format (key, v) =
+      rpercent v k ++ " " ++ key
 
-        total = printf "(%d in total)" k
+    total = printf "(%d in total)" k
 
-    coverage label n =
-      case Map.lookup label cov of
-        -- XXX use statistical checks here
-        Just p | fromIntegral n < p * fromIntegral k ->
-          label ++ " (expected " ++ lpercentage p k ++ ")"
-        _ -> label
-
-    addCoverage m =
-      Map.unionWith (+) m
-        (Map.fromList [(x, 0) | x <- Map.keys cov])
-        
 --------------------------------------------------------------------------
 -- main shrinking loop
 

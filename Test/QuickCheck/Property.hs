@@ -231,7 +231,7 @@ data Result
   , abort              :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
   , maybeCheckCoverage :: Maybe Integer
-  , labels             :: [String]
+  , labels             :: [Maybe String]
   , tables             :: Map String (Map String Int)
   , labelCoverage      :: Map String Double
   , tableCoverage      :: Map String (Map String Double)
@@ -474,11 +474,13 @@ classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
-classify False s = property
+classify False s =
+  mapTotalResult $
+    \res -> res { labels = Nothing:labels res }
 classify True s =
   s `deepseq`
   mapTotalResult $
-    \res -> res { labels = s:labels res }
+    \res -> res { labels = Just s:labels res }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
