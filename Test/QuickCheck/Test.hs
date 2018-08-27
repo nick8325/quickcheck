@@ -423,42 +423,41 @@ allTables :: State -> [String]
 success = snd . successAndTables
 allTables = fst . successAndTables
 successAndTables st =
-  (allTables,
+  (output,
    case allLabels of
-     [] | null longTables ->
+     [] | null longOutput ->
        do putLine (terminal st) "."
-     [pt] | null longTables ->
+     [pt] | null longOutput ->
        do putLine (terminal st)
             ( " ("
            ++ dropWhile isSpace pt
            ++ ")."
             )
      _ -> do putLine (terminal st) ":"
-             mapM_ (putLine $ terminal st) allTables)
+             mapM_ (putLine $ terminal st) output)
  where
   allLabels :: [String]
   allLabels =
     [ rpercent n (numSuccessTests st) ++ " " ++ intercalate ", " labels
     | (labels, n) <-
       sortBy (comparing (\(x, y) -> (-y, x))) $
-      Map.toList (S.labels st), not (null labels)] ++
-    lefts tables
+      Map.toList (S.labels st), not (null labels)]
 
-  longTables :: [[String]]
-  longTables =
-    rights tables ++
+  output :: [String]
+  output =
+    intercalate [""] (allLabels:longOutput)
+
+  longOutput :: [[String]]
+  longOutput =
+    tables ++
     [ [ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
       ++ lpercent n (numSuccessTests st) ++ " " ++ label ++ ", but expected " ++ lpercentage p (numSuccessTests st)
       | (mtable, label, n, p) <- insufficientlyCoveredLabels ]
     | not (null insufficientlyCoveredLabels) ]
 
-  allTables :: [String]
-  allTables =
-    intercalate [""] (allLabels:longTables)
-
-  tables :: [Either String [String]]
+  tables :: [[String]]
   tables =
-    [ showTable table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
+    [ showTable (sum (Map.elems m)) table m (Map.findWithDefault Map.empty (Just table) (S.coverage st))
     | (table, m) <- Map.toList (S.tables st) ]
 
   insufficientlyCoveredLabels :: [(Maybe String, String, Int, Double)]
@@ -507,22 +506,21 @@ insufficientlyCovered Nothing n k p =
 insufficientlyCovered (Just err) n k p =
   wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < p
 
-showTable :: String -> Map String Int -> Map String Double -> Either String [String]
-showTable table m cov =
+showTable :: Int -> String -> Map String Int -> Map String Double -> [String]
+showTable k table m cov =
   manyLines (Map.toList (addCoverage m))
   where
-    k = sum (Map.elems m)
-
     manyLines kvs =
-      Right . drawTable [table, total] . map format .
-      -- Descending order of occurrences
-      reverse . sortBy (comparing snd) .
-      -- If #occurences the same, sort in increasing order of key
-      -- (note: works because sortBy is stable)
-      reverse . sortBy (comparing fst) $ kvs
+      [table ++ " " ++ total ++ ":"] ++
+      (map format .
+       -- Descending order of occurrences
+       reverse . sortBy (comparing snd) .
+       -- If #occurences the same, sort in increasing order of key
+       -- (note: works because sortBy is stable)
+       reverse . sortBy (comparing fst) $ kvs)
       where
         format (key, v) =
-          [RJust (rpercent v k), LJust (coverage key v)]
+          rpercent v k ++ " " ++ coverage key v
 
         total = printf "(%d in total)" k
 
