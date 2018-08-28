@@ -465,8 +465,8 @@ successAndTables st =
   longOutput =
     tables ++
     [ [ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
-      ++ lpercent n (numSuccessTests st) ++ " " ++ label ++ ", but expected " ++ lpercentage p (numSuccessTests st)
-      | (mtable, label, n, p) <- insufficientlyCoveredLabels ]
+      ++ lpercent n tot ++ " " ++ label ++ ", but expected " ++ lpercentage p tot
+      | (mtable, label, tot, n, p) <- insufficientlyCoveredLabels ]
     | not (null insufficientlyCoveredLabels) ]
 
   tables :: [[String]]
@@ -474,9 +474,9 @@ successAndTables st =
     [ showTable (sum (Map.elems m)) (Just table) m
     | (table, m) <- Map.toList (S.tables st) ]
 
-  insufficientlyCoveredLabels :: [(Maybe String, String, Int, Double)]
+  insufficientlyCoveredLabels :: [(Maybe String, String, Int, Int, Double)]
   insufficientlyCoveredLabels =
-    [ (table, label, n, p)
+    [ (table, label, tot, n, p)
     | (table, label, tot, n, p) <- allCoverage st,
       insufficientlyCovered (coverageConfidence st) tot n p ]
 
