@@ -172,7 +172,7 @@ prop_Unit (x :: Int) =
   unit x ==? [x]
 
 prop_Size (s :: Set Int) =
-  cover (size s >= 15) 60 "large" $
+  cover 60 (size s >= 15) "large" $
     size s == length (toList s)
 
 prop_Insert x (s :: Set Int) =

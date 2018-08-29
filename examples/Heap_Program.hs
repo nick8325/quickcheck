@@ -167,7 +167,7 @@ prop_Insert x (HeapPP _ h) =
   insert x h ==? (x : toList h)
 
 prop_RemoveMin (HeapPP _ h) =
-  cover (size h > 1) 80 "non-trivial" $
+  cover 80 (size h > 1) "non-trivial" $
   case removeMin h of
     Nothing     -> h ==? []
     Just (x,h') -> x == minimum (toList h) && h' ==? (toList h \\ [x])
