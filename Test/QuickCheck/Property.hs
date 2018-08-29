@@ -428,7 +428,7 @@ checkCoverageWith confidence =
 stdConfidence :: Confidence
 stdConfidence =
   Confidence {
-    certainty = 10^6,
+    certainty = 10^8,
     tolerance = 0.9 }
 
 -- | Attaches a label to a property. This is used for reporting
