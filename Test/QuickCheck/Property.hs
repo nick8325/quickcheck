@@ -501,11 +501,11 @@ classify True s =
 -- >>> quickCheck prop_sorted_sort
 -- *** Insufficient coverage after 100 tests (only 24% non-trivial, not 50%).
 cover :: Testable prop =>
-         Bool   -- ^ @True@ if the test case belongs to the class.
-      -> Double -- ^ The required percentage (0-100) of test cases.
+         Double -- ^ The required percentage (0-100) of test cases.
+      -> Bool   -- ^ @True@ if the test case belongs to the class.
       -> String -- ^ Label for the test case class.
       -> prop -> Property
-cover x p s = mapTotalResult f . classify x s
+cover p x s = mapTotalResult f . classify x s
   where
     f res = res { labelCoverage = Map.insertWith min s (p/100) (labelCoverage res) }
 
