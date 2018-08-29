@@ -350,10 +350,11 @@ runATest st f =
 
        MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- discarded test
          do continue giveUp
-              st'{ numDiscardedTests         = numDiscardedTests st' + 1
-                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
-                 , randomSeed = rnd2
-                 } f
+              -- Don't add coverage info from this test
+              st{ numDiscardedTests         = numDiscardedTests st' + 1
+                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
+                , randomSeed = rnd2
+                } f
 
        MkResult{ok = Just False} -> -- failed test
          do (numShrinks, totFailed, lastFailed, res) <- foundFailure st' res ts
