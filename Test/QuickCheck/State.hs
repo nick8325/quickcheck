@@ -17,7 +17,7 @@ data State
   { terminal                  :: Terminal             -- ^ the current terminal
   , maxSuccessTests           :: Int                  -- ^ maximum number of successful tests needed
   , maxDiscardedRatio         :: Int                  -- ^ maximum number of discarded tests per successful test
-  , coverageConfidence        :: Maybe Integer
+  , coverageConfidence        :: Maybe Confidence
   , computeSize               :: Int -> Int -> Int    -- ^ how to compute the size of test cases from
                                                       --   #tests and #discarded tests
   , numTotMaxShrinks          :: !Int                 -- ^ How many shrinks to try before giving up
@@ -38,6 +38,11 @@ data State
   , numTryShrinks             :: !Int                 -- ^ number of failed shrinking steps since the last successful shrink
   , numTotTryShrinks          :: !Int                 -- ^ total number of failed shrinking steps
   }
+
+data Confidence =
+  Confidence {
+    certainty :: Integer,
+    tolerance :: Double }
 
 --------------------------------------------------------------------------
 -- the end.

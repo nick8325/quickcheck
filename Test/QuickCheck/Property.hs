@@ -231,7 +231,7 @@ data Result
   , theException       :: Maybe AnException -- ^ the exception thrown, if any
   , abort              :: Bool              -- ^ if True, the test should not be repeated
   , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
-  , maybeCheckCoverage :: Maybe Integer
+  , maybeCheckCoverage :: Maybe Confidence
   , labels             :: [String]
   , classes            :: Set String
   , tables             :: Map String (Map String Int)
@@ -416,8 +416,20 @@ again = mapTotalResult (\res -> res{ abort = False })
 withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
-checkCoverage :: Testable prop => Integer -> prop -> Property
-checkCoverage n = n `seq` mapTotalResult (\res -> res{ maybeCheckCoverage = Just n })
+checkCoverage :: Testable prop => prop -> Property
+checkCoverage = checkCoverageWith stdConfidence
+
+checkCoverageWith :: Testable prop => Confidence -> prop -> Property
+checkCoverageWith confidence =
+  certainty confidence `seq`
+  tolerance confidence `seq`
+  mapTotalResult (\res -> res{ maybeCheckCoverage = Just confidence })
+
+stdConfidence :: Confidence
+stdConfidence =
+  Confidence {
+    certainty = 10^6,
+    tolerance = 0.9 }
 
 -- | Attaches a label to a property. This is used for reporting
 -- test case distribution.

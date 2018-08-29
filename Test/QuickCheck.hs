@@ -205,6 +205,8 @@ module Test.QuickCheck
   , again
   , withMaxSuccess
   , checkCoverage
+  , checkCoverageWith
+  , Confidence(..)
   , within
   , noShrinking
     -- *** Conjunction and disjunction
@@ -244,6 +246,7 @@ import Test.QuickCheck.Test
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Function
 import Test.QuickCheck.Features
+import Test.QuickCheck.State
 #ifndef NO_TEMPLATE_HASKELL
 import Test.QuickCheck.All
 #endif

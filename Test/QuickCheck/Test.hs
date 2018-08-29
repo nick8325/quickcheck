@@ -166,12 +166,12 @@ quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
 
-coverageProp :: Integer -> State -> Property -> Property
-coverageProp err st prop
-  | and [ sufficientlyCovered err tot n p
+coverageProp :: Confidence -> State -> Property -> Property
+coverageProp confidence st prop
+  | and [ sufficientlyCovered confidence tot n p
         | (_, _, tot, n, p) <- allCoverage st ] =
     once True
-  | or [ insufficientlyCovered (Just err) tot n p
+  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
        | (_, _, tot, n, p) <- allCoverage st ] =
     foldr counterexample (property failed{P.reason = "Insufficient coverage"}) (allTables st)
   | otherwise = prop
@@ -320,8 +320,8 @@ runATest st f =
      let powerOfTwo n = n .&. (n - 1) == 0
      let f_or_cov =
            case coverageConfidence st of
-             Just n | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
-               coverageProp n st f
+             Just confidence | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
+               coverageProp confidence st f
              _ -> f
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
@@ -478,7 +478,7 @@ successAndTables st =
   insufficientlyCoveredLabels =
     [ (table, label, tot, n, p)
     | (table, label, tot, n, p) <- allCoverage st,
-      insufficientlyCovered (coverageConfidence st) tot n p ]
+      insufficientlyCovered (fmap certainty (coverageConfidence st)) tot n p ]
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
 allCoverage st =
@@ -499,11 +499,14 @@ allCoverage st =
     totals :: Map String Int
     totals = fmap (sum . Map.elems) (S.tables st)
 
-sufficientlyCovered :: Integer -> Int -> Int -> Double -> Bool
-sufficientlyCovered err n k p =
+sufficientlyCovered :: Confidence -> Int -> Int -> Double -> Bool
+sufficientlyCovered confidence n k p =
   -- Accept the coverage if, with high confidence, the actual probability is
   -- at least 0.9 times the required one.
   wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= 0.9 * p
+  where
+    err = certainty confidence
+    p = tolerance confidence
 
 insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
 insufficientlyCovered Nothing n k p =
