@@ -420,19 +420,17 @@ failureSummaryAndReason st res = (summary, full)
         showNumTryShrinks = full && numTryShrinks st > 0
 
 success :: State -> IO ()
-success st =
-  case labelsAndTables st of
-    ([], []) ->
-      do putLine (terminal st) "."
-    ([pt], []) ->
-      do putLine (terminal st)
-           ( " ("
-          ++ dropWhile isSpace pt
-          ++ ")."
-           )
-    (short, long) ->
-      do putLine (terminal st) ":"
-         mapM_ (putLine $ terminal st) (paragraphs [short, long])
+success st = do
+  mapM_ (putLine $ terminal st) (paragraphs [short, long])
+  where
+    (short, long) =
+      case labelsAndTables st of
+        ([msg], long) ->
+          ([" (" ++ dropWhile isSpace msg ++ ")."], long)
+        ([], long) ->
+          (["."], long)
+        (short, long) ->
+          (":":short, long)
 
 labelsAndTables :: State -> ([String], [String])
 labelsAndTables st = (labels, tables)
