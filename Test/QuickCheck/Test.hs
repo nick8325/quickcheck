@@ -177,6 +177,10 @@ coverageProp confidence st prop
   | otherwise = prop
 
 -- https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval
+-- Note:
+-- https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/Confidence_Intervals_for_One_Proportion.pdf
+-- suggests we should use a instead of a/2 for a one-sided test. Look
+-- into this.
 wilson :: Integer -> Integer -> Double -> Double
 wilson k n z =
   (p + z*z/(2*nf) + z*sqrt (p*(1-p)/nf + z*z/(4*nf*nf)))/(1 + z*z/nf)
