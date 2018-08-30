@@ -12,10 +12,11 @@ import Test.QuickCheck.Gen
 import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Text
-import Test.QuickCheck.State hiding (labels, classes, tables, coverage)
+import Test.QuickCheck.State hiding (labels, classes, tables, requiredCoverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
+import Data.Number.Erf(invnormcdf)
 import System.Random(split)
 #if defined(MIN_VERSION_containers)
 #if MIN_VERSION_containers(0,5,0)
@@ -46,7 +47,6 @@ import Data.Maybe(fromMaybe, isNothing, catMaybes)
 import Data.Ord(comparing)
 import Text.Printf(printf)
 import Data.Either(lefts, rights)
-import Data.Number.Erf(invnormcdf)
 import Control.Monad
 import Data.Bits
 
@@ -84,49 +84,65 @@ data Args
 data Result
   -- | A successful test run
   = Success
-    { numTests       :: Int               -- ^ Number of tests performed
-    , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels          :: !(Map [String] Int)
-    , classes         :: !(Map String Int)
-    , tables          :: !(Map String (Map String Int))
-    , coverage        :: !(Map (Maybe String) (Map String Double))
-    , output         :: String            -- ^ Printed output
+    { numTests     :: Int
+      -- ^ Number of tests performed
+    , numDiscarded :: Int
+      -- ^ Number of tests skipped
+    , labels       :: !(Map [String] Int)
+      -- ^ The number of test cases having each combination of labels (see 'label')
+    , classes      :: !(Map String Int)
+      -- ^ The number of test cases having each class (see 'classify')
+    , tables       :: !(Map String (Map String Int))
+      -- ^ Data collected by 'tabulate'
+    , output       :: String
+      -- ^ Printed output
     }
   -- | Given up
   | GaveUp
-    { numTests       :: Int               --   Number of tests performed
-    , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [String] Int)
-    , classes         :: !(Map String Int)
-    , tables           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map (Maybe String) (Map String Double))
-    , output         :: String            --   Printed output
+    { numTests     :: Int
+    , numDiscarded :: Int
+      -- ^ Number of tests skipped
+    , labels       :: !(Map [String] Int)
+    , classes      :: !(Map String Int)
+    , tables       :: !(Map String (Map String Int))
+    , output       :: String
     }
   -- | A failed test run
   | Failure
-    { numTests        :: Int               --   Number of tests performed
-    , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , numShrinks      :: Int               -- ^ Number of successful shrinking steps performed
-    , numShrinkTries  :: Int               -- ^ Number of unsuccessful shrinking steps performed
-    , numShrinkFinal  :: Int               -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
-    , usedSeed        :: QCGen             -- ^ What seed was used
-    , usedSize        :: Int               -- ^ What was the test size
-    , reason          :: String            -- ^ Why did the property fail
-    , theException    :: Maybe AnException -- ^ The exception the property threw, if any
-    , output          :: String            --   Printed output
-    , failingTestCase :: [String]          -- ^ The test case which provoked the failure
+    { numTests        :: Int
+    , numDiscarded    :: Int
+      -- ^ Number of tests skipped
+    , numShrinks      :: Int
+      -- ^ Number of successful shrinking steps performed
+    , numShrinkTries  :: Int
+      -- ^ Number of unsuccessful shrinking steps performed
+    , numShrinkFinal  :: Int
+      -- ^ Number of unsuccessful shrinking steps performed since last successful shrink
+    , usedSeed        :: QCGen
+      -- ^ What seed was used
+    , usedSize        :: Int
+      -- ^ What was the test size
+    , reason          :: String
+      -- ^ Why did the property fail
+    , theException    :: Maybe AnException
+      -- ^ The exception the property threw, if any
+    , output          :: String
+    , failingTestCase :: [String]
+      -- ^ The test case which provoked the failure
     , failingLabels   :: [String]
+      -- ^ The test case's labels (see 'label')
     , failingClasses  :: Set String
+      -- ^ The test case's classes (see 'classify')
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
-    { numTests       :: Int               --   Number of tests performed
-    , numDiscarded   :: Int               -- ^ Number of tests skipped
-    , labels                    :: !(Map [String] Int)
-    , classes         :: !(Map String Int)
-    , tables           :: !(Map String (Map String Int))
-    , coverage                  :: !(Map (Maybe String) (Map String Double))
-    , output         :: String            --   Printed output
+    { numTests     :: Int
+    , numDiscarded :: Int
+      -- ^ Number of tests skipped
+    , labels       :: !(Map [String] Int)
+    , classes      :: !(Map String Int)
+    , tables       :: !(Map String (Map String Int))
+    , output       :: String
     }
  deriving ( Show )
 
@@ -166,34 +182,6 @@ quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
 
-coverageProp :: Confidence -> State -> Property -> Property
-coverageProp confidence st prop
-  | and [ sufficientlyCovered confidence tot n p
-        | (_, _, tot, n, p) <- allCoverage st ] =
-    once True
-  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
-       | (_, _, tot, n, p) <- allCoverage st ] =
-    foldr counterexample (property failed{P.reason = "Insufficient coverage"}) (allTables st)
-  | otherwise = prop
-
--- https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval
--- Note:
--- https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/Confidence_Intervals_for_One_Proportion.pdf
--- suggests we should use a instead of a/2 for a one-sided test. Look
--- into this.
-wilson :: Integer -> Integer -> Double -> Double
-wilson k n z =
-  (p + z*z/(2*nf) + z*sqrt (p*(1-p)/nf + z*z/(4*nf*nf)))/(1 + z*z/nf)
-  where
-    nf = fromIntegral n
-    p = fromIntegral k / fromIntegral n
-
-wilsonLow :: Integer -> Integer -> Double -> Double
-wilsonLow k n a = wilson k n (invnormcdf (a/2))
-
-wilsonHigh :: Integer -> Integer -> Double -> Double
-wilsonHigh k n a = wilson k n (invnormcdf (1-a/2))
-
 withState :: Args -> (State -> IO a) -> IO a
 withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
      rnd <- case replay a of
@@ -212,8 +200,8 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
                  , S.classes                 = Map.empty
-                 , S.tables         = Map.empty
-                 , S.coverage                = Map.empty
+                 , S.tables                  = Map.empty
+                 , S.requiredCoverage        = Map.empty
                  , expected                  = True
                  , randomSeed                = rnd
                  , numSuccessShrinks         = 0
@@ -284,7 +272,7 @@ doneTesting st _f
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) (S.coverage st) theOutput)
+      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) theOutput)
 
 giveUp :: State -> Property -> IO Result
 giveUp st _f =
@@ -297,13 +285,12 @@ giveUp st _f =
        )
      success st
      theOutput <- terminalOutput (terminal st)
-     return GaveUp{ numTests = numSuccessTests st
+     return GaveUp{ numTests     = numSuccessTests st
                   , numDiscarded = numDiscardedTests st
-                  , labels   = S.labels st
-                  , classes  = S.classes st
-                  , tables = S.tables st
-                  , coverage = S.coverage st
-                  , output   = theOutput
+                  , labels       = S.labels st
+                  , classes      = S.classes st
+                  , tables       = S.tables st
+                  , output       = theOutput
                   }
 
 showTestCount :: State -> String
@@ -325,7 +312,7 @@ runATest st f =
      let f_or_cov =
            case coverageConfidence st of
              Just confidence | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
-               coverageProp confidence st f
+               addCoverageCheck confidence st f
              _ -> f
      let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
      MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
@@ -334,16 +321,19 @@ runATest st f =
      let continue break st' | abort res = break st'
                             | otherwise = test st'
 
+     let inc x = Map.insertWith (+) x 1
      let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
                  , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
-                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                 , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (Set.toList (P.classes res)) (repeat 1)))
-                 , S.tables = Map.unionWith (Map.unionWith (+)) (S.tables st) (P.tables res)
-                 , S.coverage =
-                   Map.unionsWith (Map.unionWith min) [S.coverage st, Map.mapKeys Just (P.tableCoverage res), Map.singleton Nothing (P.labelCoverage res)]
+                 , S.labels = inc (P.labels res) (S.labels st)
+                 , S.classes = foldr inc (S.classes st) (P.classes res)
+                 , S.tables =
+                   foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
+                     (S.tables st) (P.tables res)
+                 , S.requiredCoverage =
+                   foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
+                     (S.requiredCoverage st) (P.requiredCoverage res)
                  , expected = expect res }
-                
-           
+
      case res of
        MkResult{ok = Just True} -> -- successful test
          do continue doneTesting
@@ -367,7 +357,6 @@ runATest st f =
               return Success{ labels = S.labels st',
                               classes = S.classes st',
                               tables = S.tables st',
-                              coverage = S.coverage st',
                               numTests = numSuccessTests st'+1,
                               numDiscarded = numDiscardedTests st',
                               output = theOutput }
@@ -385,7 +374,7 @@ runATest st f =
                             , theException    = P.theException res
                             , failingTestCase = testCase
                             , failingLabels   = P.labels res
-                            , failingClasses  = P.classes res
+                            , failingClasses  = Set.fromList (P.classes res)
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
@@ -431,93 +420,45 @@ failureSummaryAndReason st res = (summary, full)
         showNumTryShrinks = full && numTryShrinks st > 0
 
 success :: State -> IO ()
-allTables :: State -> [String]
-success = snd . successAndTables
-allTables = fst . successAndTables
-successAndTables st =
-  (output,
-   case allLabels of
-     [] | null longOutput ->
-       do putLine (terminal st) "."
-     [pt] | null longOutput ->
-       do putLine (terminal st)
-            ( " ("
-           ++ dropWhile isSpace pt
-           ++ ")."
-            )
-     _ -> do putLine (terminal st) ":"
-             mapM_ (putLine $ terminal st) output)
- where
-  allLabels :: [String]
-  allLabels =
-    intercalate [""] $
-      [ showTable (numSuccessTests st) Nothing m
-      | m <- S.classes st:Map.elems numberedLabels,
-        not (Map.null m) ]
+success st =
+  case labelsAndTables st of
+    ([], []) ->
+      do putLine (terminal st) "."
+    ([pt], []) ->
+      do putLine (terminal st)
+           ( " ("
+          ++ dropWhile isSpace pt
+          ++ ")."
+           )
+    (short, long) ->
+      do putLine (terminal st) ":"
+         mapM_ (putLine $ terminal st) (paragraphs [short, long])
 
-  numberedLabels :: Map Int (Map String Int)
-  numberedLabels =
-    Map.fromListWith (Map.unionWith (+)) $
-      [ (i, Map.singleton l n)
-      | (labels, n) <- Map.toList (S.labels st),
-        (i, l) <- zip [0..] labels ]
-
-  output :: [String]
-  output =
-    intercalate [""] (allLabels:longOutput)
-
-  longOutput :: [[String]]
-  longOutput =
-    tables ++
-    [ [ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
-      ++ lpercent n tot ++ " " ++ label ++ ", but expected " ++ lpercentage p tot
-      | (mtable, label, tot, n, p) <- insufficientlyCoveredLabels ]
-    | not (null insufficientlyCoveredLabels) ]
-
-  tables :: [[String]]
-  tables =
-    [ showTable (sum (Map.elems m)) (Just table) m
-    | (table, m) <- Map.toList (S.tables st) ]
-
-  insufficientlyCoveredLabels :: [(Maybe String, String, Int, Int, Double)]
-  insufficientlyCoveredLabels =
-    [ (table, label, tot, n, p)
-    | (table, label, tot, n, p) <- allCoverage st,
-      insufficientlyCovered (fmap certainty (coverageConfidence st)) tot n p ]
-
-allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
-allCoverage st =
-  [ (key, value, tot, n, p)
-  | (key, m) <- Map.toList (S.coverage st),
-    (value, p) <- Map.toList m,
-    let tot =
-          case key of
-            Just key -> Map.findWithDefault 0 key totals
-            Nothing -> numSuccessTests st,
-    let n = Map.findWithDefault 0 value (Map.findWithDefault Map.empty key combinedCounts) ]
+labelsAndTables :: State -> ([String], [String])
+labelsAndTables st = (labels, tables)
   where
-    combinedCounts :: Map (Maybe String) (Map String Int)
-    combinedCounts =
-      Map.insert Nothing (S.classes st)
-        (Map.mapKeys Just (S.tables st))
+    labels :: [String]
+    labels =
+      paragraphs $
+        [ showTable (numSuccessTests st) Nothing m
+        | m <- S.classes st:Map.elems numberedLabels ]
 
-    totals :: Map String Int
-    totals = fmap (sum . Map.elems) (S.tables st)
+    numberedLabels :: Map Int (Map String Int)
+    numberedLabels =
+      Map.fromListWith (Map.unionWith (+)) $
+        [ (i, Map.singleton l n)
+        | (labels, n) <- Map.toList (S.labels st),
+          (i, l) <- zip [0..] labels ]
 
-sufficientlyCovered :: Confidence -> Int -> Int -> Double -> Bool
-sufficientlyCovered confidence n k p =
-  -- Accept the coverage if, with high confidence, the actual probability is
-  -- at least 0.9 times the required one.
-  wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= 0.9 * p
-  where
-    err = certainty confidence
-    p = tolerance confidence
-
-insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
-insufficientlyCovered Nothing n k p =
-  fromIntegral k < p * fromIntegral n
-insufficientlyCovered (Just err) n k p =
-  wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < p
+    tables :: [String]
+    tables =
+      paragraphs $
+        [ showTable (sum (Map.elems m)) (Just table) m
+        | (table, m) <- Map.toList (S.tables st) ] ++
+        [[ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
+         ++ lpercent n tot ++ " " ++ label ++ ", but expected " ++ lpercentage p tot
+         | (mtable, label, tot, n, p) <- allCoverage st,
+           insufficientlyCovered (fmap certainty (coverageConfidence st)) tot n p ]]
 
 showTable :: Int -> Maybe String -> Map String Int -> [String]
 showTable k mtable m =
@@ -597,6 +538,72 @@ callbackPostFinalFailure st res = do
       tryEvaluateIO $ putLine (terminal st) (show err)
       return ()
     Right () -> return ()
+
+----------------------------------------------------------------------
+-- computing coverage
+
+sufficientlyCovered :: Confidence -> Int -> Int -> Double -> Bool
+sufficientlyCovered confidence n k p =
+  -- Accept the coverage if, with high confidence, the actual probability is
+  -- at least 0.9 times the required one.
+  wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= 0.9 * p
+  where
+    err = certainty confidence
+    p = tolerance confidence
+
+insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
+insufficientlyCovered Nothing n k p =
+  fromIntegral k < p * fromIntegral n
+insufficientlyCovered (Just err) n k p =
+  wilsonHigh (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) < p
+
+-- https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval#Wilson_score_interval
+-- Note:
+-- https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/Confidence_Intervals_for_One_Proportion.pdf
+-- suggests we should use a instead of a/2 for a one-sided test. Look
+-- into this.
+wilson :: Integer -> Integer -> Double -> Double
+wilson k n z =
+  (p + z*z/(2*nf) + z*sqrt (p*(1-p)/nf + z*z/(4*nf*nf)))/(1 + z*z/nf)
+  where
+    nf = fromIntegral n
+    p = fromIntegral k / fromIntegral n
+
+wilsonLow :: Integer -> Integer -> Double -> Double
+wilsonLow k n a = wilson k n (invnormcdf (a/2))
+
+wilsonHigh :: Integer -> Integer -> Double -> Double
+wilsonHigh k n a = wilson k n (invnormcdf (1-a/2))
+
+addCoverageCheck :: Confidence -> State -> Property -> Property
+addCoverageCheck confidence st prop
+  | and [ sufficientlyCovered confidence tot n p
+        | (_, _, tot, n, p) <- allCoverage st ] =
+    once True
+  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
+       | (_, _, tot, n, p) <- allCoverage st ] =
+    let (labels, tables) = labelsAndTables st in
+    foldr counterexample (property failed{P.reason = "Insufficient coverage"})
+      (paragraphs [labels, tables])
+  | otherwise = prop
+
+allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
+allCoverage st =
+  [ (key, value, tot, n, p)
+  | ((key, value), p) <- Map.toList (S.requiredCoverage st),
+    let tot =
+          case key of
+            Just key -> Map.findWithDefault 0 key totals
+            Nothing -> numSuccessTests st,
+    let n = Map.findWithDefault 0 value (Map.findWithDefault Map.empty key combinedCounts) ]
+  where
+    combinedCounts :: Map (Maybe String) (Map String Int)
+    combinedCounts =
+      Map.insert Nothing (S.classes st)
+        (Map.mapKeys Just (S.tables st))
+
+    totals :: Map String Int
+    totals = fmap (sum . Map.elems) (S.tables st)
 
 --------------------------------------------------------------------------
 -- the end.

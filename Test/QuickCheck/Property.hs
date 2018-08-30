@@ -16,7 +16,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State hiding (labels, classes, tables, coverage)
+import Test.QuickCheck.State( State(terminal), Confidence(..) )
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -225,20 +225,32 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok                 :: Maybe Bool        -- ^ result of the test case; Nothing = discard
-  , expect             :: Bool              -- ^ indicates what the expected result of the property is
-  , reason             :: String            -- ^ a message indicating what went wrong
-  , theException       :: Maybe AnException -- ^ the exception thrown, if any
-  , abort              :: Bool              -- ^ if True, the test should not be repeated
-  , maybeNumTests      :: Maybe Int         -- ^ stop after this many tests
+  { ok                 :: Maybe Bool
+    -- ^ result of the test case; Nothing = discard
+  , expect             :: Bool
+    -- ^ indicates what the expected result of the property is
+  , reason             :: String
+    -- ^ a message indicating what went wrong
+  , theException       :: Maybe AnException
+    -- ^ the exception thrown, if any
+  , abort              :: Bool
+    -- ^ if True, the test should not be repeated
+  , maybeNumTests      :: Maybe Int
+    -- ^ stop after this many tests
   , maybeCheckCoverage :: Maybe Confidence
+    -- ^ required coverage confidence
   , labels             :: [String]
-  , classes            :: Set String
-  , tables             :: Map String (Map String Int)
-  , labelCoverage      :: Map String Double
-  , tableCoverage      :: Map String (Map String Double)
-  , callbacks          :: [Callback]        -- ^ the callbacks for this test case
-  , testCase           :: [String]          -- ^ the generated test case
+    -- ^ test case labels
+  , classes            :: [String]
+    -- ^ test case classes
+  , tables             :: [(String, String)]
+    -- ^ test case tables
+  , requiredCoverage   :: [(Maybe String, String, Double)]
+    -- ^ required coverage
+  , callbacks          :: [Callback]
+    -- ^ the callbacks for this test case
+  , testCase           :: [String]
+    -- ^ the generated test case
   }
 
 exception :: String -> AnException -> Result
@@ -271,10 +283,9 @@ succeeded, failed, rejected :: Result
       , maybeNumTests      = Nothing
       , maybeCheckCoverage = Nothing
       , labels             = []
-      , classes            = Set.empty
-      , tables             = Map.empty
-      , labelCoverage      = Map.empty
-      , tableCoverage      = Map.empty
+      , classes            = []
+      , tables             = []
+      , requiredCoverage   = []
       , callbacks          = []
       , testCase           = []
       }
@@ -496,7 +507,7 @@ classify False _ = property
 classify True s =
   s `deepseq`
   mapTotalResult $
-    \res -> res { classes = Set.insert s (classes res) }
+    \res -> res { classes = s:classes res }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
@@ -519,22 +530,22 @@ cover :: Testable prop =>
       -> prop -> Property
 cover p x s = mapTotalResult f . classify x s
   where
-    f res = res { labelCoverage = Map.insertWith min s (p/100) (labelCoverage res) }
+    f res = res { requiredCoverage = (Nothing, s, p/100):requiredCoverage res }
 
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
   key `deepseq` values `deepseq`
   mapTotalResult $
-    \res -> res { tables = Map.insertWith (Map.unionWith (+)) key (Map.fromListWith (+) [(value, 1) | value <- values]) (tables res) }
+    \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
-  table `deepseq` ys `deepseq`
+  tables `deepseq` xs `deepseq`
   mapTotalResult $
-    \res -> res { tableCoverage = Map.insertWith (Map.unionWith min) table (Map.fromListWith min ys) (tableCoverage res) }
+    \res -> res { requiredCoverage = ys ++ requiredCoverage res }
   where
-    ys = [(x, p/100) | (x, p) <- xs]
+    ys = [(Just table, x, p/100) | (x, p) <- xs]
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),
@@ -632,10 +643,10 @@ conjoin ps =
     case ok result of
       _ | not (expect result) ->
         return (return failed { reason = "expectFailure may not occur inside a conjunction" })
-      Just True -> return (conj (addLabels result . addCallbacks result . k) ps)
+      Just True -> return (conj (addLabels result . addCallbacksAndCoverage result . k) ps)
       Just False -> return rose
       Nothing -> do
-        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacks result . k) ps)
+        rose2@(MkRose result2 _) <- reduceRose (conj (addCallbacksAndCoverage result . k) ps)
         return $
           -- Nasty work to make sure we use the right callbacks
           case ok result2 of
@@ -643,15 +654,13 @@ conjoin ps =
             Just False -> rose2
             Nothing -> rose2
 
-  addCallbacks result r =
-    r { callbacks = callbacks result ++ callbacks r }
-  -- XXX add coverage in all cases
+  addCallbacksAndCoverage result r =
+    r { callbacks = callbacks result ++ callbacks r,
+        requiredCoverage = requiredCoverage result ++ requiredCoverage r }
   addLabels result r =
     r { labels = labels result ++ labels r,
-        classes = Set.union (classes result) (classes r),
-        tables = Map.unionWith (Map.unionWith (+)) (tables result) (tables r),
-        labelCoverage = Map.unionWith min (labelCoverage result) (labelCoverage r),
-        tableCoverage = Map.unionWith (Map.unionWith min) (tableCoverage result) (tableCoverage r) }
+        classes = classes result ++ classes r,
+        tables = tables result ++ tables r }
 
 -- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
@@ -675,23 +684,22 @@ disjoin ps =
            return $
              case ok result2 of
                _ | not (expect result2) -> expectFailureError
-               Just True -> result2
+               Just True -> addCoverage result1 result2
                Just False ->
                  MkResult {
                    ok = Just False,
                    expect = True,
                    reason = sep (reason result1) (reason result2),
                    theException = theException result1 `mplus` theException result2,
-                   -- The following three fields are not important because the
+                   -- The following few fields are not important because the
                    -- test case has failed anyway
                    abort = False,
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
                    labels = [],
-                   classes = Set.empty,
-                   tables = Map.empty,
-                   labelCoverage = Map.empty,
-                   tableCoverage = Map.empty,
+                   classes = [],
+                   tables = [],
+                   requiredCoverage = [],
                    callbacks =
                      callbacks result1 ++
                      [PostFinalFailure Counterexample $ \st _res -> putLine (terminal st) ""] ++
@@ -718,6 +726,9 @@ disjoin ps =
   sep [] s = s
   sep s [] = s
   sep s s' = s ++ ", " ++ s'
+
+  addCoverage result r =
+    r { requiredCoverage = requiredCoverage result ++ requiredCoverage r }
 
 -- | Like '==', but prints a counterexample when it fails.
 infix 4 ===

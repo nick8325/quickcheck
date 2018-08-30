@@ -11,6 +11,7 @@ module Test.QuickCheck.Text
   , bold
   , ljust, rjust, centre, lpercent, rpercent, lpercentage, rpercentage
   , drawTable, Cell(..)
+  , paragraphs
 
   , newTerminal
   , withStdioTerminal
@@ -145,6 +146,9 @@ drawTable headers table =
 
     line = border '+' '-' $ replicate width '-'
     border x y xs = [x, y] ++ centre width xs ++ [y, x]
+
+paragraphs :: [[String]] -> [String]
+paragraphs = intercalate [""] . filter (not . null)
 
 bold :: String -> String
 -- not portable:
