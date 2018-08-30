@@ -70,7 +70,7 @@ s1@(Node x s11 s12) `union` s2@(Node y s21 s22) =
     LT -> Node x s11 (s12 `union` Node y Empty s22) `union` s21
     EQ -> Node x (s11 `union` s21) (s12 `union` s22)
     --GT -> s11 `union` Node y s21 (Node x Empty s12 `union` s22)
-    GT -> Node x (s11 `union` Node y s21 Empty) s12 `union` s22 
+    GT -> Node x (s11 `union` Node y s21 Empty) s12 `union` s22
 -}
 s1             `union` Empty = s1
 Empty          `union` s2    = s2
@@ -88,7 +88,7 @@ split x (Node y s1 s2) =
  where
   (s11,s12) = split x s1
   (s21,s22) = split x s2
-  
+
 mapp :: (a -> b) -> Set a -> Set b
 mapp f Empty          = Empty
 mapp f (Node x s1 s2) = Node (f x) (mapp f s1) (mapp f s2)
@@ -196,7 +196,7 @@ prop_ToSortedList (s :: Set Int) =
   s ==? xs && xs == sort xs
  where
   xs = toSortedList s
-  
+
 --  whenFail (putStrLn ("Result: " ++ show (fromList xs))) $
 
 prop_FromList' (xs :: [Int]) =

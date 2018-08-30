@@ -191,7 +191,7 @@ withStdioTerminal action = do
     withBuffering (withHandleTerminal stdout (Just stderr) action)
    else
     withBuffering (withHandleTerminal stdout Nothing action)
-  
+
 withNullTerminal :: (Terminal -> IO a) -> IO a
 withNullTerminal action =
   newTerminal (const (return ())) (const (return ())) >>= action

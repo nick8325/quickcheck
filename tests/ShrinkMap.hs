@@ -7,7 +7,7 @@ shrinkOrderedList = shrinkMap sort id
 
 prop_shrinkOrderedList :: [Int] -> Bool
 prop_shrinkOrderedList xs = all isSorted (shrinkOrderedList xs)
-  where isSorted x = x == sort x 
+  where isSorted x = x == sort x
 
 return []
 

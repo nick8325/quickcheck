@@ -47,7 +47,7 @@ labelledExamplesWithResult args prop =
         case res of
           Failure{reason = "New feature found"} -> do
             putLine (terminal state) $
-              "*** Found new test case exercising feature " ++ 
+              "*** Found new test case exercising feature " ++
               intercalate ", " (Set.toList (feats' Set.\\ feats))
             mapM_ (putLine (terminal state)) (failingTestCase res)
             putStrLn ""
