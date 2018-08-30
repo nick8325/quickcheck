@@ -427,15 +427,34 @@ again = mapTotalResult (\res -> res{ abort = False })
 withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
+-- | Check that all coverage requirements defined by 'cover' and 'coverTable'
+-- are satisfied, using a statistically sound test.
+--
+-- If the coverage requirements are not satisfied, QuickCheck will run more
+-- tests until it can be sure with a high degree of certainty that it was not a
+-- statistical coincidence. Once it is sure that the coverage requirement is not
+-- met, the property fails.
+--
+-- Example:
+--
+-- > quickCheck (checkCoverage prop_foo)
 checkCoverage :: Testable prop => prop -> Property
 checkCoverage = checkCoverageWith stdConfidence
 
+-- | Check coverage requirements using a custom confidence level.
+-- See 'stdConfidence'.
+--
+-- Example:
+--
+-- > quickCheck (checkCoverageWith stdConfidence{certainty = 10^6} prop_foo)
 checkCoverageWith :: Testable prop => Confidence -> prop -> Property
 checkCoverageWith confidence =
   certainty confidence `seq`
   tolerance confidence `seq`
   mapTotalResult (\res -> res{ maybeCheckCoverage = Just confidence })
 
+-- | The standard parameters used by 'checkCoverage': @certainty = 10^9@,
+-- @tolerance = 0.9@. See 'Confidence' for the meaning of the parameters.
 stdConfidence :: Confidence
 stdConfidence =
   Confidence {
@@ -513,16 +532,21 @@ classify True s =
 -- cases belong to the given class. Discarded tests (i.e. ones
 -- with a false precondition) do not affect coverage.
 --
+-- If the coverage check fails, QuickCheck prints out a warning,
+-- but the property does /not/ fail. 
+--
 -- For example:
 --
 -- > prop_sorted_sort :: [Int] -> Property
 -- > prop_sorted_sort xs =
 -- >   sorted xs ==>
--- >   cover (length xs > 1) 50 "non-trivial" $
+-- >   cover 50 (length xs > 1) "non-trivial" $
 -- >   sort xs === xs
 --
 -- >>> quickCheck prop_sorted_sort
--- *** Insufficient coverage after 100 tests (only 24% non-trivial, not 50%).
+-- +++ OK, passed 100 tests; 135 discarded (26% non-trivial).
+-- <BLANKLINE>
+-- Only 26% non-trivial, but expected 50%
 cover :: Testable prop =>
          Double -- ^ The required percentage (0-100) of test cases.
       -> Bool   -- ^ @True@ if the test case belongs to the class.
@@ -532,12 +556,65 @@ cover p x s = mapTotalResult f . classify x s
   where
     f res = res { requiredCoverage = (Nothing, s, p/100):requiredCoverage res }
 
+-- | Records data about a property in a table.
+-- This is useful for reporting test case distribution.
+--
+-- 'tabulate' @table@ @values@ records the strings @values@ in a
+-- table @table@. At the end of testing, a summary of the table will be printed.
+--
+-- For example:
+--
+-- > prop_reverse_reverse :: [Int] -> Property
+-- > prop_reverse_reverse xs =
+-- >   tabulate "Input length" [show (length xs)] $
+-- >   tabulate "List elements" (map show xs) $
+-- >     reverse (reverse xs) === xs
+--
+-- >>> quickCheck prop_reverse_reverse
+-- +++ OK, passed 100 tests.
+-- Input length (100 in total):
+--  6% 0
+--  5% 4
+--  5% 6
+-- ...
+-- <BLANKLINE>
+-- List elements (2420 in total):
+--  1.49% 0
+--  1.32% -2
+--  1.16% -5
+-- ...
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
   key `deepseq` values `deepseq`
   mapTotalResult $
     \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
+-- | Defines a coverage requirement on the data in a particular 'table'.
+--
+-- 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ checks that at least
+-- @p1@ percent of the values in @table@ are @x1@, and so on.
+--
+-- For example:
+--
+-- > prop_reverse_reverse :: [Int] -> Property
+-- > prop_reverse_reverse xs =
+-- >   coverTable "List elements" [("0", 50)] $
+-- >   tabulate "List elements" (map show xs) $
+-- >     reverse (reverse xs) === xs
+--
+-- >>> quickCheck prop_reverse_reverse
+-- +++ OK, passed 100 tests.
+-- <BLANKLINE>
+-- List elements (2152 in total):
+--  1.35% -4
+--  1.21% 15
+--  1.16% 2
+--  1.12% -1
+--  1.07% -13
+--  0.74% 0
+--  ...
+-- <BLANKLINE>
+-- Table 'List elements' had only 0.74% 0, but expected 50.00%
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =

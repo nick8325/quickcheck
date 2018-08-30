@@ -27,15 +27,55 @@ prop_noNewFeatures feats prop =
             res{ok = Just False, P.reason = "New feature found"}
         _ -> res
 
+-- | Given a property, which must use 'label', 'collect', 'classify' or 'cover'
+-- to associate labels with test cases, produce a set of test cases containing
+-- an example of each label.
+--
+-- For example:
+--
+-- > prop_delete :: Int -> [Int] -> Property
+-- > prop_delete x xs =
+-- >   classify (count x xs == 0) "count x xs == 0" $
+-- >   classify (count x xs == 1) "count x xs == 1" $
+-- >   classify (count x xs == 2) "count x xs == 2" $
+-- >   counterexample (show (delete x xs)) $
+-- >   count x (delete x xs) == max 0 (count x xs-1)
+-- >   where count x xs = length (filter (== x) xs)
+-- 
+-- >>> quickCheck prop_delete
+-- *** Found example of count x xs == 0
+-- 0
+-- []
+-- []
+-- <BLANKLINE>
+-- *** Found example of count x xs == 1
+-- 0
+-- [0]
+-- []
+-- <BLANKLINE>
+-- *** Found example of count x xs == 2
+-- 5
+-- [5,5]
+-- [5]
+-- <BLANKLINE>
+-- +++ OK, passed 100 tests:
+-- 78% count x xs == 0
+-- 21% count x xs == 1
+--  1% count x xs == 2
+
+
 labelledExamples :: Testable prop => prop -> IO ()
 labelledExamples prop = labelledExamplesWith stdArgs prop
 
+-- | A variant of 'labelledExamples' that takes test arguments.
 labelledExamplesWith :: Testable prop => Args -> prop -> IO ()
 labelledExamplesWith args prop = labelledExamplesWithResult args prop >> return ()
 
+-- | A variant of 'labelledExamples' that returns a result.
 labelledExamplesResult :: Testable prop => prop -> IO Result
 labelledExamplesResult prop = labelledExamplesWithResult stdArgs prop
 
+-- | A variant of 'labelledExamples' that takes test arguments and returns a result.
 labelledExamplesWithResult :: Testable prop => Args -> prop -> IO Result
 labelledExamplesWithResult args prop =
   withState args $ \state -> do
@@ -47,7 +87,7 @@ labelledExamplesWithResult args prop =
         case res of
           Failure{reason = "New feature found"} -> do
             putLine (terminal state) $
-              "*** Found new test case exercising feature " ++
+              "*** Found example of " ++
               intercalate ", " (Set.toList (feats' Set.\\ feats))
             mapM_ (putLine (terminal state)) (failingTestCase res)
             putStrLn ""

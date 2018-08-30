@@ -56,10 +56,20 @@ data State
     -- ^ total number of failed shrinking steps
   }
 
+-- | The statistical parameters used by 'checkCoverage'.
 data Confidence =
   Confidence {
     certainty :: Integer,
-    tolerance :: Double }
+    -- ^ How certain 'checkCoverage' must be before the property fails.
+    -- If the coverage requirement is met, and the certainty parameter is @n@,
+    -- then you should get a false positive at most one in @n@ runs of QuickCheck.
+    -- The default value is @10^9@.
+    tolerance :: Double
+    -- ^ For statistical reasons, 'checkCoverage' will not reject coverage
+    -- levels that are only slightly below the required levels.
+    -- If the required level is @p@ then an actual level of @tolerance * p@
+    -- will be accepted. The default value is @0.9@.
+    }
   deriving Show
 
 --------------------------------------------------------------------------
