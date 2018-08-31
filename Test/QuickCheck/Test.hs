@@ -544,10 +544,10 @@ sufficientlyCovered :: Confidence -> Int -> Int -> Double -> Bool
 sufficientlyCovered confidence n k p =
   -- Accept the coverage if, with high confidence, the actual probability is
   -- at least 0.9 times the required one.
-  wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= 0.9 * p
+  wilsonLow (fromIntegral k) (fromIntegral n) (1 / fromIntegral err) >= tol * p
   where
     err = certainty confidence
-    p = tolerance confidence
+    tol = tolerance confidence
 
 insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
 insufficientlyCovered Nothing n k p =
