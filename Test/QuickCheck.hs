@@ -207,6 +207,7 @@ module Test.QuickCheck
   , checkCoverage
   , checkCoverageWith
   , Confidence(..)
+  , stdConfidence
   , within
   , noShrinking
     -- *** Conjunction and disjunction
