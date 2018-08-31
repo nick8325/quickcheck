@@ -62,7 +62,7 @@ module Test.QuickCheck
   , polyVerboseCheck
   , monomorphic
 #endif
-    -- ** Feature-based testing
+    -- ** Example test cases
   , labelledExamples
   , labelledExamplesWith
   , labelledExamplesWithResult

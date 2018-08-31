@@ -330,6 +330,7 @@ shrinking shrinker x0 pf = MkProperty (fmap (MkProp . joinRose . fmap unProp) (p
     MkRose (unProperty (property (pf x))) [ props x' | x' <- shrinker x ]
 
 -- | Disables shrinking for a property altogether.
+-- Only quantification /inside/ the call to 'noShrinking' is affected.
 noShrinking :: Testable prop => prop -> Property
 noShrinking = mapRoseResult (onRose (\res _ -> MkRose res []))
 
@@ -461,7 +462,7 @@ stdConfidence =
     certainty = 10^9,
     tolerance = 0.9 }
 
--- | Attaches a label to a property. This is used for reporting
+-- | Attaches a label to a test case. This is used for reporting
 -- test case distribution.
 --
 -- For example:
@@ -484,7 +485,7 @@ label s =
   mapTotalResult $
     \res -> res { labels = s:labels res }
 
--- | Attaches a label to a property. This is used for reporting
+-- | Attaches a label to a test case. This is used for reporting
 -- test case distribution.
 --
 -- > collect x = label (show x)
@@ -533,7 +534,8 @@ classify True s =
 -- with a false precondition) do not affect coverage.
 --
 -- If the coverage check fails, QuickCheck prints out a warning,
--- but the property does /not/ fail. 
+-- but the property does /not/ fail. To make the property fail,
+-- use 'checkCoverage'.
 --
 -- For example:
 --
@@ -556,65 +558,101 @@ cover p x s = mapTotalResult f . classify x s
   where
     f res = res { requiredCoverage = (Nothing, s, p/100):requiredCoverage res }
 
--- | Records data about a property in a table.
--- This is useful for reporting test case distribution.
+-- | Attaches a set of labels to a test case. At the end of testing, all
+-- collected labels are summarised in a table. The first argument is the
+-- name of the table; the second is the set of labels.
 --
--- 'tabulate' @table@ @values@ records the strings @values@ in a
--- table @table@. At the end of testing, a summary of the table will be printed.
+-- 'tabulate' is very similar to 'label', but it can be used to create several
+-- tables, and a given test case may contribute several or no labels to a table.
 --
--- For example:
+-- The following example models a chatroom, where the user can send a message
+-- after having logged in:
 --
--- > prop_reverse_reverse :: [Int] -> Property
--- > prop_reverse_reverse xs =
--- >   tabulate "Input length" [show (length xs)] $
--- >   tabulate "List elements" (map show xs) $
--- >     reverse (reverse xs) === xs
+-- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
+-- > instance Arbitrary Command where
+-- >   arbitrary = oneof [return LogIn, return LogOut, SendMessage <$> arbitrary]
 --
--- >>> quickCheck prop_reverse_reverse
--- +++ OK, passed 100 tests.
--- Input length (100 in total):
---  6% 0
---  5% 4
---  5% 6
--- ...
+-- We can only execute a command if we are in the right state (logged in or
+-- logged out), which is checked by the function @wellFormed@:
+--
+-- > data State = LoggedIn | LoggedOut
+-- > wellFormed :: [Command] -> State -> Bool
+-- > wellFormed [] _ = True
+-- > wellFormed (LogIn:xs) LoggedOut = wellFormed xs LoggedIn
+-- > wellFormed (LogOut:xs) LoggedIn = wellFormed xs LoggedOut
+-- > wellFormed (SendMessage _:xs) LoggedIn = wellFormed xs LoggedIn
+-- > wellFormed _ _ = False
+--
+-- Our property takes a list of commands and has the precondition that they must
+-- be @wellFormed@. We check the test case distribution by looking at the length
+-- of the command sequences (using 'collect') as well as the frequency of the
+-- commands appearing in them (using 'tabulate'):
+--
+-- > prop_chatroom :: [Command] -> Property
+-- > prop_chatroom cmds =
+-- >   wellFormed cmds LoggedOut ==>
+-- >   'collect' (length cmds) $
+-- >   'tabulate' "Commands" (map (show . 'Data.Data.toConstr') cmds) $
+-- >     ... property goes here ...
+--
+-- The test case distribution is poor. Most command sequences are empty and the
+-- non-empty ones consist mostly of @LogIn@ steps. We should write a custom
+-- generator for lists of commands.
+--
+-- >>> quickCheckWith stdArgs{maxDiscardRatio = 1000} prop_chatroom
+-- +++ OK, passed 100 tests; 2775 discarded:
+-- 60% 0
+-- 20% 1
+-- 15% 2
+--  3% 3
+--  1% 4
+--  1% 5
 -- <BLANKLINE>
--- List elements (2420 in total):
---  1.49% 0
---  1.32% -2
---  1.16% -5
--- ...
+-- Commands (68 in total):
+-- 62% LogIn
+-- 22% SendMessage
+-- 16% LogOut
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
   key `deepseq` values `deepseq`
   mapTotalResult $
     \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
--- | Defines a coverage requirement on the data in a particular 'table'.
+-- | Checks that the values in a given 'table' appear a certain proportion of
+-- the time. A call to 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ asserts
+-- that of the values in @table@, @x1@ should appear at least @p1@ percent of
+-- the time, @x2@ at least @p2@ percent of the time, and so on.
 --
--- 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ checks that at least
--- @p1@ percent of the values in @table@ are @x1@, and so on.
+-- If the coverage check fails, QuickCheck prints out a warning,
+-- but the property does /not/ fail. To make the property fail,
+-- use 'checkCoverage'.
 --
--- For example:
+-- Here is the chatroom example ('table') with a coverage requirement:
 --
--- > prop_reverse_reverse :: [Int] -> Property
--- > prop_reverse_reverse xs =
--- >   coverTable "List elements" [("0", 50)] $
--- >   tabulate "List elements" (map show xs) $
--- >     reverse (reverse xs) === xs
+-- > prop_chatroom :: [Command] -> Property
+-- > prop_chatroom cmds =
+-- >   wellFormed cmds LoggedOut ==>
+-- >   coverTable "Commands" [("LogIn", 25), ("LogOut", 25), ("SendMessage", 25)] $
+-- >   'tabulate' "Commands" (map (show . 'Data.Data.toConstr') cmds) $
+-- >     ... property goes here ...
 --
--- >>> quickCheck prop_reverse_reverse
--- +++ OK, passed 100 tests.
+ -- >>> quickCheck prop_chatroom
+-- +++ OK, passed 100 tests; 2909 discarded:
+-- 56% 0
+-- 17% 1
+-- 10% 2
+--  6% 3
+--  5% 4
+--  3% 5
+--  3% 7
 -- <BLANKLINE>
--- List elements (2152 in total):
---  1.35% -4
---  1.21% 15
---  1.16% 2
---  1.12% -1
---  1.07% -13
---  0.74% 0
---  ...
+-- Commands (111 in total):
+-- 51.4% LogIn
+-- 30.6% SendMessage
+-- 18.0% LogOut
 -- <BLANKLINE>
--- Table 'List elements' had only 0.74% 0, but expected 50.00%
+-- Table 'Commands' had only 18.0% LogOut, but expected 25.0%
+
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =

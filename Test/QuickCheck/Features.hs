@@ -28,8 +28,7 @@ prop_noNewFeatures feats prop =
         _ -> res
 
 -- | Given a property, which must use 'label', 'collect', 'classify' or 'cover'
--- to associate labels with test cases, produce a set of test cases containing
--- an example of each label.
+-- to associate labels with test cases, find an example test case for each possible label.
 --
 -- For example:
 --
