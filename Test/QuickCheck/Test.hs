@@ -577,7 +577,8 @@ addCoverageCheck :: Confidence -> State -> Property -> Property
 addCoverageCheck confidence st prop
   | and [ sufficientlyCovered confidence tot n p
         | (_, _, tot, n, p) <- allCoverage st ] =
-    once True
+    -- Note: run prop once more so that we get labels for this test case run
+    once prop
   | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
        | (_, _, tot, n, p) <- allCoverage st ] =
     let (labels, tables) = labelsAndTables st in
