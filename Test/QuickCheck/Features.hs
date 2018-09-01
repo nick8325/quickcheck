@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 module Test.QuickCheck.Features where
 
 import Test.QuickCheck.Property hiding (Result, reason)

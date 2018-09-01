@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 -- | Terminal control and text helper functions. Internal QuickCheck module.
 module Test.QuickCheck.Text
   ( Str(..)

@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 -- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
 #ifndef NO_TYPEABLE

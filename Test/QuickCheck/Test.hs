@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 -- | The main test loop.
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL

@@ -53,6 +53,10 @@ module Test.QuickCheck
   , verboseCheckResult
 #ifndef NO_TEMPLATE_HASKELL
     -- ** Testing all properties in a module
+
+    -- | These functions test all properties in the current module, using
+    -- Template Haskell. You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@
+    -- pragma in your module for any of these to work.
   , quickCheckAll
   , verboseCheckAll
   , forAllProperties
@@ -127,7 +131,6 @@ module Test.QuickCheck
   , arbitraryPrintableChar
     -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
-  , genericCoarbitrary
   , genericShrink
   , subterms
   , recursivelyShrink
@@ -139,6 +142,9 @@ module Test.QuickCheck
   , shrinkIntegral
   , shrinkRealFrac
     -- ** Helper functions for implementing coarbitrary
+#ifndef NO_GENERICS
+  , genericCoarbitrary
+#endif
   , variant
   , coarbitraryIntegral
   , coarbitraryReal
@@ -147,7 +153,36 @@ module Test.QuickCheck
   , (><)
 
     -- ** Type-level modifiers for changing generator behavior
-  , Blind(..)
+
+    -- | These types do things such as restricting the kind of test data that can be generated.
+    -- They can be pattern-matched on in properties as a stylistic
+    -- alternative to using explicit quantification.
+    --
+    -- Examples:
+    --
+    -- @
+    -- -- Functions cannot be shown (but see "Test.QuickCheck.Function")
+    -- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
+    --   takeWhile p xs ++ dropWhile p xs == xs
+    -- @
+    --
+    -- @
+    -- prop_TakeDrop ('NonNegative' n) (xs :: ['A']) =
+    --   take n xs ++ drop n xs == xs
+    -- @
+    --
+    -- @
+    -- -- cycle does not work for empty lists
+    -- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['A'])) =
+    --   take n (cycle xs) == take n (xs ++ cycle xs)
+    -- @
+    --
+    -- @
+    -- -- Instead of 'forAll' 'orderedList'
+    -- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
+    --   sort xs == xs
+    -- @
+      , Blind(..)
   , Fixed(..)
   , OrderedList(..)
   , NonEmptyList(..)
@@ -168,7 +203,26 @@ module Test.QuickCheck
   , PrintableString(..)
 
     -- ** Functions
-  , Fun (..)
+
+    -- | Generation of random shrinkable, showable functions.
+    -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
+    --
+    -- Example of use:
+    --
+    -- >>> :{
+    -- >>> let prop :: Fun String Integer -> Bool
+    -- >>>     prop (Fun _ f) = f "monkey" == f "banana" || f "banana" == f "elephant"
+    -- >>> :}
+    -- >>> quickCheck prop
+    -- *** Failed! Falsifiable (after 3 tests and 134 shrinks):
+    -- {"elephant"->1, "monkey"->1, _->0}
+    --
+    -- To generate random values of type @'Fun' a b@,
+    -- you must have an instance @'Function' a@.
+    -- If your type has a 'Show' instance, you can use 'functionShow' to write the instance; otherwise,
+    -- use 'functionMap' to give a bijection between your type and a type that is already an instance of 'Function'.
+    -- See the @'Function' [a]@ instance for an example of the latter.
+      , Fun (..)
   , applyFun
   , applyFun2
   , applyFun3

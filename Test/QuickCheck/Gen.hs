@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 {-# LANGUAGE CPP #-}
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}

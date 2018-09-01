@@ -3,6 +3,7 @@
 -- Hide away the nasty implementation-specific ways of catching
 -- exceptions behind a nice API. The main trouble is catching ctrl-C.
 
+{-# OPTIONS_HADDOCK hide #-}
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Exception where
 

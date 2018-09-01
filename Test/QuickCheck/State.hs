@@ -1,3 +1,4 @@
+{-# OPTIONS_HADDOCK hide #-}
 -- | QuickCheck's internal state. Internal QuickCheck module.
 module Test.QuickCheck.State where
 
