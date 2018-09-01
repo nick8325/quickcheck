@@ -1,6 +1,6 @@
 -- | Type classes for random generation of values.
 -- 
--- __Note__: the contents of this module is re-exported by
+-- __Note__: the contents of this module are re-exported by
 -- "Test.QuickCheck". You do not need to import it directly.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
