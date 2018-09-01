@@ -3,7 +3,10 @@
 {-# LANGUAGE Trustworthy #-}
 #endif
 
--- | Test all properties in the current module, using Template Haskell.
+-- | __Note__: the contents of this module is re-exported by
+-- "Test.QuickCheck". You do not need to import it directly.
+--
+-- Test all properties in the current module, using Template Haskell.
 -- You need to have a @{-\# LANGUAGE TemplateHaskell \#-}@ pragma in
 -- your module for any of these to work.
 module Test.QuickCheck.All(

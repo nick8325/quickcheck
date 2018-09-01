@@ -17,6 +17,9 @@
 -- | Generation of random shrinkable, showable functions.
 -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
 --
+-- __Note__: most of the contents of this module is re-exported by
+-- "Test.QuickCheck". You probably do not need to import it directly.
+--
 -- Example of use:
 --
 -- >>> :{

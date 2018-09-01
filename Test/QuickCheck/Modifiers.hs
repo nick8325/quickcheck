@@ -17,6 +17,9 @@
 -- They can be pattern-matched on in properties as a stylistic
 -- alternative to using explicit quantification.
 --
+-- __Note__: the contents of this module is re-exported by
+-- "Test.QuickCheck". You do not need to import it directly.
+--
 -- Examples:
 --
 -- @
