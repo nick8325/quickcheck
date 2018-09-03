@@ -29,7 +29,7 @@ Description:
   .
   * The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html official QuickCheck manual>.
     It's a bit out-of-date in some details and doesn't cover newer QuickCheck features,
-	but is still full of good advice.
+    but is still full of good advice.
   * <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>,
     a detailed tutorial written by a user of QuickCheck.
   .
