@@ -45,8 +45,10 @@ QuickCheck 2.12 (release 2018-09-03)
 		- Bug fix: suchThatMaybe always increased size to at least 1
 	
 	* Miscellaneous API changes:
-		- Result type no longer has an InsufficientCoverage constructor
-		- Format of labels in Result type is different
+		- Result type has changed a bit:
+			- InsufficientCovered constructor is gone
+			- Type of labels has changed
+			- New fields classes, tables
 
 QuickCheck 2.11.1 - 2.11.3 (released 2018-01-12)
 	* Cosmetic fixes.
