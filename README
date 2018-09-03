@@ -4,9 +4,6 @@ Install it in the usual way:
 
 $ cabal install
 
-There is a Google group for user discussion and questions at
-https://groups.google.com/forum/#!forum/haskell-quickcheck.
-
 The quickcheck-instances [1] companion package provides instances for types in
 Haskell Platform packages at the cost of additional dependencies.
 

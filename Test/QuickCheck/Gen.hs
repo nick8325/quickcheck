@@ -93,7 +93,7 @@ variant k (MkGen g) = MkGen (\r n -> g (variantQCGen k r) n)
 sized :: (Int -> Gen a) -> Gen a
 sized f = MkGen (\r n -> let MkGen m = f n in m r n)
 
--- | Generates the size parameter. Used to construct generators that depend on
+-- | Returns the size parameter. Used to construct generators that depend on
 -- the size parameter.
 --
 -- For example, 'listOf', which uses the size parameter as an upper bound on

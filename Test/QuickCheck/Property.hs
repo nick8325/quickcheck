@@ -96,6 +96,12 @@ class Testable prop where
 
 -- | If a property returns 'Discard', the current test case is discarded,
 -- the same as if a precondition was false.
+--
+-- An example is the definition of '==>':
+--
+-- > (==>) :: Testable prop => Bool -> prop -> Property
+-- > False ==> _ = property Discard
+-- > True  ==> p = property p
 data Discard = Discard
 
 instance Testable Discard where
@@ -134,14 +140,17 @@ morallyDubiousIOProperty = ioProperty
 -- Warning: any random values generated inside of the argument to @ioProperty@
 -- will not currently be shrunk. For best results, generate all random values
 -- before calling @ioProperty@, or use 'idempotentIOProperty' if that is safe.
+--
+-- Note: if your property does no quantification, it will only be tested once.
+-- To test it repeatedly, use 'again'.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty prop = idempotentIOProperty (fmap noShrinking prop)
 
 -- | Do I/O inside a property.
 --
 -- Warning: during shrinking, the I/O may not always be re-executed.
--- In particular, if the inner property generates random data, then during the
--- shrinking of that data, the outer I/O will not be re-executed.
+-- Instead, the I/O may be executed once and then its result retained.
+-- If this is not acceptable, use 'ioProperty' instead.
 idempotentIOProperty :: Testable prop => IO prop -> Property
 idempotentIOProperty =
   MkProperty . fmap (MkProp . ioRose . fmap unProp) .
@@ -314,9 +323,10 @@ mapProp f = MkProperty . fmap f . unProperty . property
 --------------------------------------------------------------------------
 -- ** Property combinators
 
--- | Changes the maximum test case size for a property.
+-- | Adjust the test case size for a property, by transforming it with the given
+-- function.
 mapSize :: Testable prop => (Int -> Int) -> prop -> Property
-mapSize f p = MkProperty (sized ((`resize` unProperty (property p)) . f))
+mapSize f = property . scale f . unProperty . property
 
 -- | Shrinks the argument to a property if it fails. Shrinking is done
 -- automatically for most types. This function is only needed when you want to
@@ -430,12 +440,20 @@ withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
--- are satisfied, using a statistically sound test.
+-- are satisfied, using a statistically sound test. 
 --
--- If the coverage requirements are not satisfied, QuickCheck will run more
--- tests until it can be sure with a high degree of certainty that it was not a
--- statistical coincidence. Once it is sure that the coverage requirement is not
--- met, the property fails.
+-- Ordinarily, a failed coverage check does not cause the property to fail.
+-- This is because the coverage requirement is not tested in a statistically
+-- sound way. If you use 'cover' to express that a certain value must appear 20%
+-- of the time, QuickCheck will complain if it only appears in 19 out of 100
+-- test cases -- but since the amount of coverage varies randomly, this does not
+-- necessarily indicate a problem in your test data generation, as you may have
+-- just been unlucky.
+--
+-- When you use 'checkCoverage', QuickCheck uses a statistical test to account
+-- for the role of luck in coverage failures. It will run as many tests as
+-- needed until it is sure about whether the coverage requirements are
+-- satisfied. If a coverage requirement is not met, the property fails.
 --
 -- Example:
 --
@@ -446,7 +464,8 @@ checkCoverage = checkCoverageWith stdConfidence
 -- | Check coverage requirements using a custom confidence level.
 -- See 'stdConfidence'.
 --
--- Example:
+-- An example of making the statistical test less stringent in order to improve
+-- performance:
 --
 -- > quickCheck (checkCoverageWith stdConfidence{certainty = 10^6} prop_foo)
 checkCoverageWith :: Testable prop => Confidence -> prop -> Property
@@ -480,6 +499,10 @@ stdConfidence =
 -- 5% length of input is 4
 -- 4% length of input is 6
 -- ...
+--
+-- Each use of 'label' in your property results in a separate
+-- table of test case distribution in the output. If this is
+-- not what you want, use 'tabulate'.
 label :: Testable prop => String -> prop -> Property
 label s =
   s `deepseq`
@@ -505,10 +528,14 @@ label s =
 -- 5% 4
 -- 4% 6
 -- ...
+--
+-- Each use of 'collect' in your property results in a separate
+-- table of test case distribution in the output. If this is
+-- not what you want, use 'tabulate'.
 collect :: (Show a, Testable prop) => a -> prop -> Property
 collect x = label (show x)
 
--- | Records how many test cases satisfy a given condition.
+-- | Reports how many test cases satisfy a given condition.
 --
 -- For example:
 --
@@ -534,9 +561,8 @@ classify True s =
 -- cases belong to the given class. Discarded tests (i.e. ones
 -- with a false precondition) do not affect coverage.
 --
--- If the coverage check fails, QuickCheck prints out a warning,
--- but the property does /not/ fail. To make the property fail,
--- use 'checkCoverage'.
+-- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
+-- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
 --
 -- For example:
 --
@@ -559,46 +585,57 @@ cover p x s = mapTotalResult f . classify x s
   where
     f res = res { requiredCoverage = (Nothing, s, p/100):requiredCoverage res }
 
--- | Attaches a set of labels to a test case. At the end of testing, all
--- collected labels are summarised in a table. The first argument is the
--- name of the table; the second is the set of labels.
+-- | Collects information about test case distribution into a table.
+-- The arguments to 'tabulate' are the table's name and a list of values
+-- associated with the current test case. After testing, QuickCheck prints the
+-- frequency of all collected values. The frequencies are expressed as a
+-- percentage of the total number of values collected.
 --
--- 'tabulate' is very similar to 'label', but it can be used to create several
--- tables, and a given test case may contribute several or no labels to a table.
+-- Here is a (not terribly useful) example:
 --
--- The following example models a chatroom, where the user can send a message
--- after having logged in:
+-- > prop_sorted_sort :: [Int] -> Property
+-- > prop_sorted_sort xs =
+-- >   sorted xs ==>
+-- >   tabulate "List elements" (map show xs) $
+-- >   sort xs === xs
+--
+-- >>> quickCheck prop_sorted_sort
+-- +++ OK, passed 100 tests; 1684 discarded.
+-- 
+-- List elements (109 in total):
+--  3.7% 0
+--  3.7% 17
+--  3.7% 2
+--  3.7% 6
+--  2.8% -6
+--  2.8% -7
+--
+-- You should prefer 'tabulate' to 'label' when each test case is associated
+-- with a varying number of values. Here is a typical example. We are testing
+-- a chatroom, where the user can log in, log out, or send a message:
 --
 -- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
--- > instance Arbitrary Command where
--- >   arbitrary = oneof [return LogIn, return LogOut, SendMessage <$> arbitrary]
+-- > instance Arbitrary Command where ...
 --
--- We can only execute a command if we are in the right state (logged in or
--- logged out), which is checked by the function @wellFormed@:
+-- There are some restrictions on command sequences; for example, the user must
+-- log in before doing anything else. The function @valid :: [Command] -> Bool@
+-- checks that a command sequence is allowed. Our property then has the form:
 --
--- > data State = LoggedIn | LoggedOut
--- > wellFormed :: [Command] -> State -> Bool
--- > wellFormed [] _ = True
--- > wellFormed (LogIn:xs) LoggedOut = wellFormed xs LoggedIn
--- > wellFormed (LogOut:xs) LoggedIn = wellFormed xs LoggedOut
--- > wellFormed (SendMessage _:xs) LoggedIn = wellFormed xs LoggedIn
--- > wellFormed _ _ = False
+-- > prop_chatroom :: [Command] -> Property
+-- > prop_chatroom cmds =
+-- >   valid cmds ==>
+-- >     ...
 --
--- Our property takes a list of commands and has the precondition that they must
--- be @wellFormed@. We check the test case distribution by looking at the length
--- of the command sequences (using 'collect') as well as the frequency of the
--- commands appearing in them (using 'tabulate'):
+-- The use of '==>' may skew test case distribution. We use 'collect' to see the
+-- length of the command sequences, and 'tabulate' to get the frequencies of the
+-- individual commands:
 --
 -- > prop_chatroom :: [Command] -> Property
 -- > prop_chatroom cmds =
 -- >   wellFormed cmds LoggedOut ==>
 -- >   'collect' (length cmds) $
 -- >   'tabulate' "Commands" (map (show . 'Data.Data.toConstr') cmds) $
--- >     ... property goes here ...
---
--- The test case distribution is poor. Most command sequences are empty and the
--- non-empty ones consist mostly of @LogIn@ steps. We should write a custom
--- generator for lists of commands.
+-- >     ...
 --
 -- >>> quickCheckWith stdArgs{maxDiscardRatio = 1000} prop_chatroom
 -- +++ OK, passed 100 tests; 2775 discarded:
@@ -624,11 +661,20 @@ tabulate key values =
 -- that of the values in @table@, @x1@ should appear at least @p1@ percent of
 -- the time, @x2@ at least @p2@ percent of the time, and so on.
 --
--- If the coverage check fails, QuickCheck prints out a warning,
--- but the property does /not/ fail. To make the property fail,
--- use 'checkCoverage'.
+-- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
+-- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
 --
--- Here is the chatroom example ('table') with a coverage requirement:
+-- Taking the example from the 'tabular' combinator...
+--
+-- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
+-- > prop_chatroom :: [Command] -> Property
+-- > prop_chatroom cmds =
+-- >   wellFormed cmds LoggedOut ==>
+-- >   'tabulate' "Commands" (map (show . 'Data.Data.toConstr') cmds) $
+-- >     ...
+--
+-- ...we can add a coverage requirement as follows, which checks that @LogIn@,
+-- @LogOut@ and @SendMessage@ each occur at least 25% of the time:
 --
 -- > prop_chatroom :: [Command] -> Property
 -- > prop_chatroom cmds =
@@ -637,7 +683,7 @@ tabulate key values =
 -- >   'tabulate' "Commands" (map (show . 'Data.Data.toConstr') cmds) $
 -- >     ... property goes here ...
 --
- -- >>> quickCheck prop_chatroom
+-- >>> quickCheck prop_chatroom
 -- +++ OK, passed 100 tests; 2909 discarded:
 -- 56% 0
 -- 17% 1
@@ -653,7 +699,6 @@ tabulate key values =
 -- 18.0% LogOut
 -- <BLANKLINE>
 -- Table 'Commands' had only 18.0% LogOut, but expected 25.0%
-
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
@@ -665,7 +710,9 @@ coverTable table xs =
 
 -- | Implication for properties: The resulting property holds if
 -- the first argument is 'False' (in which case the test case is discarded),
--- or if the given property holds.
+-- or if the given property holds. Note that using implication carelessly can
+-- severely skew test case distribution: consider using 'cover' to make sure
+-- that your test data is still good quality.
 (==>) :: Testable prop => Bool -> prop -> Property
 False ==> _ = property Discard
 True  ==> p = property p
@@ -856,7 +903,7 @@ x === y =
     interpret True  = " == "
     interpret False = " /= "
 
--- | Like '===', but checks for inequality instead of equality
+-- | Like '/=', but prints a counterexample when it fails.
 infix 4 =/=
 (=/=) :: (Eq a, Show a) => a -> a -> Property
 x =/= y =

@@ -85,10 +85,11 @@ isInterrupt _ = False
 isInterrupt e = E.fromException e == Just E.UserInterrupt
 #endif
 
--- | A special exception that makes QuickCheck discard the test case.
--- Normally you should use '==>', but if for some reason this isn't
--- possible (e.g. you are deep inside a generator), use 'discard'
--- instead.
+-- | A special error value. If a property evaluates 'discard', it
+-- causes QuickCheck to discard the current test case.
+-- This can be useful if you want to discard the current test case,
+-- but are somewhere you can't use 'Test.QuickCheck.==>', such as inside a
+-- generator.
 discard :: a
 
 isDiscard :: AnException -> Bool

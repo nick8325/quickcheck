@@ -4,36 +4,38 @@ Cabal-Version: >= 1.8
 Build-type: Simple
 License: BSD3
 License-file: LICENSE
-Copyright: 2000-2017 Koen Claessen, 2006-2008 Björn Bringert, 2009-2017 Nick Smallbone
+Copyright: 2000-2018 Koen Claessen, 2006-2008 Björn Bringert, 2009-2018 Nick Smallbone
 Author: Koen Claessen <koen@chalmers.se>
-Maintainer: Nick Smallbone <nick@smallbone.se>; see also QuickCheck mailing list (https://groups.google.com/forum/#!forum/haskell-quickcheck)
+Maintainer: Nick Smallbone <nick@smallbone.se>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
-Tested-with: GHC == 7.0.4, GHC == 7.2.2, GHC >= 7.4
+Tested-with: GHC >= 7.0
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
 Description:
   QuickCheck is a library for random testing of program properties.
-  .
   The programmer provides a specification of the program, in the form of
   properties which functions should satisfy, and QuickCheck then tests that the
   properties hold in a large number of randomly generated cases.
+  Specifications are expressed in Haskell, using combinators provided by
+  QuickCheck. QuickCheck provides combinators to define properties, observe the
+  distribution of test data, and define test data generators.
   .
-  Specifications are expressed in Haskell, using combinators defined in the
-  QuickCheck library. QuickCheck provides combinators to define properties,
-  observe the distribution of test data, and define test data generators.
+  Most of QuickCheck's functionality is exported by the main "Test.QuickCheck"
+  module. The main exception is the monadic property testing library in
+  "Test.QuickCheck.Monadic".
   .
-  The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html official QuickCheck manual>
-  explains how to write generators and properties;
-  it is out-of-date in some details but still full of useful advice.
+  If you are new to QuickCheck, you can try looking at the following resources:
   .
-  A user of QuickCheck has written an unofficial, but detailed, tutorial which
-  you can find at
-  <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>.
+  * The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html official QuickCheck manual>.
+    It's a bit out-of-date in some details and doesn't cover newer QuickCheck features,
+	but is still full of good advice.
+  * <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>,
+    a detailed tutorial written by a user of QuickCheck.
   .
   The <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances>
   companion package provides instances for types in Haskell Platform packages
-  with the cost of additional dependencies.
+  at the cost of additional dependencies.
 
 extra-source-files:
   README

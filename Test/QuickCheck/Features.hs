@@ -30,19 +30,23 @@ prop_noNewFeatures feats prop =
 
 -- | Given a property, which must use 'label', 'collect', 'classify' or 'cover'
 -- to associate labels with test cases, find an example test case for each possible label.
+-- The example test cases are minimised using shrinking.
 --
--- For example:
+-- For example, suppose we test @'Data.List.delete' x xs@ and record the number
+-- of times that @x@ occurs in @xs@:
 --
 -- > prop_delete :: Int -> [Int] -> Property
 -- > prop_delete x xs =
 -- >   classify (count x xs == 0) "count x xs == 0" $
 -- >   classify (count x xs == 1) "count x xs == 1" $
--- >   classify (count x xs == 2) "count x xs == 2" $
+-- >   classify (count x xs >= 2) "count x xs >= 2" $
 -- >   counterexample (show (delete x xs)) $
 -- >   count x (delete x xs) == max 0 (count x xs-1)
 -- >   where count x xs = length (filter (== x) xs)
+--
+-- 'labelledExamples' generates three example test cases, one for each label:
 -- 
--- >>> quickCheck prop_delete
+-- >>> labelledExamples prop_delete
 -- *** Found example of count x xs == 0
 -- 0
 -- []
@@ -53,7 +57,7 @@ prop_noNewFeatures feats prop =
 -- [0]
 -- []
 -- <BLANKLINE>
--- *** Found example of count x xs == 2
+-- *** Found example of count x xs >= 2
 -- 5
 -- [5,5]
 -- [5]
@@ -61,7 +65,7 @@ prop_noNewFeatures feats prop =
 -- +++ OK, passed 100 tests:
 -- 78% count x xs == 0
 -- 21% count x xs == 1
---  1% count x xs == 2
+--  1% count x xs >= 2
 
 
 labelledExamples :: Testable prop => prop -> IO ()

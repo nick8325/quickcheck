@@ -1124,6 +1124,8 @@ shrinkRealFracToPrecision ε x
 
 #ifndef NO_GENERICS
 -- | Used for random generation of functions.
+-- You should consider using 'Test.QuickCheck.Fun' instead, which
+-- can show the generated functions as strings.
 --
 -- If you are using a recent GHC, there is a default definition of
 -- 'coarbitrary' using 'genericCoarbitrary', so if your type has a

@@ -1,6 +1,8 @@
 {-|
 The <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual>
 gives detailed information about using QuickCheck effectively.
+You can also try <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>,
+a tutorial written by a user of QuickCheck.
 
 To start using QuickCheck, write down your property as a function returning @Bool@.
 For example, to check that reversing a list twice gives back the same list you can write:
@@ -26,9 +28,6 @@ To use QuickCheck on your own data types you will need to write 'Arbitrary'
 instances for those types. See the
 <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual> for
 details about how to do that.
-
-This module exports most of QuickCheck's functionality, but see also
-"Test.QuickCheck.Monadic" which helps with testing impure or monadic code.
 -}
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
@@ -66,13 +65,31 @@ module Test.QuickCheck
   , polyVerboseCheck
   , monomorphic
 #endif
-    -- ** Example test cases
-  , labelledExamples
-  , labelledExamplesWith
-  , labelledExamplesWithResult
-  , labelledExamplesResult
 
-    -- * Random generation
+    -- * The 'Arbitrary' typeclass: generation of random values
+  , Arbitrary(..)
+    -- ** Helper functions for implementing 'shrink'
+#ifndef NO_GENERICS
+  , genericShrink
+  , subterms
+  , recursivelyShrink
+#endif
+  , shrinkNothing
+  , shrinkList
+  , shrinkMap
+  , shrinkMapBy
+  , shrinkIntegral
+  , shrinkRealFrac
+
+    -- ** Lifting of 'Arbitrary' to unary and binary type constructors
+  , Arbitrary1(..)
+  , arbitrary1
+  , shrink1
+  , Arbitrary2(..)
+  , arbitrary2
+  , shrink2
+
+    -- * The 'Gen' monad: combinators for building random generators
   , Gen
     -- ** Generator combinators
   , choose
@@ -87,38 +104,20 @@ module Test.QuickCheck
   , suchThat
   , suchThatMap
   , suchThatMaybe
-  , listOf
-  , listOf1
-  , vectorOf
-  , infiniteListOf
-  , shuffle
-  , sublistOf
-    -- ** Generators which use Arbitrary
-  , vector
-  , orderedList
-  , infiniteList
-    -- ** Running a generator
-  , generate
-    -- ** Generator debugging
-  , sample
-  , sample'
-
-    -- * Arbitrary and CoArbitrary classes
-  , Arbitrary(..)
-  , CoArbitrary(..)
-
-  -- ** Unary and Binary classes
-  , Arbitrary1(..)
-  , arbitrary1
-  , shrink1
-  , Arbitrary2(..)
-  , arbitrary2
-  , shrink2
-
-    -- ** Helper functions for implementing arbitrary
   , applyArbitrary2
   , applyArbitrary3
   , applyArbitrary4
+    -- ** Generators for lists
+  , listOf
+  , listOf1
+  , vectorOf
+  , vector
+  , infiniteListOf
+  , infiniteList
+  , shuffle
+  , sublistOf
+  , orderedList
+    -- ** Generators for particular types
   , arbitrarySizedIntegral
   , arbitrarySizedNatural
   , arbitrarySizedFractional
@@ -129,20 +128,50 @@ module Test.QuickCheck
   , arbitraryUnicodeChar
   , arbitraryASCIIChar
   , arbitraryPrintableChar
-    -- ** Helper functions for implementing shrink
-#ifndef NO_GENERICS
-  , genericShrink
-  , subterms
-  , recursivelyShrink
+    -- ** Running generators
+  , generate
+    -- ** Debugging generators
+  , sample
+  , sample'
+
+    -- * The 'Function' typeclass: generation of random shrinkable, showable functions
+
+    -- | Example of use:
+    --
+    -- >>> :{
+    -- >>> let prop :: Fun String Integer -> Bool
+    -- >>>     prop (Fun _ f) = f "monkey" == f "banana" || f "banana" == f "elephant"
+    -- >>> :}
+    -- >>> quickCheck prop
+    -- *** Failed! Falsifiable (after 3 tests and 134 shrinks):
+    -- {"elephant"->1, "monkey"->1, _->0}
+    --
+    -- To generate random values of type @'Fun' a b@,
+    -- you must have an instance @'Function' a@.
+    -- If your type has a 'Show' instance, you can use 'functionShow' to write the instance; otherwise,
+    -- use 'functionMap' to give a bijection between your type and a type that is already an instance of 'Function'.
+    -- See the @'Function' [a]@ instance for an example of the latter.
+    --
+    -- For more information, see the paper \"Shrinking and showing functions\" by Koen Claessen.
+  , Fun (..)
+  , applyFun
+  , applyFun2
+  , applyFun3
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+  , pattern Fn
+  , pattern Fn2
+  , pattern Fn3
 #endif
-  , shrinkNothing
-  , shrinkList
-  , shrinkMap
-  , shrinkMapBy
-  , shrinkIntegral
-  , shrinkRealFrac
-    -- ** Helper functions for implementing coarbitrary
+  , Function (..)
+  , functionMap
+  , functionShow
+  , functionIntegral
+  , functionRealFrac
+  , functionBoundedEnum
+
+    -- * The 'CoArbitrary' typeclass: generation of functions the old-fashioned way
 #ifndef NO_GENERICS
+  , CoArbitrary(..)
   , genericCoarbitrary
 #endif
   , variant
@@ -152,7 +181,7 @@ module Test.QuickCheck
   , coarbitraryEnum
   , (><)
 
-    -- ** Type-level modifiers for changing generator behavior
+    -- * Type-level modifiers for changing generator behavior
 
     -- | These types do things such as restricting the kind of test data that can be generated.
     -- They can be pattern-matched on in properties as a stylistic
@@ -161,7 +190,7 @@ module Test.QuickCheck
     -- Examples:
     --
     -- @
-    -- -- Functions cannot be shown (but see "Test.QuickCheck.Function")
+    -- -- Functions cannot be shown (but see 'Function')
     -- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
     --   takeWhile p xs ++ dropWhile p xs == xs
     -- @
@@ -182,7 +211,7 @@ module Test.QuickCheck
     -- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
     --   sort xs == xs
     -- @
-      , Blind(..)
+  , Blind(..)
   , Fixed(..)
   , OrderedList(..)
   , NonEmptyList(..)
@@ -202,41 +231,8 @@ module Test.QuickCheck
   , UnicodeString(..)
   , PrintableString(..)
 
-    -- ** Functions
-
-    -- | Generation of random shrinkable, showable functions.
-    -- See the paper \"Shrinking and showing functions\" by Koen Claessen.
-    --
-    -- Example of use:
-    --
-    -- >>> :{
-    -- >>> let prop :: Fun String Integer -> Bool
-    -- >>>     prop (Fun _ f) = f "monkey" == f "banana" || f "banana" == f "elephant"
-    -- >>> :}
-    -- >>> quickCheck prop
-    -- *** Failed! Falsifiable (after 3 tests and 134 shrinks):
-    -- {"elephant"->1, "monkey"->1, _->0}
-    --
-    -- To generate random values of type @'Fun' a b@,
-    -- you must have an instance @'Function' a@.
-    -- If your type has a 'Show' instance, you can use 'functionShow' to write the instance; otherwise,
-    -- use 'functionMap' to give a bijection between your type and a type that is already an instance of 'Function'.
-    -- See the @'Function' [a]@ instance for an example of the latter.
-      , Fun (..)
-  , applyFun
-  , applyFun2
-  , applyFun3
-#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
-  , pattern Fn
-  , pattern Fn2
-  , pattern Fn3
-#endif
-  , Function (..)
-  , functionMap
-
-    -- * Properties
+    -- * Property combinators
   , Property, Testable(..)
-    -- ** Property combinators
   , forAll
   , forAllShrink
   , forAllShow
@@ -245,6 +241,8 @@ module Test.QuickCheck
   , forAllShrinkBlind
   , shrinking
   , (==>)
+  , Discard(..)
+  , discard
   , (===)
   , (=/=)
 #ifndef NO_DEEPSEQ
@@ -252,41 +250,44 @@ module Test.QuickCheck
 #endif
   , ioProperty
   , idempotentIOProperty
-    -- *** Controlling property execution
+    -- ** Controlling property execution
   , verbose
   , verboseShrinking
+  , noShrinking
+  , withMaxSuccess
+  , within
   , once
   , again
-  , withMaxSuccess
-  , checkCoverage
-  , checkCoverageWith
-  , Confidence(..)
-  , stdConfidence
-  , within
-  , noShrinking
-    -- *** Conjunction and disjunction
+  , mapSize
+    -- ** Conjunction and disjunction
   , (.&.)
   , (.&&.)
   , conjoin
   , (.||.)
   , disjoin
-    -- *** What to do on failure
+    -- ** What to do on failure
   , counterexample
   , printTestCase
   , whenFail
   , whenFail'
   , expectFailure
-    -- *** Analysing test distribution
+    -- * Analysing test case distribution
   , label
   , collect
   , classify
-  , cover
   , tabulate
+    -- ** Checking test case distribution
+  , cover
   , coverTable
-    -- *** Miscellaneous
-  , Discard(..)
-  , discard
-  , mapSize
+  , checkCoverage
+  , checkCoverageWith
+  , Confidence(..)
+  , stdConfidence
+    -- ** Generating example test cases
+  , labelledExamples
+  , labelledExamplesWith
+  , labelledExamplesWithResult
+  , labelledExamplesResult
   )
  where
 

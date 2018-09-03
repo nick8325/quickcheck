@@ -65,11 +65,25 @@ data Confidence =
     -- If the coverage requirement is met, and the certainty parameter is @n@,
     -- then you should get a false positive at most one in @n@ runs of QuickCheck.
     -- The default value is @10^9@.
+    -- 
+    -- Lower values will speed up 'checkCoverage' at the cost of false
+    -- positives.
+    --
+    -- If you are using 'checkCoverage' as part of a test suite, you should
+    -- be careful not to set @certainty@ too low. If you want, say, a 1% chance
+    -- of a false positive during a project's lifetime, then @certainty@ should
+    -- be set to at least @100 * m * n@, where @m@ is the number of uses of
+    -- 'cover' in the test suite, and @n@ is the number of times you expect the
+    -- test suite to be run during the project's lifetime. The default value
+    -- is chosen to be big enough for most projects.
     tolerance :: Double
     -- ^ For statistical reasons, 'checkCoverage' will not reject coverage
     -- levels that are only slightly below the required levels.
     -- If the required level is @p@ then an actual level of @tolerance * p@
     -- will be accepted. The default value is @0.9@.
+    --
+    -- Lower values will speed up 'checkCoverage' at the cost of not detecting
+    -- minor coverage violations.
     }
   deriving Show
 
