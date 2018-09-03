@@ -440,20 +440,20 @@ withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
--- are satisfied, using a statistically sound test. 
+-- are met, using a statistically sound test, and fail if they are not met.
 --
 -- Ordinarily, a failed coverage check does not cause the property to fail.
 -- This is because the coverage requirement is not tested in a statistically
 -- sound way. If you use 'cover' to express that a certain value must appear 20%
--- of the time, QuickCheck will complain if it only appears in 19 out of 100
--- test cases -- but since the amount of coverage varies randomly, this does not
--- necessarily indicate a problem in your test data generation, as you may have
--- just been unlucky.
+-- of the time, QuickCheck will warn you if the value only appears in 19 out of
+-- 100 test cases - but since the coverage varies randomly, you may have just
+-- been unlucky, and there may not be any real problem with your test
+-- generation.
 --
 -- When you use 'checkCoverage', QuickCheck uses a statistical test to account
 -- for the role of luck in coverage failures. It will run as many tests as
--- needed until it is sure about whether the coverage requirements are
--- satisfied. If a coverage requirement is not met, the property fails.
+-- needed until it is sure about whether the coverage requirements are met. If a
+-- coverage requirement is not met, the property fails.
 --
 -- Example:
 --
@@ -591,7 +591,10 @@ cover p x s = mapTotalResult f . classify x s
 -- frequency of all collected values. The frequencies are expressed as a
 -- percentage of the total number of values collected.
 --
--- Here is a (not terribly useful) example:
+-- You should prefer 'tabulate' to 'label' when each test case is associated
+-- with a varying number of values. Here is a (not terribly useful) example,
+-- where the test data is a list of integers and we record all values that
+-- occur in the list:
 --
 -- > prop_sorted_sort :: [Int] -> Property
 -- > prop_sorted_sort xs =
@@ -601,7 +604,7 @@ cover p x s = mapTotalResult f . classify x s
 --
 -- >>> quickCheck prop_sorted_sort
 -- +++ OK, passed 100 tests; 1684 discarded.
--- 
+-- <BLANKLINE>
 -- List elements (109 in total):
 --  3.7% 0
 --  3.7% 17
@@ -610,9 +613,8 @@ cover p x s = mapTotalResult f . classify x s
 --  2.8% -6
 --  2.8% -7
 --
--- You should prefer 'tabulate' to 'label' when each test case is associated
--- with a varying number of values. Here is a typical example. We are testing
--- a chatroom, where the user can log in, log out, or send a message:
+-- Here is a more useful example. We are testing a chatroom, where the user can
+-- log in, log out, or send a message:
 --
 -- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
 -- > instance Arbitrary Command where ...
@@ -664,7 +666,7 @@ tabulate key values =
 -- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
 -- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
 --
--- Taking the example from the 'tabular' combinator...
+-- Continuing the example from the 'tabular' combinator...
 --
 -- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
 -- > prop_chatroom :: [Command] -> Property

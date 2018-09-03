@@ -1,3 +1,53 @@
+QuickCheck 2.12 (release 2018-09-03)
+	* Silently breaking changes!
+		- The Arbitrary instance for Word now generates only small
+		  values, the same as Int
+		- cover no longer causes a property failure if coverage is
+		  insufficient. It just prints a warning. (But see next item!)
+
+	* Overhaul of label/cover family of combinators:
+		- New property combinator checkCoverage, which checks coverage
+		  requirements in a statistically sound way, and *does* fail if
+		  they are not met.
+		- Order of arguments to cover swapped, to make it easier to
+		  switch between classify and cover
+		- New combinators tabulate and coverTable, for reporting test
+		  case distribution more flexibly than label.
+		- When label is called multiple times in a property, each call
+		  produces a separate table of frequencies.
+	
+	* New functions:
+		- (=/=): like (/=), but prints a counterexample
+		  (thanks to tom-bop)
+		- forAllShow/forAllShrinkShow: quantification using an
+		  explicit show function (thanks to Stevan Andjelkovic)
+		- forAllBlind/forAllShrinkBlind: quantification without
+		  printing anything
+		- verboseShrinking: see how a counterexample is shrunk
+		- labelledExamples: given a property which uses label,
+		  generate an example test case for each label
+		- idempotentIOProperty: a variant of ioProperty which shrinks
+		  better but only works for idempotent I/O actions
+
+	* Other improvements:
+		- MonadFix Gen instance (thanks to Jon Fowler)
+		- Rational numbers shrink using continued fractions
+		  (thanks to Justus Sagemüller)
+		- Function instances for Const, Identity, and the types in
+		  Data.Monoid; instance Functor Fun (thanks to Erik Schnetter
+		  and Xia Li-yao)
+		- More of Test.QuickCheck.Function is exported from
+		  Test.QuickCheck
+		- Semantics of .||. changed to improve short-circuiting:
+		  if the left argument's precondition is false, the right
+		  argument is not evaluated and the whole disjunction is
+		  considered to have a false precondition
+		- Bug fix: suchThatMaybe always increased size to at least 1
+	
+	* Miscellaneous API changes:
+		- Result type no longer has an InsufficientCoverage constructor
+		- Format of labels in Result type is different
+
 QuickCheck 2.11.1 - 2.11.3 (released 2018-01-12)
 	* Cosmetic fixes.
 
