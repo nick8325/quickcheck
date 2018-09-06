@@ -322,11 +322,10 @@ runATest st f =
      let continue break st' | abort res = break st'
                             | otherwise = test st'
 
-     let inc x = Map.insertWith (+) x 1
      let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
                  , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
-                 , S.labels = inc (P.labels res) (S.labels st)
-                 , S.classes = foldr inc (S.classes st) (P.classes res)
+                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
+                 , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (P.classes res) (repeat 1)))
                  , S.tables =
                    foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
                      (S.tables st) (P.tables res)
