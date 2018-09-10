@@ -1,7 +1,11 @@
-QuickCheck 2.12.1 (release 2018-09-06)
+QuickCheck 2.12.2 (released 2018-09-06)
+	* Fix infinite shrinking loop for fractional types.
+	* Add SortedList modifier.
+
+QuickCheck 2.12.1 (released 2018-09-06)
 	* Fix bug in 'classify'.
 
-QuickCheck 2.12 (release 2018-09-03)
+QuickCheck 2.12 (released 2018-09-03)
 	* Silently breaking changes!
 		- The Arbitrary instance for Word now generates only small
 		  values, the same as Int
