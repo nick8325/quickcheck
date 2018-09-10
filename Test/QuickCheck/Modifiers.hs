@@ -197,7 +197,7 @@ data InfiniteList a =
 -- the Arbitrary instance generates an infinite list, which is
 -- reduced to a finite prefix by shrinking. We use discard to
 -- check that nothing coming after the finite prefix is used
--- (see makeInfiniteList).
+-- (see infiniteListFromData).
 data InfiniteListInternalData a = Infinite [a] | FinitePrefix [a]
 
 infiniteListFromData :: InfiniteListInternalData a -> InfiniteList a
