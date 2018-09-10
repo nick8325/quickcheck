@@ -52,6 +52,7 @@ module Test.QuickCheck.Modifiers
   , OrderedList(..)
   , NonEmptyList(..)
   , InfiniteList(..)
+  , SortedList(..)
   , Positive(..)
   , NonZero(..)
   , NonNegative(..)
@@ -224,6 +225,26 @@ instance Arbitrary a => Arbitrary (InfiniteListInternalData a) where
     [FinitePrefix (take n xs) | n <- map (2^) [0..]]
   shrink (FinitePrefix xs) =
     map FinitePrefix (shrink xs)
+
+--------------------------------------------------------------------------
+-- | @Sorted xs@: guarantees that xs is sorted.
+newtype SortedList a = Sorted {getSorted :: [a]}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
+
+instance Functor SortedList where
+  fmap f (Sorted x) = Sorted (map f x)
+
+instance (Arbitrary a, Ord a) => Arbitrary (SortedList a) where
+  arbitrary = fmap (Sorted . sort) arbitrary
+
+  shrink (Sorted xs) =
+    [ Sorted xs'
+    | xs' <- map sort (shrink xs)
+    ]
 
 --------------------------------------------------------------------------
 -- | @Positive x@: guarantees that @x \> 0@.

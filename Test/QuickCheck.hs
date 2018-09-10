@@ -216,6 +216,7 @@ module Test.QuickCheck
   , OrderedList(..)
   , NonEmptyList(..)
   , InfiniteList(..)
+  , SortedList(..)
   , Positive(..)
   , NonZero(..)
   , NonNegative(..)
