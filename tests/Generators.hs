@@ -4,7 +4,9 @@ import Test.QuickCheck.Gen.Unsafe
 import Data.List
 import Data.Int
 import Data.Word
-import Data.Version (showVersion, parseVersion)
+import Data.Version
+import System.Exit
+import Data.Complex
 import Text.ParserCombinators.ReadP (readP_to_S)
 
 newtype Path a = Path [a] deriving (Show, Functor)
@@ -16,9 +18,10 @@ instance Arbitrary a => Arbitrary (Path a) where
     where
       pathFrom x = sized $ \n ->
         fmap (x:) $
-        oneof $
-          [return []] ++
-          [resize (n-1) (pathFrom y) | n > 0, y <- shrink x]
+        case shrink x of
+          [] -> return []
+          _ | n == 0 -> return []
+          ys -> oneof [resize (n-1) (pathFrom y) | y <- ys]
 
   shrink (Path xs) = map Path [ ys | ys <- inits xs, length ys > 0 && length ys < length xs ]
 
@@ -140,6 +143,38 @@ prop_reachesBound_Word8 = reachesBound :: Word8 -> Property
 prop_reachesBound_Word16 = reachesBound :: Word16 -> Property
 prop_reachesBound_Word32 = reachesBound :: Word32 -> Property
 prop_reachesBound_Word64 = reachesBound :: Word64 -> Property
+
+-- Shrinking should not loop.
+noShrinkingLoop :: (Eq a, Arbitrary a) => Path a -> Bool
+noShrinkingLoop (Path (x:xs)) = x `notElem` xs
+
+prop_no_shrinking_loop_Unit = noShrinkingLoop :: Path () -> Bool
+prop_no_shrinking_loop_Bool = noShrinkingLoop :: Path Bool -> Bool
+prop_no_shrinking_loop_Ordering = noShrinkingLoop :: Path Ordering -> Bool
+prop_no_shrinking_loop_Maybe = noShrinkingLoop :: Path (Maybe Int) -> Bool
+prop_no_shrinking_loop_Either = noShrinkingLoop :: Path (Either Int Int) -> Bool
+prop_no_shrinking_loop_List = noShrinkingLoop :: Path [Int] -> Bool
+prop_no_shrinking_loop_Ratio = noShrinkingLoop :: Path Rational -> Bool
+prop_no_shrinking_loop_Complex = noShrinkingLoop :: Path (Complex Double) -> Bool
+prop_no_shrinking_loop_Fixed = noShrinkingLoop :: Path (Fixed Int) -> Bool
+prop_no_shrinking_loop_Pair = noShrinkingLoop :: Path (Int, Int) -> Bool
+prop_no_shrinking_loop_Triple = noShrinkingLoop :: Path (Int, Int, Int) -> Bool
+prop_no_shrinking_loop_Integer = noShrinkingLoop :: Path Integer -> Bool
+prop_no_shrinking_loop_Int = noShrinkingLoop :: Path Int -> Bool
+prop_no_shrinking_loop_Int8 = noShrinkingLoop :: Path Int8 -> Bool
+prop_no_shrinking_loop_Int16 = noShrinkingLoop :: Path Int16 -> Bool
+prop_no_shrinking_loop_Int32 = noShrinkingLoop :: Path Int32 -> Bool
+prop_no_shrinking_loop_Int64 = noShrinkingLoop :: Path Int64 -> Bool
+prop_no_shrinking_loop_Word = noShrinkingLoop :: Path Word -> Bool
+prop_no_shrinking_loop_Word8 = noShrinkingLoop :: Path Word8 -> Bool
+prop_no_shrinking_loop_Word16 = noShrinkingLoop :: Path Word16 -> Bool
+prop_no_shrinking_loop_Word32 = noShrinkingLoop :: Path Word32 -> Bool
+prop_no_shrinking_loop_Word64 = noShrinkingLoop :: Path Word64 -> Bool
+prop_no_shrinking_loop_Char = noShrinkingLoop :: Path Char -> Bool
+prop_no_shrinking_loop_Float = noShrinkingLoop :: Path Float -> Bool
+prop_no_shrinking_loop_Double = noShrinkingLoop :: Path Double -> Bool
+prop_no_shrinking_loop_Version = noShrinkingLoop :: Path Version -> Bool
+prop_no_shrinking_loop_ExitCode = noShrinkingLoop :: Path ExitCode -> Bool
 
 -- Bad shrink: infinite list
 --
