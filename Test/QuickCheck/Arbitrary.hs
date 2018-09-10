@@ -1104,16 +1104,17 @@ shrinkRealFracToPrecision :: RealFrac a
                    => a   -- ^ "Epsilon" – the minimum deviation we consider
                    -> a   -- ^ Value to shrink
                    -> [a]
-shrinkRealFracToPrecision ε x
-  | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision ε $ -x))
-  | x < ε       = [0]
+shrinkRealFracToPrecision eps x
+  | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision eps $ -x))
+  | x < eps     = [0 | x /= 0]
   | not (x==x)  = []
   | not (2*x>x) = 0 : takeWhile (<x) ((2^).(^2)<$>[0..])
-  | (x-intgPart>ε)
-                = intgShrinks ++ [intgPart]
+  | (x-intgPart>eps)
+                = filter (/= x) $
+                  intgShrinks ++ [intgPart]
                    ++ map ((intgPart+) . recip)
                           (filter (>0)
-                            . shrinkRealFracToPrecision (ε/(x-intgPart))
+                            . shrinkRealFracToPrecision (eps/(x-intgPart))
                                   $ 1/(x-intgPart))
   | otherwise   = intgShrinks
  where intgPart = fromInteger $ truncate x
