@@ -80,6 +80,7 @@ module Test.QuickCheck
   , shrinkMapBy
   , shrinkIntegral
   , shrinkRealFrac
+  , shrinkDecimal
 
     -- ** Lifting of 'Arbitrary' to unary and binary type constructors
   , Arbitrary1(..)

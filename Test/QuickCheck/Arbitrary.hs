@@ -66,6 +66,7 @@ module Test.QuickCheck.Arbitrary
   , shrinkMapBy              -- :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
+  , shrinkDecimal            -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
   , coarbitraryReal          -- :: Real a => a -> Gen b -> Gen b
@@ -492,7 +493,7 @@ instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
 #ifndef NO_FIXED
 instance HasResolution a => Arbitrary (Fixed a) where
   arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFrac
+  shrink    = shrinkDecimal
 #endif
 
 instance Arbitrary2 (,) where
@@ -676,11 +677,11 @@ instance Arbitrary Char where
 
 instance Arbitrary Float where
   arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFrac
+  shrink    = shrinkDecimal
 
 instance Arbitrary Double where
   arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFrac
+  shrink    = shrinkDecimal
 
 instance Arbitrary CChar where
   arbitrary = arbitrarySizedBoundedIntegral
@@ -782,11 +783,11 @@ instance Arbitrary CSUSeconds where
 
 instance Arbitrary CFloat where
   arbitrary = arbitrarySizedFractional
-  shrink = shrinkRealFrac
+  shrink = shrinkDecimal
 
 instance Arbitrary CDouble where
   arbitrary = arbitrarySizedFractional
-  shrink = shrinkRealFrac
+  shrink = shrinkDecimal
 
 -- Arbitrary instances for container types
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
@@ -1096,29 +1097,46 @@ shrinkIntegral x =
             (True,  False) -> a + b < 0
             (False, True)  -> a + b > 0
 
--- | Shrink a fraction, via continued-fraction approximations.
+-- | Shrink a fraction, preferring numbers with smaller
+-- numerators or denominators. See also 'shrinkDecimal'.
 shrinkRealFrac :: RealFrac a => a -> [a]
-shrinkRealFrac a = shrinkRealFracToPrecision (abs a*1e-6) a
+shrinkRealFrac x
+  | not (x == x) = 0 : take 10 (iterate (*2) 0) -- NaN
+  | not (2*x>x)  = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
+  | x < 0 = negate x:map negate (shrinkRealFrac (negate x))
+  | otherwise =
+    -- To ensure termination
+    filter (\y -> abs y < abs x) $
+      -- Try shrinking to an integer first
+      map fromInteger (shrink (truncate x) ++ [truncate x]) ++
+      -- Shrink the numerator
+      [fromRational (num' % denom) | num' <- shrink num] ++
+      -- Shrink the denominator, and keep the fraction as close
+      -- to the original as possible, rounding towards zero
+      [fromRational (truncate (num * denom' % denom) % denom')
+      | denom' <- shrink denom, denom' /= 0 ]
+  where
+    num = numerator (toRational x)
+    denom = denominator (toRational x)
 
-shrinkRealFracToPrecision :: RealFrac a
-                   => a   -- ^ "Epsilon" – the minimum deviation we consider
-                   -> a   -- ^ Value to shrink
-                   -> [a]
-shrinkRealFracToPrecision eps x
-  | x < 0       = 0 : ([id, negate] <*> filter (>0) (shrinkRealFracToPrecision eps $ -x))
-  | x < eps     = [0 | x /= 0]
-  | not (x==x)  = []
-  | not (2*x>x) = 0 : takeWhile (<x) ((2^).(^2)<$>[0..])
-  | (x-intgPart>eps)
-                = filter (/= x) $
-                  intgShrinks ++ [intgPart]
-                   ++ map ((intgPart+) . recip)
-                          (filter (>0)
-                            . shrinkRealFracToPrecision (eps/(x-intgPart))
-                                  $ 1/(x-intgPart))
-  | otherwise   = intgShrinks
- where intgPart = fromInteger $ truncate x
-       intgShrinks = map fromInteger . shrinkIntegral $ truncate x
+-- | Shrink a real number, preferring numbers with shorter
+-- decimal representations. See also 'shrinkRealFrac'.
+shrinkDecimal :: RealFrac a => a -> [a]
+shrinkDecimal x
+  | not (x == x)  = 0 : take 10 (iterate (*2) 0)        -- NaN
+  | not (2*x+1>x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
+  | otherwise =
+    -- e.g. shrink pi =
+    --   shrink 3 ++ map (/ 10) (shrink 31) ++
+    --   map (/ 100) (shrink 314) + ...,
+    -- where the inner calls to shrink use integer shrinking.
+    [ y
+    | precision <- take 6 (iterate (*10) 1),
+      let m = truncate (toRational x * precision),
+      m `mod` 10 /= 0, -- don't allow shrinking to increase digits
+      n <- m:shrink m,
+      let y = fromRational (fromInteger n / precision),
+      abs y < abs x ]
 
 --------------------------------------------------------------------------
 -- ** CoArbitrary
