@@ -14,14 +14,14 @@ newtype Path a = Path [a] deriving (Show, Functor)
 instance Arbitrary a => Arbitrary (Path a) where
   arbitrary = do
     x <- arbitrary
-    fmap Path (pathFrom x)
+    fmap Path (pathFrom 100 x)
     where
-      pathFrom x = sized $ \n ->
+      pathFrom n x =
         fmap (x:) $
         case shrink x of
           [] -> return []
           _ | n == 0 -> return []
-          ys -> oneof [resize (n-1) (pathFrom y) | y <- ys]
+          ys -> oneof [pathFrom (n-1) y | y <- ys]
 
   shrink (Path xs) = map Path [ ys | ys <- inits xs, length ys > 0 && length ys < length xs ]
 
