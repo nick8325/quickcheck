@@ -1,4 +1,12 @@
-QuickCheck 2.12.2 (released 2018-09-06)
+QuickCheck 2.12.3 (released 2018-09-12)
+	* Shrinking for Float and Decimal now works by reducing the number
+	  of digits in the number. The new function shrinkDecimal
+	  implements this shrinking behaviour.
+	* Shrinking for Rational now tries to make the numerator and
+	  denominator of the number smaller. Previously it tried to reduce
+	  the magnitude of the number.
+
+QuickCheck 2.12.2 (released 2018-09-10)
 	* Fix infinite shrinking loop for fractional types.
 	* Add SortedList modifier.
 
@@ -22,7 +30,7 @@ QuickCheck 2.12 (released 2018-09-03)
 		  case distribution more flexibly than label.
 		- When label is called multiple times in a property, each call
 		  produces a separate table of frequencies.
-	
+
 	* New functions:
 		- (=/=): like (/=), but prints a counterexample
 		  (thanks to tom-bop)
@@ -50,7 +58,7 @@ QuickCheck 2.12 (released 2018-09-03)
 		  argument is not evaluated and the whole disjunction is
 		  considered to have a false precondition
 		- Bug fix: suchThatMaybe always increased size to at least 1
-	
+
 	* Miscellaneous API changes:
 		- Result type has changed a bit:
 			- InsufficientCovered constructor is gone
