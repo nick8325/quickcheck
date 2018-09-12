@@ -1,4 +1,4 @@
-QuickCheck 2.12.3 (released 2018-09-12)
+QuickCheck 2.12.3, 2.12.4 (released 2018-09-12)
 	* Shrinking for Float and Decimal now works by reducing the number
 	  of digits in the number. The new function shrinkDecimal
 	  implements this shrinking behaviour.

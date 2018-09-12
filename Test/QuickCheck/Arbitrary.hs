@@ -1132,7 +1132,7 @@ shrinkDecimal x
     -- where the inner calls to shrink use integer shrinking.
     [ y
     | precision <- take 6 (iterate (*10) 1),
-      let m = truncate (toRational x * precision),
+      let m = round (toRational x * precision),
       m `mod` 10 /= 0, -- don't allow shrinking to increase digits
       n <- m:shrink m,
       let y = fromRational (fromInteger n / precision),
