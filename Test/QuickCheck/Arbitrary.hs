@@ -1101,8 +1101,8 @@ shrinkIntegral x =
 -- numerators or denominators. See also 'shrinkDecimal'.
 shrinkRealFrac :: RealFrac a => a -> [a]
 shrinkRealFrac x
-  | not (x == x) = 0 : take 10 (iterate (*2) 0) -- NaN
-  | not (2*x>x)  = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
+  | not (x == x)  = 0 : take 10 (iterate (*2) 0) -- NaN
+  | not (2*x+1>x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
   | x < 0 = negate x:map negate (shrinkRealFrac (negate x))
   | otherwise =
     -- To ensure termination
