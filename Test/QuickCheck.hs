@@ -45,6 +45,7 @@ module Test.QuickCheck
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
+  , isSuccess
     -- ** Running tests verbosely
   , verboseCheck
   , verboseCheckWith
