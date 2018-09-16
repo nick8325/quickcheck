@@ -1,9 +1,12 @@
-{-# OPTIONS_HADDOCK hide #-}
 {-# LANGUAGE CPP #-}
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
 #endif
 -- | Test case generation.
+--
+-- __Note__: the contents of this module (except for the definition of
+-- 'Gen') are re-exported by "Test.QuickCheck". You probably do not
+-- need to import it directly.
 module Test.QuickCheck.Gen where
 
 --------------------------------------------------------------------------
