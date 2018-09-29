@@ -172,8 +172,8 @@ module Test.QuickCheck
   , functionBoundedEnum
 
     -- * The 'CoArbitrary' typeclass: generation of functions the old-fashioned way
-#ifndef NO_GENERICS
   , CoArbitrary(..)
+#ifndef NO_GENERICS
   , genericCoarbitrary
 #endif
   , variant
