@@ -1035,8 +1035,15 @@ arbitrarySizedBoundedIntegral =
   sized $ \s ->
     do let bits n | n == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
-           k  = 2^(s*(bits mn `max` bits mx `max` 40) `div` 80)
-       n <- choose (toInteger mn `max` (-k), toInteger mx `min` k)
+           k = (toInteger s*(bits mn `max` bits mx `max` 40) `div` 80)
+           -- computes x `min` (2^k), but avoids computing 2^k
+           -- if it is too large
+           x `minexp` k
+             | bits x < k = x
+             | otherwise = x `min` (2^k)
+           -- x `max` (-2^k)
+           x `maxexpneg` k = -((-x) `minexp` k)
+       n <- choose (toInteger mn `maxexpneg` k, toInteger mx `minexp` k)
        return (fromInteger n)
 
 -- ** Generators for various kinds of character
