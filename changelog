@@ -1,3 +1,13 @@
+QuickCheck 2.12.6 (released 2018-10-02)
+	* Make arbitrarySizedBoundedIntegral handle huge sizes correctly.
+	* Add changelog for QuickCheck 2.12.5 :)
+
+QuickCheck 2.12.5 (released 2018-09-30)
+	* Export isSuccess from Test.QuickCheck.
+	* Export CoArbitrary even when generics are disabled (bugfix).
+	* Fix bug in shrinkDecimal.
+	* Include Test.QuickCheck.Gen in exposed modules for Haddock.
+
 QuickCheck 2.12.3, 2.12.4 (released 2018-09-12)
 	* Shrinking for Float and Decimal now works by reducing the number
 	  of digits in the number. The new function shrinkDecimal
