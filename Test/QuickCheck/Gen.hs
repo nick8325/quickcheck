@@ -25,6 +25,8 @@ import Control.Monad
   , filterM
   )
 
+import Control.Monad.Fail
+
 import Control.Monad.Fix
   ( MonadFix(..) )
 
@@ -68,6 +70,11 @@ instance Monad Gen where
           let MkGen m' = k (m r1 n)
           in m' r2 n
     )
+  
+  fail = Control.Monad.Fail.fail
+
+instance Control.Monad.Fail.MonadFail Gen where
+  fail = error 
 
 instance MonadFix Gen where
   mfix f =
