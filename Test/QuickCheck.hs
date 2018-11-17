@@ -136,6 +136,7 @@ module Test.QuickCheck
   , sample
   , sample'
 
+#ifndef NO_GADTS
     -- * The 'Function' typeclass: generation of random shrinkable, showable functions
 
     -- | Example of use:
@@ -170,6 +171,7 @@ module Test.QuickCheck
   , functionIntegral
   , functionRealFrac
   , functionBoundedEnum
+#endif
 
     -- * The 'CoArbitrary' typeclass: generation of functions the old-fashioned way
   , CoArbitrary(..)
@@ -303,7 +305,9 @@ import Test.QuickCheck.Modifiers
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Exception
+#ifndef NO_GADTS
 import Test.QuickCheck.Function
+#endif
 import Test.QuickCheck.Features
 import Test.QuickCheck.State
 #ifndef NO_TEMPLATE_HASKELL

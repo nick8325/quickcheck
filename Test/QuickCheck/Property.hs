@@ -505,7 +505,9 @@ stdConfidence =
 -- not what you want, use 'tabulate'.
 label :: Testable prop => String -> prop -> Property
 label s =
+#ifndef NO_DEEPSEQ
   s `deepseq`
+#endif
   mapTotalResult $
     \res -> res { labels = s:labels res }
 
@@ -553,7 +555,9 @@ classify :: Testable prop =>
          -> prop -> Property
 classify False _ = property
 classify True s =
+#ifndef NO_DEEPSEQ
   s `deepseq`
+#endif
   mapTotalResult $
     \res -> res { classes = s:classes res }
 
@@ -654,7 +658,9 @@ cover p x s = mapTotalResult f . classify x s
 -- 16% LogOut
 tabulate :: Testable prop => String -> [String] -> prop -> Property
 tabulate key values =
+#ifndef NO_DEEPSEQ
   key `deepseq` values `deepseq`
+#endif
   mapTotalResult $
     \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
@@ -704,7 +710,9 @@ tabulate key values =
 coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
+#ifndef NO_DEEPSEQ
   tables `deepseq` xs `deepseq`
+#endif
   mapTotalResult $
     \res -> res { requiredCoverage = ys ++ requiredCoverage res }
   where

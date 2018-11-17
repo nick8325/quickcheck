@@ -92,7 +92,7 @@ labelledExamplesWithResult args prop =
           Failure{reason = "New feature found"} -> do
             putLine (terminal state) $
               "*** Found example of " ++
-              intercalate ", " (Set.toList (feats' Set.\\ feats))
+              concat (intersperse ", " (Set.toList (feats' Set.\\ feats)))
             mapM_ (putLine (terminal state)) (failingTestCase res)
             putStrLn ""
             loop (Set.union feats feats')

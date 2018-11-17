@@ -125,7 +125,7 @@ flattenRows rows = map row rows
     cols = transpose rows
     widths = map (maximum . map (length . text)) cols
 
-    row cells = intercalate " " (zipWith cell widths cells)
+    row cells = concat (intersperse " " (zipWith cell widths cells))
     cell n (LJust xs) = ljust n xs
     cell n (RJust xs) = rjust n xs
     cell n (Centred xs) = centre n xs
@@ -149,7 +149,7 @@ drawTable headers table =
     border x y xs = [x, y] ++ centre width xs ++ [y, x]
 
 paragraphs :: [[String]] -> [String]
-paragraphs = intercalate [""] . filter (not . null)
+paragraphs = concat . intersperse [""] . filter (not . null)
 
 bold :: String -> String
 -- not portable:

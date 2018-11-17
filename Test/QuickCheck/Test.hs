@@ -41,13 +41,11 @@ import Data.List
   , sortBy
   , group
   , intersperse
-  , intercalate
   )
 
 import Data.Maybe(fromMaybe, isNothing, catMaybes)
 import Data.Ord(comparing)
 import Text.Printf(printf)
-import Data.Either(lefts, rights)
 import Control.Monad
 import Data.Bits
 
@@ -390,16 +388,16 @@ failureSummaryAndReason st res = (summary, full)
   where
     summary =
       header ++
-      short 26 (oneLine reason ++ " ") ++
+      short 26 (oneLine theReason ++ " ") ++
       count True ++ "..."
 
     full =
       (header ++
-       (if isOneLine reason then reason ++ " " else "") ++
+       (if isOneLine theReason then theReason ++ " " else "") ++
        count False ++ ":"):
-      if isOneLine reason then [] else lines reason
+      if isOneLine theReason then [] else lines theReason
 
-    reason = P.reason res
+    theReason = P.reason res
 
     header =
       if expect res then
@@ -433,10 +431,10 @@ success st = do
           (":":short, long)
 
 labelsAndTables :: State -> ([String], [String])
-labelsAndTables st = (labels, tables)
+labelsAndTables st = (theLabels, theTables)
   where
-    labels :: [String]
-    labels =
+    theLabels :: [String]
+    theLabels =
       paragraphs $
         [ showTable (numSuccessTests st) Nothing m
         | m <- S.classes st:Map.elems numberedLabels ]
@@ -448,8 +446,8 @@ labelsAndTables st = (labels, tables)
         | (labels, n) <- Map.toList (S.labels st),
           (i, l) <- zip [0..] labels ]
 
-    tables :: [String]
-    tables =
+    theTables :: [String]
+    theTables =
       paragraphs $
         [ showTable (sum (Map.elems m)) (Just table) m
         | (table, m) <- Map.toList (S.tables st) ] ++
@@ -581,9 +579,9 @@ addCoverageCheck confidence st prop
     once prop
   | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
        | (_, _, tot, n, p) <- allCoverage st ] =
-    let (labels, tables) = labelsAndTables st in
+    let (theLabels, theTables) = labelsAndTables st in
     foldr counterexample (property failed{P.reason = "Insufficient coverage"})
-      (paragraphs [labels, tables])
+      (paragraphs [theLabels, theTables])
   | otherwise = prop
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]

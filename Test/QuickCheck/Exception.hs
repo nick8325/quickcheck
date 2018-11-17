@@ -59,15 +59,17 @@ tryEvaluate x = tryEvaluateIO (return x)
 tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = E.tryJust notAsync (m >>= E.evaluate)
   where
-    notAsync :: E.SomeException -> Maybe AnException
+    notAsync :: AnException -> Maybe AnException
 #if MIN_VERSION_base(4,7,0)
     notAsync e = case E.fromException e of
         Just (E.SomeAsyncException _) -> Nothing
         Nothing                       -> Just e
-#else
+#elif !defined(OLD_EXCEPTIONS)
     notAsync e = case E.fromException e :: Maybe E.AsyncException of
         Just _  -> Nothing
         Nothing -> Just e
+#else
+    notAsync e = Just e
 #endif
 
 --tryEvaluateIO m = Right `fmap` m
