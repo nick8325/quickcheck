@@ -33,7 +33,7 @@ Description:
   * <https://begriffs.com/posts/2017-01-14-design-use-quickcheck.html>,
     a detailed tutorial written by a user of QuickCheck.
   .
-  The <http://hackage.haskell.org/package/quickcheck-instances quickcheck-instances>
+  The <https://hackage.haskell.org/package/quickcheck-instances quickcheck-instances>
   companion package provides instances for types in Haskell Platform packages
   at the cost of additional dependencies.
 
