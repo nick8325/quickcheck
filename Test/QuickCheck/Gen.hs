@@ -35,6 +35,7 @@ import Test.QuickCheck.Random
 import Data.List
 import Data.Ord
 import Data.Maybe
+import GHC.Stack (HasCallStack)
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -197,7 +198,7 @@ frequency xs0 = choose (1, tot) >>= (`pick` xs0)
   pick _ _  = error "QuickCheck.pick used with empty list"
 
 -- | Generates one of the given values. The input list must be non-empty.
-elements :: [a] -> Gen a
+elements :: HasCallStack => [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
