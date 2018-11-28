@@ -309,12 +309,7 @@ instance Functor NonNegative where
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary =
-    (frequency
-       -- why is this distrbution like this?
-       [ (5, (NonNegative . abs) `fmap` arbitrary)
-       , (1, return (NonNegative 0))
-       ]
-    ) `suchThat` ge0
+    ((NonNegative . abs) `fmap` arbitrary) `suchThat` ge0
     where ge0 (NonNegative x) = x >= 0
 
   shrink (NonNegative x) =
