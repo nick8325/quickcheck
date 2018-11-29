@@ -32,10 +32,10 @@ import Control.Applicative
   ( Applicative(..) )
 
 import Test.QuickCheck.Random
+import Data.CallStack (HasCallStack)
 import Data.List
 import Data.Ord
 import Data.Maybe
-import GHC.Stack (HasCallStack)
 
 --------------------------------------------------------------------------
 -- ** Generator type
