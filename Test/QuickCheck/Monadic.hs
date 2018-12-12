@@ -19,7 +19,7 @@ prop_monadic a b = 'monadicIO' $ do
   a\' \<- 'run' (f a)
   b\' \<- 'run' (f b)
   -- ...
-  'assert' someBoolean
+  pure someTestable
 @
 
 Example using the @FACTOR(1)@ command-line utility:
@@ -41,7 +41,7 @@ prop_factor :: Positive Integer -> Property
 prop_factor ('Test.QuickCheck.Modifiers.Positive' n) = 'monadicIO' $ do
   factors \<- 'run' (factor n)
 
-  'assert' (product factors == n)
+  pure (product factors '===' n)
 @
 
 >>> quickCheck prop_factor
@@ -144,6 +144,8 @@ stop p = MkPropertyM (\_k -> return (return (property p)))
 -- should think about strictness/exceptions here
 -- assert :: Testable prop => prop -> PropertyM m ()
 -- | Allows embedding non-monadic properties into monadic ones.
+-- 
+--   You can also embed them directly with 'pure'.
 assert :: Monad m => Bool -> PropertyM m ()
 assert True  = return ()
 assert False = fail "Assertion failed"
