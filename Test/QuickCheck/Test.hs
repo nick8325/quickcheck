@@ -4,6 +4,7 @@
 #ifndef NO_TYPEABLE
 {-# LANGUAGE DeriveDataTypeable #-}
 #endif
+{-# LANGUAGE DoAndIfThenElse #-}
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -74,6 +75,8 @@ data Args
     -- ^ Maximum number of successful tests before succeeding. Testing stops
     -- at the first failure. If all tests are passing and you want to run more tests,
     -- increase this number.
+  , maxFailPercent  :: Int
+    -- ^ Maximum percent of failed tests.
   , maxDiscardRatio :: Int
     -- ^ Maximum number of discarded tests per successful test before giving up
   , maxSize         :: Int
@@ -96,6 +99,7 @@ data Result
   = Success
     { numTests     :: Int
       -- ^ Number of tests performed
+    , numFailed    :: Int
     , numDiscarded :: Int
       -- ^ Number of tests skipped
     , labels       :: !(Map [String] Int)
@@ -143,10 +147,23 @@ data Result
       -- ^ The test case's labels (see 'label')
     , failingClasses  :: Set String
       -- ^ The test case's classes (see 'classify')
+    , tables          :: !(Map String (Map String Int))
+      -- ^ Data collected by 'tabulate'
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
     { numTests     :: Int
+    , numFailed    :: Int
+    , numDiscarded :: Int
+      -- ^ Number of tests skipped
+    , labels       :: !(Map [String] Int)
+    , classes      :: !(Map String Int)
+    , tables       :: !(Map String (Map String Int))
+    , output       :: String
+    }
+  | TooManyFailed
+    { numTests     :: Int
+    , numFailed    :: Int
     , numDiscarded :: Int
       -- ^ Number of tests skipped
     , labels       :: !(Map [String] Int)
@@ -166,6 +183,7 @@ stdArgs :: Args
 stdArgs = Args
   { replay          = Nothing
   , maxSuccess      = 100
+  , maxFailPercent  = 0
   , maxDiscardRatio = 10
   , maxSize         = 100
   , chatty          = True
@@ -200,12 +218,14 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
      test MkState{ terminal                  = tm
                  , maxSuccessTests           = maxSuccess a
                  , coverageConfidence        = Nothing
+                 , maxFailedPercent          = maxFailPercent a
                  , maxDiscardedRatio         = maxDiscardRatio a
                  , computeSize               = case replay a of
                                                  Nothing    -> computeSize'
                                                  Just (_,s) -> computeSize' `at0` s
                  , numTotMaxShrinks          = maxShrinks a
                  , numSuccessTests           = 0
+                 , numFailedTests            = 0
                  , numDiscardedTests         = 0
                  , numRecentlyDiscardedTests = 0
                  , S.labels                  = Map.empty
@@ -257,7 +277,10 @@ test :: State -> Property -> IO Result
 test st f
   | numSuccessTests st   >= maxSuccessTests st && isNothing (coverageConfidence st) =
     doneTesting st f
-  | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) =
+  | 100 * numFailedTests st >= maxFailedPercent  st * max (numSuccessTests st) (maxSuccessTests st)
+  , numFailedTests st /= 0
+  = failedTesting st f
+  | numDiscardedTests    st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) =
     giveUp st f
   | otherwise =
     runATest st f
@@ -282,7 +305,7 @@ doneTesting st _f
     finished k = do
       success st
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) theOutput)
+      return (k (numSuccessTests st) (numFailedTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) theOutput)
 
 giveUp :: State -> Property -> IO Result
 giveUp st _f =
@@ -303,11 +326,36 @@ giveUp st _f =
                   , output       = theOutput
                   }
 
+failedTesting :: State -> Property -> IO Result
+failedTesting st _f = do
+     putPart (terminal st)
+       ( bold ("*** Failed!")
+      ++ " Passed only "
+      ++ showTestCount st
+      ++ " tests"
+       )
+     success st
+     theOutput <- terminalOutput (terminal st)
+     return TooManyFailed
+       { numTests     = numSuccessTests st
+       , numFailed    = numFailedTests st
+       , numDiscarded = numDiscardedTests st
+       , labels       = S.labels st
+       , classes      = S.classes st
+       , tables       = S.tables st
+       , output       = theOutput
+       }
+
 showTestCount :: State -> String
 showTestCount st =
      number (numSuccessTests st) "test"
   ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
             | numDiscardedTests st > 0
+            ]
+  ++ concat [ "; " ++ show (numFailedTests st) ++ " failed (" ++
+              printf "%d%%)" (100 * numFailedTests st `div`
+                                    (numSuccessTests st + numFailedTests st))
+            | numFailedTests st > 0
             ]
 
 runATest :: State -> Property -> IO Result
@@ -368,23 +416,31 @@ runATest st f =
                               tables = S.tables st',
                               numTests = numSuccessTests st'+1,
                               numDiscarded = numDiscardedTests st',
+                              numFailed    = numFailedTests st',
                               output = theOutput }
              else do
               testCase <- mapM showCounterexample (P.testCase res)
-              return Failure{ usedSeed        = randomSeed st' -- correct! (this will be split first)
-                            , usedSize        = size
-                            , numTests        = numSuccessTests st'+1
-                            , numDiscarded    = numDiscardedTests st'
-                            , numShrinks      = numShrinks
-                            , numShrinkTries  = totFailed
-                            , numShrinkFinal  = lastFailed
-                            , output          = theOutput
-                            , reason          = P.reason res
-                            , theException    = P.theException res
-                            , failingTestCase = testCase
-                            , failingLabels   = P.labels res
-                            , failingClasses  = Set.fromList (P.classes res)
-                            }
+              if S.maxFailedPercent st == 0
+              then return Failure{ usedSeed        = randomSeed st' -- correct! (this will be split first)
+                                 , usedSize        = size
+                                 , numTests        = numSuccessTests st'+1
+                                 , numDiscarded    = numDiscardedTests st'
+                                 , numShrinks      = numShrinks
+                                 , numShrinkTries  = totFailed
+                                 , numShrinkFinal  = lastFailed
+                                 , output          = theOutput
+                                 , reason          = P.reason res
+                                 , theException    = P.theException res
+                                 , failingTestCase = testCase
+                                 , failingLabels   = P.labels res
+                                 , failingClasses  = Set.fromList (P.classes res)
+                                 , tables          = S.tables st'
+                                 }
+              else continue doneTesting
+                              st'{ numFailedTests            = numFailedTests st' + 1
+                                 , numRecentlyDiscardedTests = 0
+                                 , randomSeed                = rnd2
+                                 } f
  where
   (rnd1,rnd2) = split (randomSeed st)
 
