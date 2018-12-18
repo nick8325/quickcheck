@@ -186,7 +186,7 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 -- the remaining (infinite) part can contain anything:
 --
 -- >>> quickCheck prop_take_10
--- *** Failed! Falsifiable (after 1 test and 14 shrinks):
+-- *** Failed! Falsism (after 1 test and 14 shrinks):
 -- "bbbbbbbbbb" ++ ...
 data InfiniteList a =
   InfiniteList {
