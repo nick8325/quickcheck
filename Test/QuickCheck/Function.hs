@@ -27,7 +27,7 @@
 -- >>>     prop (Fun _ f) = f "monkey" == f "banana" || f "banana" == f "elephant"
 -- >>> :}
 -- >>> quickCheck prop
--- *** Failed! Falsism (after 3 tests and 134 shrinks):
+-- *** Failed! Falsified (after 3 tests and 134 shrinks):
 -- {"elephant"->1, "monkey"->1, _->0}
 --
 -- To generate random values of type @'Fun' a b@,

@@ -305,7 +305,7 @@ succeeded, failed, rejected :: Result
 
 liftBool :: Bool -> Result
 liftBool True = succeeded
-liftBool False = failed { reason = "Falsism" }
+liftBool False = failed { reason = "Falsified" }
 
 mapResult :: Testable prop => (Result -> Result) -> prop -> Property
 mapResult f = mapRoseResult (protectResults . fmap f)
