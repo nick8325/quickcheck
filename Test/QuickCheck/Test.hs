@@ -1,6 +1,9 @@
 {-# OPTIONS_HADDOCK hide #-}
 -- | The main test loop.
 {-# LANGUAGE CPP #-}
+#ifndef NO_TYPEABLE
+{-# LANGUAGE DeriveDataTypeable #-}
+#endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -49,6 +52,10 @@ import Text.Printf(printf)
 import Control.Monad
 import Data.Bits
 
+#ifndef NO_TYPEABLE
+import Data.Typeable (Typeable)
+#endif
+
 --------------------------------------------------------------------------
 -- quickCheck
 
@@ -77,7 +84,11 @@ data Args
     -- ^ Maximum number of shrinks to before giving up. Setting this to zero
     --   turns shrinking off.
   }
- deriving ( Show, Read )
+ deriving ( Show, Read
+#ifndef NO_TYPEABLE
+  , Typeable
+#endif
+  )
 
 -- | Result represents the test result
 data Result
