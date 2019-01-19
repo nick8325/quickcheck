@@ -108,7 +108,7 @@ install:
 script:
  - if [ -f configure.ac ]; then autoreconf -i; fi
  - rm -rf .ghc.environment.* dist/
- - cabal sdist # test that a source-distribution can be generated
+ - cabal v1-sdist # test that a source-distribution can be generated
  - cd dist/
  - SRCTAR=(${PKGNAME}-*.tar.gz)
  - SRC_BASENAME="${SRCTAR/%.tar.gz}"
