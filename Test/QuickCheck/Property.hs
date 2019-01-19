@@ -711,7 +711,7 @@ coverTable :: Testable prop =>
   String -> [(String, Double)] -> prop -> Property
 coverTable table xs =
 #ifndef NO_DEEPSEQ
-  tables `deepseq` xs `deepseq`
+  table `deepseq` xs `deepseq`
 #endif
   mapTotalResult $
     \res -> res { requiredCoverage = ys ++ requiredCoverage res }
