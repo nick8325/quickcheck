@@ -84,7 +84,7 @@ library
   -- GHC-specific modules.
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
-    Build-depends: transformers >= 0.3, deepseq
+    Build-depends: transformers >= 0.3, deepseq >= 1.1.0.0
   else
     cpp-options: -DNO_TRANSFORMERS -DNO_DEEPSEQ
 
@@ -181,7 +181,7 @@ Test-Suite test-quickcheck-terminal
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
     main-is: Terminal.hs
-    build-depends: base, process, deepseq, QuickCheck
+    build-depends: base, process, deepseq >= 1.1.0.0, QuickCheck
     if !impl(ghc >= 7.10) || impl(haste)
         buildable: False
 
