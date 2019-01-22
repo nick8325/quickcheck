@@ -41,9 +41,11 @@ import Data.Maybe
 
 -- | A generator for values of type @a@.
 --
--- The third-party package
+-- The third-party packages
 -- <http://hackage.haskell.org/package/QuickCheck-GenT QuickCheck-GenT>
--- provides a monad transformer version of @GenT@.
+-- and
+-- <http://hackage.haskell.org/package/quickcheck-transformer quickcheck-transformer>
+-- provide monad transformer versions of @Gen@.
 newtype Gen a = MkGen{
   unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed.
                              -- If you just want to get a random value out, consider using 'generate'.
