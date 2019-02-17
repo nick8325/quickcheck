@@ -54,6 +54,7 @@ module Test.QuickCheck.Modifiers
   , InfiniteList(..)
   , SortedList(..)
   , Positive(..)
+  , Negative(..)
   , NonZero(..)
   , NonNegative(..)
   , Large(..)
@@ -288,7 +289,7 @@ instance Functor Negative where
   fmap f (Negative x) = Negative (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
-  arbitrary = Negative . negate . getPositive <$> arbitrary
+  arbitrary = fmap (Negative . negate . getPositive) arbitrary
 
   shrink (Negative x) = fmap negate $ shrink (Positive $ negate x)
 
