@@ -273,6 +273,26 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
     ]
 
 --------------------------------------------------------------------------
+-- | @Negative x@: guarantees that @x \> 0@.
+newtype Negative a = Negative {getNegative :: a}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
+
+instance Functor Negative where
+  fmap f (Negative x) = Negative (f x)
+
+instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
+  arbitrary = Negative . negate . getPositive <$> arbitrary
+
+  shrink (Negative x) = fmap negate $ shrink (Positive $ negate x)
+
+--------------------------------------------------------------------------
 -- | @NonZero x@: guarantees that @x \/= 0@.
 newtype NonZero a = NonZero {getNonZero :: a}
  deriving ( Eq, Ord, Show, Read
