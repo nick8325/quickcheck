@@ -57,6 +57,7 @@ module Test.QuickCheck.Modifiers
   , Negative(..)
   , NonZero(..)
   , NonNegative(..)
+  , NonPositive(..)
   , Large(..)
   , Small(..)
   , Smart(..)
@@ -291,7 +292,12 @@ instance Functor Negative where
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
   arbitrary = fmap (Negative . negate . getPositive) arbitrary
 
-  shrink (Negative x) = fmap negate $ shrink (Positive $ negate x)
+  shrink =
+    fmap (Negative . negate . getPositive) .
+    shrink .
+    Positive .
+    negate .
+    getNegative
 
 --------------------------------------------------------------------------
 -- | @NonZero x@: guarantees that @x \/= 0@.
@@ -338,6 +344,31 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
     | x' <- shrink x
     , x' >= 0
     ]
+
+--------------------------------------------------------------------------
+-- | @NonPositive x@: guarantees that @x \>= 0@.
+newtype NonPositive a = NonPositive {getNonPositive :: a}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Enum
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
+
+instance Functor NonPositive where
+  fmap f (NonPositive x) = NonPositive (f x)
+
+instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonPositive a) where
+  arbitrary = fmap (NonPositive . negate . getNonNegative) arbitrary
+
+  shrink =
+    fmap (NonPositive . negate . getNonNegative) .
+    shrink .
+    NonNegative .
+    negate .
+    getNonPositive
 
 --------------------------------------------------------------------------
 -- | @Large x@: by default, QuickCheck generates 'Int's drawn from a small
