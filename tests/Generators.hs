@@ -1,10 +1,11 @@
-{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, Rank2Types, NoMonomorphismRestriction #-}
+{-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, Rank2Types, NoMonomorphismRestriction, CPP #-}
 import Test.QuickCheck
 import Test.QuickCheck.Gen.Unsafe
 import Data.List
 import Data.Int
 import Data.Word
 import Data.Version
+import Numeric.Natural (Natural)
 import System.Exit
 import Data.Complex
 import Text.ParserCombinators.ReadP (readP_to_S)
@@ -50,6 +51,11 @@ largeProp = somePath (\x -> x < -1000000 || x > 1000000)
 
 prop_int :: Path Int -> Bool
 prop_int = smallProp
+
+#if MIN_VERSION_base(4,8,0)
+prop_natural :: Path Natural -> Bool
+prop_natural = path (\x -> x >= 0 && x <= 100)
+#endif
 
 prop_int32 :: Path Int32 -> Property
 prop_int32 = largeProp

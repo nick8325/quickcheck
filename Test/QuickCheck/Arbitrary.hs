@@ -86,6 +86,9 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
+#if MIN_VERSION_base(4,8,0)
+import Numeric.Natural (Natural)
+#endif
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
@@ -612,6 +615,12 @@ instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
 instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
+
+#if MIN_VERSION_base(4,8,0)
+instance Arbitrary Natural where
+  arbitrary = fromIntegral <$> arbitrarySizedNatural
+  shrink    = shrinkIntegral
+#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
