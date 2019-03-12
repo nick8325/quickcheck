@@ -129,6 +129,10 @@ scale f g = sized (\n -> resize (f n) g)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
+-- | Curried version of `choose`.
+cchoose :: Random a => a -> a -> Gen a
+cchoose = curry choose
+
 -- | Generates a random element over the natural range of `a`.
 chooseAny :: Random a => Gen a
 chooseAny = MkGen (\r _ -> let (x,_) = random r in x)

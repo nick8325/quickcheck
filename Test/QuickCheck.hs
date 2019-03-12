@@ -95,6 +95,7 @@ module Test.QuickCheck
   , Gen
     -- ** Generator combinators
   , choose
+  , cchoose
   , oneof
   , frequency
   , elements
