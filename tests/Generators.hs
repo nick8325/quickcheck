@@ -105,8 +105,8 @@ pathInt, somePathInt ::
    Arbitrary (f (Extremal Word16)), Show (f (Extremal Word16)),
    Arbitrary (f (Extremal Word32)), Show (f (Extremal Word32)),
    Arbitrary (f (Extremal Word64)), Show (f (Extremal Word64))) =>
-  (forall a. f a -> a) -> (forall a. Integral a => a -> Bool) -> Property
-pathInt f p =
+  Bool -> (forall a. f a -> a) -> (forall a. Integral a => a -> Bool) -> Property
+pathInt word f p =
   conjoin
     [counterexample "Int" (path ((p :: Int -> Bool) . getExtremal . f)),
      counterexample "Integer" (path ((p :: Integer -> Bool) . f)),
@@ -114,22 +114,28 @@ pathInt f p =
      counterexample "Int16" (path ((p :: Int16 -> Bool) . getExtremal . f)),
      counterexample "Int32" (path ((p :: Int32 -> Bool) . getExtremal . f)),
      counterexample "Int64" (path ((p :: Int64 -> Bool) . getExtremal . f)),
-     counterexample "Word" (path ((p :: Word -> Bool) . getExtremal . f)),
-     counterexample "Word8" (path ((p :: Word8 -> Bool) . getExtremal . f)),
-     counterexample "Word16" (path ((p :: Word16 -> Bool) . getExtremal . f)),
-     counterexample "Word32" (path ((p :: Word32 -> Bool) . getExtremal . f)),
-     counterexample "Word64" (path ((p :: Word64 -> Bool) . getExtremal . f))]
-somePathInt f p = expectFailure (pathInt f (not . p))
+     counterexample "Word" (not word .||. path ((p :: Word -> Bool) . getExtremal . f)),
+     counterexample "Word8" (not word .||. path ((p :: Word8 -> Bool) . getExtremal . f)),
+     counterexample "Word16" (not word .||. path ((p :: Word16 -> Bool) . getExtremal . f)),
+     counterexample "Word32" (not word .||. path ((p :: Word32 -> Bool) . getExtremal . f)),
+     counterexample "Word64" (not word .||. path ((p :: Word64 -> Bool) . getExtremal . f))]
+somePathInt word f p = expectFailure (pathInt word f (not . p))
 
-prop_positive = pathInt getPositive (> 0)
-prop_positive_bound = somePathInt getPositive (== 1)
+prop_positive = pathInt True getPositive (> 0)
+prop_positive_bound = somePathInt True getPositive (== 1)
 
-prop_nonzero = pathInt getNonZero (/= 0)
-prop_nonzero_bound_1 = somePathInt getNonZero (== 1)
-prop_nonzero_bound_2 = somePathInt getNonZero (== -1)
+prop_nonzero = pathInt True getNonZero (/= 0)
+prop_nonzero_bound_1 = somePathInt True getNonZero (== 1)
+prop_nonzero_bound_2 = somePathInt True getNonZero (== -1)
 
-prop_nonnegative = pathInt getNonNegative (>= 0)
-prop_nonnegative_bound = somePathInt getNonNegative (== 0)
+prop_nonnegative = pathInt True getNonNegative (>= 0)
+prop_nonnegative_bound = somePathInt True getNonNegative (== 0)
+
+prop_negative = pathInt False getNegative (< 0)
+prop_negative_bound = somePathInt False getNegative (== -1)
+
+prop_nonpositive = pathInt True getNonPositive (<= 0)
+prop_nonpositive_bound = somePathInt True getNonPositive (== 0)
 
 reachesBound :: (Bounded a, Integral a, Arbitrary a) =>
   a -> Property
