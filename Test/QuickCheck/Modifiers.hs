@@ -264,15 +264,8 @@ instance Functor Positive where
   fmap f (Positive x) = Positive (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
-  arbitrary =
-    ((Positive . abs) `fmap` (arbitrary `suchThat` (/= 0))) `suchThat` gt0
-    where gt0 (Positive x) = x > 0
-
-  shrink (Positive x) =
-    [ Positive x'
-    | x' <- shrink x
-    , x' > 0
-    ]
+  arbitrary = fmap Positive (fmap abs arbitrary `suchThat` (> 0))
+  shrink (Positive x) = [ Positive x' | x' <- shrink x , x' > 0 ]
 
 --------------------------------------------------------------------------
 -- | @Negative x@: guarantees that @x \> 0@.
@@ -290,14 +283,8 @@ instance Functor Negative where
   fmap f (Negative x) = Negative (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
-  arbitrary = fmap (Negative . negate . getPositive) arbitrary
-
-  shrink =
-    fmap (Negative . negate . getPositive) .
-    shrink .
-    Positive .
-    negate .
-    getNegative
+  arbitrary = fmap Negative (arbitrary `suchThat` (< 0))
+  shrink (Negative x) = [ Negative x' | x' <- shrink x , x' < 0 ]
 
 --------------------------------------------------------------------------
 -- | @NonZero x@: guarantees that @x \/= 0@.
@@ -335,15 +322,8 @@ instance Functor NonNegative where
   fmap f (NonNegative x) = NonNegative (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
-  arbitrary =
-    ((NonNegative . abs) `fmap` arbitrary) `suchThat` ge0
-    where ge0 (NonNegative x) = x >= 0
-
-  shrink (NonNegative x) =
-    [ NonNegative x'
-    | x' <- shrink x
-    , x' >= 0
-    ]
+  arbitrary = fmap NonNegative (fmap abs arbitrary `suchThat` (>= 0))
+  shrink (NonNegative x) = [ NonNegative x' | x' <- shrink x , x' >= 0 ]
 
 --------------------------------------------------------------------------
 -- | @NonPositive x@: guarantees that @x \>= 0@.
@@ -361,14 +341,8 @@ instance Functor NonPositive where
   fmap f (NonPositive x) = NonPositive (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonPositive a) where
-  arbitrary = fmap (NonPositive . negate . getNonNegative) arbitrary
-
-  shrink =
-    fmap (NonPositive . negate . getNonNegative) .
-    shrink .
-    NonNegative .
-    negate .
-    getNonPositive
+  arbitrary = fmap NonPositive (arbitrary `suchThat` (<= 0))
+  shrink (NonPositive x) = [ NonPositive x' | x' <- shrink x , x' <= 0 ]
 
 --------------------------------------------------------------------------
 -- | @Large x@: by default, QuickCheck generates 'Int's drawn from a small
