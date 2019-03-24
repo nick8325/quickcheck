@@ -6,67 +6,33 @@
 #endif
 module Test.QuickCheck.Random where
 
-#ifndef NO_TF_RANDOM
 import System.Random
-import System.Random.TF
-import System.Random.TF.Gen(splitn)
-import Data.Word
+#ifndef NO_SPLITMIX
+import System.Random.SplitMix
+#endif
 import Data.Bits
 
-#define TheGen TFGen
-
-newTheGen :: IO TFGen
-newTheGen = newTFGen
-
-bits, mask, doneBit :: Integral a => a
-bits = 14
-mask = 0x3fff
-doneBit = 0x4000
-
-chip :: Bool -> Word32 -> TFGen -> TFGen
-chip done n g = splitn g (bits+1) (if done then m .|. doneBit else m)
-  where
-    m = n .&. mask
-
-chop :: Integer -> Integer
-chop n = n `shiftR` bits
-
-stop :: Integral a => a -> Bool
-stop n = n <= mask
-
-mkTheGen :: Int -> TFGen
-mkTheGen = mkTFGen
-
+-- | The "standard" QuickCheck random number generator.
+-- A wrapper around either 'SMGen' on GHC, or 'StdGen'
+-- on other Haskell systems.
+#ifdef NO_SPLITMIX
+newtype QCGen = QCGen StdGen
 #else
-import System.Random
-
-#define TheGen StdGen
-
-newTheGen :: IO StdGen
-newTheGen = newStdGen
-
-mkTheGen :: Int -> StdGen
-mkTheGen = mkStdGen
-
-chip :: Bool -> Int -> StdGen -> StdGen
-chip finished n = boolVariant finished . boolVariant (even n)
-
-chop :: Integer -> Integer
-chop n = n `div` 2
-
-stop :: Integral a => a -> Bool
-stop n = n <= 1
+newtype QCGen = QCGen SMGen
 #endif
 
--- | The "standard" QuickCheck random number generator.
--- A wrapper around either 'TFGen' on GHC, or 'StdGen'
--- on other Haskell systems.
-newtype QCGen = QCGen TheGen
-
+-- TODO: get rid of this ifdef once SMGen has a Read instance
+#ifdef NO_SPLITMIX
 instance Show QCGen where
-  showsPrec n (QCGen g) s = showsPrec n g "" ++ s
+  showsPrec n (QCGen g) s = showsPrec n g s
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
+#else
+instance Show QCGen where
+  showsPrec n (QCGen g) s = showsPrec n (unseedSMGen g) s
+instance Read QCGen where
+  readsPrec n xs = [(QCGen (seedSMGen' g), ys) | (g, ys) <- readsPrec n xs]
+#endif
 
 instance RandomGen QCGen where
   split (QCGen g) =
@@ -78,32 +44,55 @@ instance RandomGen QCGen where
       (x, g') -> (x, QCGen g')
 
 newQCGen :: IO QCGen
-newQCGen = fmap QCGen newTheGen
+#ifdef NO_SPLITMIX
+newQCGen = fmap QCGen newStdGen
+#else
+newQCGen = fmap QCGen newSMGen
+#endif
 
 mkQCGen :: Int -> QCGen
-mkQCGen n = QCGen (mkTheGen n)
+#ifdef NO_SPLITMIX
+mkQCGen n = QCGen (mkStdGen n)
+#else
+mkQCGen n = QCGen (mkSMGen (fromIntegral n))
+#endif
 
-bigNatVariant :: Integer -> TheGen -> TheGen
-bigNatVariant n g
-  | g `seq` stop n = chip True (fromInteger n) g
-  | otherwise      = (bigNatVariant $! chop n) $! chip False (fromInteger n) g
+-- Parameterised in order to make this code testable.
+class Splittable a where
+  left, right :: a -> a
 
-{-# INLINE natVariant #-}
-natVariant :: Integral a => a -> TheGen -> TheGen
-natVariant n g
-  | g `seq` stop n = chip True (fromIntegral n) g
-  | otherwise      = bigNatVariant (toInteger n) g
+instance Splittable QCGen where
+  left = fst . split
+  right = snd . split
 
-{-# INLINE variantTheGen #-}
-variantTheGen :: Integral a => a -> TheGen -> TheGen
-variantTheGen n g
-  | n >= 1    = natVariant (n-1) (boolVariant False g)
-  | n == 0   = natVariant (0 `asTypeOf` n) (boolVariant True g)
-  | otherwise = bigNatVariant (negate (toInteger n)) (boolVariant True g)
+-- The logic behind 'variant'. Given a random number seed, and an integer, uses
+-- splitting to transform the seed according to the integer. We use a
+-- prefix-free code so that calls to integerVariant n g for different values of
+-- n are guaranteed to return independent seeds.
+{-# INLINE integerVariant #-}
+integerVariant :: Splittable a => Integer -> a -> a
+integerVariant n g
+  -- Use one bit to encode the sign, then use Elias gamma coding
+  -- (https://en.wikipedia.org/wiki/Elias_gamma_coding) to do the rest.
+  -- Actually, the first bit encodes whether n >= 1 or not;
+  -- this has the advantage that both 0 and 1 get short codes.
+  | n >= 1 = gamma n $! left g
+  | otherwise = gamma (1-n) $! right g
+  where
+    gamma n =
+      encode k . zeroes k
+      where
+        k = ilog2 n
 
-boolVariant :: Bool -> TheGen -> TheGen
-boolVariant False = fst . split
-boolVariant True = snd . split
+        encode (-1) g = g
+        encode k g
+          | testBit n k =
+            encode (k-1) $! right g
+          | otherwise =
+            encode (k-1) $! left g
 
-variantQCGen :: Integral a => a -> QCGen -> QCGen
-variantQCGen n (QCGen g) = QCGen (variantTheGen n g)
+        zeroes 0 g = g
+        zeroes k g = zeroes (k-1) $! left g
+
+    ilog2 1 = 0
+    ilog2 n = 1 + ilog2 (n `div` 2)

@@ -109,11 +109,11 @@ library
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
-  -- Use tf-random on newer GHCs.
-  if impl(ghc) && !impl(haste)
-    Build-depends: tf-random >= 0.4
+  -- Use splitmix on newer GHCs.
+  if impl(ghc >= 7.4)
+    Build-depends: splitmix
   else
-    cpp-options: -DNO_TF_RANDOM
+    cpp-options: -DNO_SPLITMIX
 
   if !impl(ghc >= 7.6)
       cpp-options: -DNO_POLYKINDS
@@ -189,6 +189,14 @@ Test-Suite test-quickcheck-monadfix
     type: exitcode-stdio-1.0
     hs-source-dirs: tests
     main-is: MonadFix.hs
+    build-depends: base, QuickCheck
+    if !impl(ghc >= 7.10) || impl(haste)
+        buildable: False
+
+Test-Suite test-quickcheck-split
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: Split.hs
     build-depends: base, QuickCheck
     if !impl(ghc >= 7.10) || impl(haste)
         buildable: False

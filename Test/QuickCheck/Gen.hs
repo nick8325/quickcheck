@@ -82,7 +82,7 @@ instance MonadFix Gen where
 
 -- | Modifies a generator using an integer seed.
 variant :: Integral n => n -> Gen a -> Gen a
-variant k (MkGen g) = MkGen (\r n -> g (variantQCGen k r) n)
+variant k (MkGen g) = MkGen (\r n -> g (integerVariant (toInteger k) $! r) n)
 
 -- | Used to construct generators that depend on the size parameter.
 --
