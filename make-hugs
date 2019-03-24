@@ -1,0 +1,18 @@
+#!/bin/bash
+cd $(dirname $0)
+for i in $(find Test -name '*.hs'); do
+  mkdir -p quickcheck-hugs/$(dirname $i)
+  # If you want to switch on and off other features, look in
+  # QuickCheck.cabal to see what's available, or submit a patch
+  # adding a new -DNO_... flag.
+  cpphs --noline -DNO_SPLITMIX -DNO_TEMPLATE_HASKELL \
+    -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS -DNO_GENERICS \
+    -DNO_SAFE_HASKELL -DNO_POLYKINDS -DNO_MONADFAIL -DNO_TIMEOUT \
+    -DNO_NEWTYPE_DERIVING -DNO_TYPEABLE -DNO_GADTS -DNO_TRANSFORMERS \
+    -DNO_DEEPSEQ \
+    $i > quickcheck-hugs/$i
+done
+
+echo "A Hugs-compatible version of QuickCheck is now"
+echo "available in the quickcheck-hugs directory."
+echo "Load it with hugs -98."
