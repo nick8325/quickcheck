@@ -154,7 +154,7 @@ Test-Suite test-quickcheck-gcoarbitrary
     hs-source-dirs: tests
     main-is: GCoArbitraryExample.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 7.2) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.2) || impl(haste)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
@@ -172,7 +172,7 @@ Test-Suite test-quickcheck-gshrink
     hs-source-dirs: tests
     main-is: GShrinkExample.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 7.2) || impl(haste)
+    if !flag(templateHaskell) !impl(ghc >= 7.2) || impl(haste)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
@@ -182,7 +182,7 @@ Test-Suite test-quickcheck-terminal
     hs-source-dirs: tests
     main-is: Terminal.hs
     build-depends: base, process, deepseq >= 1.1.0.0, QuickCheck
-    if !impl(ghc >= 7.10) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
         buildable: False
 
 Test-Suite test-quickcheck-monadfix
@@ -190,7 +190,7 @@ Test-Suite test-quickcheck-monadfix
     hs-source-dirs: tests
     main-is: MonadFix.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 7.10) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
         buildable: False
 
 Test-Suite test-quickcheck-split
@@ -198,5 +198,5 @@ Test-Suite test-quickcheck-split
     hs-source-dirs: tests
     main-is: Split.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 7.10) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
         buildable: False
