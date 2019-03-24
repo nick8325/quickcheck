@@ -172,7 +172,7 @@ Test-Suite test-quickcheck-gshrink
     hs-source-dirs: tests
     main-is: GShrinkExample.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) !impl(ghc >= 7.2) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.2) || impl(haste)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
