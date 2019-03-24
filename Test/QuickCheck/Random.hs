@@ -21,18 +21,10 @@ newtype QCGen = QCGen StdGen
 newtype QCGen = QCGen SMGen
 #endif
 
--- TODO: get rid of this ifdef once SMGen has a Read instance
-#ifdef NO_SPLITMIX
 instance Show QCGen where
   showsPrec n (QCGen g) s = showsPrec n g s
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
-#else
-instance Show QCGen where
-  showsPrec n (QCGen g) s = showsPrec n (unseedSMGen g) s
-instance Read QCGen where
-  readsPrec n xs = [(QCGen (seedSMGen' g), ys) | (g, ys) <- readsPrec n xs]
-#endif
 
 instance RandomGen QCGen where
   split (QCGen g) =
