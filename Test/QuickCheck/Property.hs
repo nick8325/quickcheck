@@ -115,6 +115,13 @@ instance Testable () where
       -- so that we turn exceptions into test failures
       liftUnit () = succeeded
 
+instance Testable prop => Testable (Maybe prop) where
+  property = property . liftMaybe
+    where
+      -- See comment for liftUnit above
+      liftMaybe Nothing = property Discard
+      liftMaybe (Just prop) = property prop
+
 instance Testable Bool where
   property = property . liftBool
 
