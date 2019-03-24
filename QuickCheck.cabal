@@ -198,5 +198,3 @@ Test-Suite test-quickcheck-split
     hs-source-dirs: tests
     main-is: Split.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 7.10) || impl(haste)
-        buildable: False
