@@ -1,4 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
 import Test.QuickCheck
 import Test.QuickCheck.Random
 import Data.List
@@ -26,5 +25,4 @@ prop_split_prefix =
       -- one of its suffixes
       and (zipWith ok codes (drop 1 codes))
 
-return []
-main = do True <- $quickCheckAll; return ()
+main = do Success{} <- quickCheckResult prop_split_prefix; return ()
