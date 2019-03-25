@@ -1,4 +1,4 @@
-QuickCheck 2.13 (unreleased)
+QuickCheck 2.13 (released 2019-03-26)
 	* Properties with multiple arguments now shrink better.
 	  Previously, the first argument was shrunk, then the second, and
 	  so on. Now, the arguments are shrunk as a whole, so shrink steps
