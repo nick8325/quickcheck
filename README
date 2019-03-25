@@ -7,7 +7,7 @@ $ cabal install
 The quickcheck-instances [1] companion package provides instances for types in
 Haskell Platform packages at the cost of additional dependencies.
 
-[1]: http://hackage.haskell.org/package/quickcheck-instances
-
-The make-hugs scripts makes a Hugs-compatible version of QuickCheck.
+The make-hugs script makes a Hugs-compatible version of QuickCheck.
 It may also be useful for other non-GHC implementations.
+
+[1]: http://hackage.haskell.org/package/quickcheck-instances
