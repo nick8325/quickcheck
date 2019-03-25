@@ -268,7 +268,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   shrink (Positive x) = [ Positive x' | x' <- shrink x , x' > 0 ]
 
 --------------------------------------------------------------------------
--- | @Negative x@: guarantees that @x \> 0@.
+-- | @Negative x@: guarantees that @x \< 0@.
 newtype Negative a = Negative {getNegative :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING
@@ -326,7 +326,7 @@ instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   shrink (NonNegative x) = [ NonNegative x' | x' <- shrink x , x' >= 0 ]
 
 --------------------------------------------------------------------------
--- | @NonPositive x@: guarantees that @x \>= 0@.
+-- | @NonPositive x@: guarantees that @x \<= 0@.
 newtype NonPositive a = NonPositive {getNonPositive :: a}
  deriving ( Eq, Ord, Show, Read
 #ifndef NO_NEWTYPE_DERIVING

@@ -175,6 +175,12 @@ stdArgs = Args
 --
 -- By default up to 100 tests are performed, which may not be enough
 -- to find all bugs. To run more tests, use 'withMaxSuccess'.
+--
+-- If you want to get the counterexample as a Haskell value,
+-- rather than just printing it, try the
+-- <http://hackage.haskell.org/package/quickcheck-with-counterexamples quickcheck-with-counterexamples>
+-- package.
+
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheckWith stdArgs p
 
