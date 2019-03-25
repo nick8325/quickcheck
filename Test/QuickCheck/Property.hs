@@ -94,6 +94,15 @@ class Testable prop where
   -- | Convert the thing to a property.
   property :: prop -> Property
 
+  -- | Optional; used internally in order to improve shrinking.
+  -- @propertyForAll gen shr shw f@ is normally equivalent to
+  -- @'forAllShrinkShow' gen shr shw f@.
+  -- The 'Testable' instance for functions defines
+  -- @propertyForAll@ in a way that improves shrinking.
+  propertyForAllShrinkShow :: Show a => Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
+  propertyForAllShrinkShow gen shr f =
+    forAllShrinkShow gen shr f
+
 -- | If a property returns 'Discard', the current test case is discarded,
 -- the same as if a precondition was false.
 --
@@ -164,7 +173,16 @@ idempotentIOProperty =
   promote . fmap (unProperty . property)
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
-  property f = forAllShrink arbitrary shrink f
+  property f =
+    propertyForAllShrinkShow arbitrary shrink show f
+  propertyForAllShrinkShow gen shr shw f =
+    -- gen :: Gen b, shr :: b -> [b], f :: b -> a -> prop
+    -- Idea: Generate and shrink (b, a) as a pair
+    propertyForAllShrinkShow
+      (liftM2 (,) gen arbitrary)
+      (liftShrink2 shr shrink)
+      (\(x, y) -> shw x ++ "\n" ++ show y)
+      (uncurry f)
 
 -- ** Exception handling
 protect :: (AnException -> a) -> IO a -> IO a
