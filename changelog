@@ -1,6 +1,22 @@
-QuickCheck 2.12.7 (unreleased)
-	* Explicitly derive instance Typeable Args (for compatibility with
-	  older versions of GHC)
+QuickCheck 2.13 (unreleased)
+	* Properties with multiple arguments now shrink better.
+	  Previously, the first argument was shrunk, then the second, and
+	  so on. Now, the arguments are shrunk as a whole, so shrink steps
+	  for different arguments can be interleaved.
+
+	* New features:
+		- New modifiers Negative and NonPositive
+		- A Testable instance for Maybe prop (where Nothing means 'discard
+		  the test case')
+	* Dependencies on C code removed:
+		- Use splitmix instead of tf-random for random number generation
+		- Remove dependency on 'erf' package
+	* Small changes:
+		- Say 'Falsified' instead of 'Falsifiable' when a property fails
+	* Compatibility improvements:
+		- Explicitly derive instance Typeable Args
+		- Lower bound on deepseq
+		- A script for building Hugs packages
 
 QuickCheck 2.12.6 (released 2018-10-02)
 	* Make arbitrarySizedBoundedIntegral handle huge sizes correctly.
