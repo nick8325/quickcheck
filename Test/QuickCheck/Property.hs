@@ -99,7 +99,7 @@ class Testable prop where
   -- @'forAllShrinkShow' gen shr shw f@.
   -- The 'Testable' instance for functions defines
   -- @propertyForAll@ in a way that improves shrinking.
-  propertyForAllShrinkShow :: Show a => Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
+  propertyForAllShrinkShow :: Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
   propertyForAllShrinkShow gen shr f =
     forAllShrinkShow gen shr f
 
