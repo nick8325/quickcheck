@@ -204,8 +204,8 @@ elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` choose (0, length xs - 1)
 
 -- | Generates one or the other.
-or :: a -> a -> Gen a
-or x y = elements [x, y]
+thisOrThat :: a -> a -> Gen a
+thisOrThat x y = elements [x, y]
 
 -- | Generates a random subsequence of the given list.
 sublistOf :: [a] -> Gen [a]
