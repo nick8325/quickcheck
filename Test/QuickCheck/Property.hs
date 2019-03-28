@@ -95,13 +95,14 @@ class Testable prop where
   property :: prop -> Property
 
   -- | Optional; used internally in order to improve shrinking.
-  -- @propertyForAll gen shr shw f@ is normally equivalent to
-  -- @'forAllShrinkShow' gen shr shw f@.
+  -- Tests a property but also quantifies over an extra value
+  -- (with a custom shrink and show function).
   -- The 'Testable' instance for functions defines
-  -- @propertyForAll@ in a way that improves shrinking.
-  propertyForAllShrinkShow :: Gen a -> (a -> [a]) -> (a -> String) -> (a -> prop) -> Property
-  propertyForAllShrinkShow gen shr f =
-    forAllShrinkShow gen shr f
+  -- @propertyForAllShrinkShow@ in a way that improves shrinking.
+  propertyForAllShrinkShow :: Gen a -> (a -> [a]) -> (a -> [String]) -> (a -> prop) -> Property
+  propertyForAllShrinkShow gen shr shw f =
+    forAllShrinkBlind gen shr $
+      \x -> foldr counterexample (property (f x)) (shw x)
 
 -- | If a property returns 'Discard', the current test case is discarded,
 -- the same as if a precondition was false.
@@ -174,14 +175,14 @@ idempotentIOProperty =
 
 instance (Arbitrary a, Show a, Testable prop) => Testable (a -> prop) where
   property f =
-    propertyForAllShrinkShow arbitrary shrink show f
+    propertyForAllShrinkShow arbitrary shrink (return . show) f
   propertyForAllShrinkShow gen shr shw f =
     -- gen :: Gen b, shr :: b -> [b], f :: b -> a -> prop
     -- Idea: Generate and shrink (b, a) as a pair
     propertyForAllShrinkShow
       (liftM2 (,) gen arbitrary)
       (liftShrink2 shr shrink)
-      (\(x, y) -> shw x ++ "\n" ++ show y)
+      (\(x, y) -> shw x ++ [show y])
       (uncurry f)
 
 -- ** Exception handling
