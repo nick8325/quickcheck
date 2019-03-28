@@ -145,7 +145,7 @@ instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (again p)
 
 instance Testable Property where
-  property (MkProperty mp) = MkProperty (fmap protectProp (unProperty (property mp)))
+  property (MkProperty mp) = MkProperty (fmap protectProp mp)
 
 -- | Do I/O inside a property.
 {-# DEPRECATED morallyDubiousIOProperty "Use 'ioProperty' instead" #-}

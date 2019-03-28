@@ -199,3 +199,9 @@ Test-Suite test-quickcheck-split
     hs-source-dirs: tests
     main-is: Split.hs
     build-depends: base, QuickCheck
+
+Test-Suite test-quickcheck-misc
+    type: exitcode-stdio-1.0
+    hs-source-dirs: tests
+    main-is: Misc.hs
+    build-depends: base, QuickCheck
