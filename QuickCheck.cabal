@@ -205,3 +205,5 @@ Test-Suite test-quickcheck-misc
     hs-source-dirs: tests
     main-is: Misc.hs
     build-depends: base, QuickCheck
+    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
+        buildable: False
