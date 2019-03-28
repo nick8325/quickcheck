@@ -6,6 +6,7 @@ import System.Random
 import Test.QuickCheck.Random
 import Control.Monad
 import Data.List
+import Data.Maybe
 
 -- A path is a sequence of splits - false represents the left path,
 -- true represents the right path.
@@ -25,9 +26,10 @@ data Prop = Equal Path Path | Different Path Path
 paths :: Int -> [Path]
 paths n = concat [sequence (replicate m [False, True]) | m <- [0..n]]
 
-props :: Int -> [Prop]
-props n =
-  map (uncurry Equal) pairs ++ map (uncurry Different) pairs
+props :: Bool -> Int -> [Prop]
+props bounded n
+  | bounded = map (uncurry Equal) pairs ++ map (uncurry Different) pairs
+  | otherwise = map (uncurry Equal) pairs
   where
     ps = paths n
     pairs = [(p, q) | p <- ps, q <- ps, p < q]
@@ -40,14 +42,19 @@ supply = unfoldr (Just . split)
 -- d = maximum depth of split,
 -- k1 = range of number for first value
 -- k2 = range of number for second value
-check :: RandomGen a => Int -> Int -> Int -> a -> [Prop]
-check d k1 k2 g =
-  foldr filt (props d) gs
+check :: RandomGen a => Int -> Maybe (Int, Int) -> [a] -> [Prop]
+check d mk gs =
+  foldr filt (props (isJust mk) d) gs
   where
-    gs = take 10000 (supply g)
     filt g props = filter (eval g) props
-    sample1 g = fst (randomR (0, k1) g)
-    sample2 g = fst (randomR (0, k2) g)
+    sample1 g =
+      case mk of
+        Just (k1, _) -> fst (randomR (0, k1) g)
+        Nothing -> fst (next g)
+    sample2 g =
+      case mk of
+        Just (_, k2) -> fst (randomR (0, k2) g)
+        Nothing -> fst (next g)
     eval g (Equal xs ys) =
       sample1 (splits xs g) == sample2 (splits ys g)
     eval g (Different xs ys) =
@@ -55,11 +62,12 @@ check d k1 k2 g =
 
 -- First parameter: depth of splits to try
 -- Second parameter: range of random numbers to generate
-checkUpTo :: RandomGen a => Int -> Int -> a -> [(Int, Int, Int, Prop)]
-checkUpTo d k g =
-  [(d', k1', k2', prop)| d' <- [0..d], k1' <- [1..k], k2' <- [1..k], prop <- check d' k1' k2' g]
+checkUpTo :: RandomGen a => Int -> Int -> [a] -> [(Int, Maybe (Int, Int), Prop)]
+checkUpTo d k gs =
+  [(d', Nothing, prop)|d' <- [0..d], prop <- check d' Nothing gs] ++
+  [(d', Just (k1', k2'), prop)| d' <- [0..d], k1' <- [1..k], k2' <- [1..k], prop <- check d' (Just (k1', k2')) gs]
 
 main = do
-  g <- newQCGen
-  let ![] = checkUpTo 6 20 g
+  let gs = map mkQCGen [0..10000]
+  let ![] = checkUpTo 6 20 gs
   return ()
