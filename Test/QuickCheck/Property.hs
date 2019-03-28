@@ -758,6 +758,16 @@ True  ==> p = property p
 
 -- | Considers a property failed if it does not complete within
 -- the given number of microseconds.
+--
+-- Note: if the property times out, variables quantified inside the
+-- `within` will not be printed. Therefore, you should use `within`
+-- only in the body of your property.
+--
+-- Good: @prop_foo a b c = within 1000000 ...@
+--
+-- Bad: @prop_foo = within 1000000 $ \\a b c -> ...@
+--
+-- Bad: @prop_foo a b c = ...; main = quickCheck (within 1000000 prop_foo)@
 within :: Testable prop => Int -> prop -> Property
 within n = mapRoseResult f
   where
