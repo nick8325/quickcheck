@@ -1,3 +1,6 @@
+QuickCheck 2.13.1 (release 2019-03-29)
+	* A couple of bug fixes
+
 QuickCheck 2.13 (released 2019-03-26)
 	* Properties with multiple arguments now shrink better.
 	  Previously, the first argument was shrunk, then the second, and
