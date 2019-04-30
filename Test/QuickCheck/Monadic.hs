@@ -123,7 +123,9 @@ instance Applicative (PropertyM m) where
 instance Monad m => Monad (PropertyM m) where
   return = pure
   (>>=) = bind
+#if !MIN_VERSION_base(4,13,0)
   fail = fail_
+#endif
 
 #ifndef NO_MONADFAIL
 instance Monad m => Fail.MonadFail (PropertyM m) where
