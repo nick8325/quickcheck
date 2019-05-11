@@ -171,6 +171,7 @@ module Test.QuickCheck
   , functionIntegral
   , functionRealFrac
   , functionBoundedEnum
+  , functionVoid
 #endif
 
     -- * The 'CoArbitrary' typeclass: generation of functions the old-fashioned way

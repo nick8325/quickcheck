@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeOperators, GADTs, CPP #-}
+{-# LANGUAGE TypeOperators, GADTs, CPP, Rank2Types #-}
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
 #endif
@@ -48,6 +48,7 @@ module Test.QuickCheck.Function
   , functionIntegral
   , functionRealFrac
   , functionBoundedEnum
+  , functionVoid
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
   , pattern Fn
   , pattern Fn2
@@ -173,6 +174,13 @@ functionIntegral = functionMap fromIntegral fromInteger
 -- | Provides a 'Function' instance for types with 'Show' and 'Read'.
 functionShow :: (Show a, Read a) => (a->c) -> (a:->c)
 functionShow f = functionMap show read f
+
+-- | Provides a 'Function' instance for types isomorphic to 'Data.Void.Void'.
+--
+-- An actual @'Function' 'Data.Void.Void'@ instance is defined in
+-- @quickcheck-instances@.
+functionVoid :: (forall b. void -> b) -> void :-> c
+functionVoid _ = Nil
 
 -- | The basic building block for 'Function' instances.
 -- Provides a 'Function' instance by mapping to and from a type that
