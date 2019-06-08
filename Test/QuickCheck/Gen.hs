@@ -189,6 +189,11 @@ oneof gs = choose (0,length gs - 1) >>= (gs !!)
 -- The input list must be non-empty.
 frequency :: [(Int, Gen a)] -> Gen a
 frequency [] = error "QuickCheck.frequency used with empty list"
+frequency xs
+  | any (< 0) (map fst xs) =
+    error "QuickCheck.frequency: negative weight"
+  | all (== 0) (map fst xs) =
+    error "QuickCheck.frequency: all weights were zero"
 frequency xs0 = choose (1, tot) >>= (`pick` xs0)
  where
   tot = sum (map fst xs0)
