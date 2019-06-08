@@ -63,7 +63,15 @@ flag templateHaskell
   Default: True
 
 library
-  Build-depends: base >=4.3 && <5, random >=1.0.1.0 && <1.2, containers
+  Build-depends: base >=4.3 && <5, random >=1.0.0.3 && <1.2, containers
+
+  -- random is explicitly Trustworthy since 1.0.1.0
+  -- similar constraint for containers
+  -- Note: QuickCheck is Safe only with GHC >= 7.4 (see below)
+  if impl(ghc >= 7.2)
+    Build-depends: random >=1.0.1.0
+  if impl(ghc >= 7.4)
+    Build-depends: containers >=0.4.2.1
 
   -- Modules that are always built.
   Exposed-Modules:
