@@ -1,4 +1,10 @@
-QuickCheck 2.13.1 (release 2019-03-29)
+QuickCheck 2.13.2 (released 2019-06-30)
+	* Compatibility with GHC 8.8 (thanks to Bodigrim)
+	* Improve error message when 'frequency' is used with only zero weights
+	* Add 'functionVoid' combinator (thanks to Oleg Grenrus)
+	* Tighten bounds for random package (thanks to Oleg Grenrus)
+
+QuickCheck 2.13.1 (released 2019-03-29)
 	* A couple of bug fixes
 
 QuickCheck 2.13 (released 2019-03-26)
