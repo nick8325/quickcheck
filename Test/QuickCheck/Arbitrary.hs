@@ -485,7 +485,11 @@ instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
   shrink    = shrinkRealFrac
 
+#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+instance Arbitrary a => Arbitrary (Complex a) where
+#else
 instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
+#endif
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -1255,7 +1259,11 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
+#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+instance CoArbitrary a => CoArbitrary (Complex a) where
+#else
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
+#endif
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
