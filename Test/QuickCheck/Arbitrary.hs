@@ -1131,7 +1131,7 @@ shrinkRealFrac x
 shrinkDecimal :: RealFrac a => a -> [a]
 shrinkDecimal x
   | not (x == x)  = 0 : take 10 (iterate (*2) 0)        -- NaN
-  | not (2*x+1>x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
+  | not (2*abs x+1>abs x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
   | otherwise =
     -- e.g. shrink pi =
     --   shrink 3 ++ map (/ 10) (shrink 31) ++
