@@ -638,7 +638,7 @@ instance Arbitrary Int64 where
   shrink    = shrinkIntegral
 
 instance Arbitrary Word where
-  arbitrary = arbitrarySizedIntegral
+  arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
 
 instance Arbitrary Word8 where
