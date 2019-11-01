@@ -86,6 +86,7 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
+import Data.Void (Void, absurd)
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
@@ -1226,6 +1227,9 @@ instance (Arbitrary a, CoArbitrary b) => CoArbitrary (a -> b) where
   coarbitrary f gen =
     do xs <- arbitrary
        coarbitrary (map f xs) gen
+
+instance CoArbitrary Void where
+  coarbitrary = absurd
 
 instance CoArbitrary () where
   coarbitrary _ = id
