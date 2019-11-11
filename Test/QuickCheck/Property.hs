@@ -780,7 +780,7 @@ within n = mapRoseResult f
         timeoutResult
       return (MkRose res' (map f roses))
 
-    timeoutResult = failed { reason = "Timeout" }
+    timeoutResult = failed { reason = "Timeout of " ++ show n ++ " microseconds exceeded." }
 #ifdef NO_TIMEOUT
     timeout _ = fmap Just
 #endif
