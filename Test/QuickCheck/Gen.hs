@@ -56,12 +56,16 @@ instance Functor Gen where
     MkGen (\r n -> f (h r n))
 
 instance Applicative Gen where
-  pure  = return
-  gf <*> gx = gf >>= \f -> fmap f gx
+  pure x =
+    MkGen (\_ _ -> x)
+  (<*>) = ap
+
+  -- We don't need to split the seed for these.
+  _ *> m = m
+  m <* _ = m
 
 instance Monad Gen where
-  return x =
-    MkGen (\_ _ -> x)
+  return = pure
 
   MkGen m >>= k =
     MkGen (\r n ->
@@ -70,6 +74,8 @@ instance Monad Gen where
           let MkGen m' = k (m r1 n)
           in m' r2 n
     )
+
+  (>>) = (*>)
 
 instance MonadFix Gen where
   mfix f =
