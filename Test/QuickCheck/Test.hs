@@ -478,7 +478,7 @@ showTable k mtable m =
   (map format .
    -- Descending order of occurrences
    reverse . sortBy (comparing snd) .
-   -- If #occurences the same, sort in increasing order of key
+   -- If #occurrences the same, sort in increasing order of key
    -- (note: works because sortBy is stable)
    reverse . sortBy (comparing fst) $ Map.toList m)
   where
