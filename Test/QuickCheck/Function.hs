@@ -49,6 +49,9 @@ module Test.QuickCheck.Function
   , functionRealFrac
   , functionBoundedEnum
   , functionVoid
+  , functionMapWith
+  , functionEitherWith
+  , functionPairWith
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
   , pattern Fn
   , pattern Fn2
@@ -188,6 +191,7 @@ functionVoid _ = Nil
 functionMap :: Function b => (a->b) -> (b->a) -> (a->c) -> (a:->c)
 functionMap = functionMapWith function
 
+-- | @since 2.13.3
 functionMapWith :: ((b->c) -> (b:->c)) -> (a->b) -> (b->a) -> (a->c) -> (a:->c)
 functionMapWith function g h f = Map g h (function (\b -> f (h b)))
 
@@ -203,12 +207,14 @@ instance Function a => Function (Identity a) where
 instance (Function a, Function b) => Function (a,b) where
   function = functionPairWith function function
 
+-- | @since 2.13.3
 functionPairWith :: ((a->b->c) -> (a:->(b->c))) -> ((b->c) -> (b:->c)) -> ((a,b)->c) -> ((a,b):->c)
 functionPairWith func1 func2 f = Pair (func2 `fmap` func1 (curry f))
 
 instance (Function a, Function b) => Function (Either a b) where
   function = functionEitherWith function function
 
+-- | @since 2.13.3
 functionEitherWith :: ((a->c) -> (a:->c)) -> ((b->c) -> (b:->c)) -> (Either a b->c) -> (Either a b:->c)
 functionEitherWith func1 func2 f = func1 (f . Left) :+: func2 (f . Right)
 
