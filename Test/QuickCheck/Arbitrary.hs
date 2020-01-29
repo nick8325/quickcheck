@@ -1055,9 +1055,12 @@ arbitrarySizedBoundedIntegral =
 -- | Generates any Unicode character (but not a surrogate)
 arbitraryUnicodeChar :: Gen Char
 arbitraryUnicodeChar =
-  arbitraryBoundedEnum `suchThat` (not . isSurrogate)
+  arbitraryBoundedEnum `suchThat` isValidUnicode
   where
-    isSurrogate c = generalCategory c == Surrogate
+    isValidUnicode c = case generalCategory c of
+      Surrogate -> False
+      NotAssigned -> False
+      _ -> True
 
 -- | Generates a random ASCII character (0-127).
 arbitraryASCIIChar :: Gen Char
