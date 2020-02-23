@@ -171,8 +171,11 @@ gen `suchThat` p =
 -- | Generates a value for which the given function returns a 'Just', and then
 -- applies the function.
 suchThatMap :: Gen a -> (a -> Maybe b) -> Gen b
-gen `suchThatMap` f =
-  fmap fromJust $ fmap f gen `suchThat` isJust
+gen `suchThatMap` p =
+  do mx <- gen `suchThatMaybeMap` p
+     case mx of
+       Just x  -> return x
+       Nothing -> sized (\n -> resize (n+1) (gen `suchThatMap` p))
 
 -- | Tries to generate a value that satisfies a predicate.
 -- If it fails to do so after enough attempts, returns @Nothing@.
@@ -184,6 +187,19 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
     | otherwise = do
         x <- resize m gen
         if p x then return (Just x) else try (m+1) n
+
+-- | Tries to generate a value that satisfies a predicate.
+-- If it fails to do so after enough attempts, returns @Nothing@.
+suchThatMaybeMap :: Gen a -> (a -> Maybe b) -> Gen (Maybe b)
+gen `suchThatMaybeMap` p = sized (\n -> try n (2*n))
+ where
+  try m n
+    | m > n = return Nothing
+    | otherwise = do
+        x <- resize m gen
+        case p x of
+            b@(Just _) -> return b
+            _          -> try (m+1) n
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.

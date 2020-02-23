@@ -90,6 +90,7 @@ import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
+import Data.Bits ((.&.))
 
 {-
 import Data.Generics
@@ -101,6 +102,7 @@ import Data.Generics
 
 import Data.Char
   ( ord
+  , chr
   , isLower
   , isUpper
   , toLower
@@ -165,6 +167,10 @@ import Data.Functor.Identity
 import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
+#endif
+
+#ifndef NO_SPLITMIX
+import System.Random.SplitMix (nextWord64)
 #endif
 
 --------------------------------------------------------------------------
@@ -1050,21 +1056,51 @@ arbitrarySizedBoundedIntegral =
        n <- choose (toInteger mn `maxexpneg` k, toInteger mx `minexp` k)
        return (fromInteger n)
 
+-- | Similar to 'arbitrarySizedBoundedIntegral',
+-- but produces uniform distribution only when the range is power of 2.
+-- Requires that 'fromInteger' truncates the provided over-large 'Integer'.
+--
+-- Not used yet, as has to be non-uniform, as arbitrarySizedBoundedIntegral
+-- arbitrarySizedBoundedIntegral2 :: Num a => Gen a
+-- #ifdef NO_SPLITMIX
+-- arbitrarySizedBoundedIntegral2 = arbitrarySizedBoundedIntegral
+-- #else
+-- arbitrarySizedBoundedIntegral2 = fmap fromIntegral arbitraryWord64
+-- #endif
+
+
+-- | Generate uniform 'Word64'.
+arbitraryWord64 :: Gen Word64
+#ifdef NO_SPLITMIX
+arbitraryWord64 = chooseAny
+#else
+arbitraryWord64 = MkGen (\(QCGen smgen) _ -> let (z, _) = nextWord64 smgen in z)
+#endif
+
+
 -- ** Generators for various kinds of character
 
 -- | Generates any Unicode character (but not a surrogate)
 arbitraryUnicodeChar :: Gen Char
 arbitraryUnicodeChar =
-  arbitraryBoundedEnum `suchThat` isValidUnicode
+  arbitraryWord64 `suchThatMap` isValidUnicode
   where
-    isValidUnicode c = case generalCategory c of
-      Surrogate -> False
-      NotAssigned -> False
-      _ -> True
+    isValidUnicode w64
+      | i > 0x10ffff -- we hardcode the maximum unicode codepoint
+      = Nothing
+
+      | otherwise
+      = case generalCategory c of
+        Surrogate -> Nothing
+        NotAssigned -> Nothing
+        _ -> Just c
+      where
+        i = w64 .&. 0x1fffff
+        c = chr (fromIntegral i)
 
 -- | Generates a random ASCII character (0-127).
 arbitraryASCIIChar :: Gen Char
-arbitraryASCIIChar = choose ('\0', '\127')
+arbitraryASCIIChar = fmap (chr . fromIntegral . (.&. 0x7f)) arbitraryWord64
 
 -- | Generates a printable Unicode character.
 arbitraryPrintableChar :: Gen Char
