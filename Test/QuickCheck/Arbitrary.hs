@@ -159,6 +159,7 @@ import qualified Data.Map as Map
 import qualified Data.IntSet as IntSet
 import qualified Data.IntMap as IntMap
 import qualified Data.Sequence as Sequence
+import Data.Bits
 
 import qualified Data.Monoid as Monoid
 
@@ -1007,6 +1008,7 @@ arbitrarySizedFractional =
 
 -- Useful for getting at minBound and maxBound without having to
 -- fiddle around with asTypeOf.
+{-# INLINE withBounds #-}
 withBounds :: Bounded a => (a -> a -> Gen a) -> Gen a
 withBounds k = k minBound maxBound
 
@@ -1030,22 +1032,29 @@ arbitraryBoundedEnum = chooseEnum (minBound, maxBound)
 -- generated more often than big numbers. Inspired by demands from
 -- Phil Wadler.
 arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
+-- INLINEABLE so that this combinator gets specialised at each type,
+-- which means that the constant 'bits' in the let-block below will
+-- only be computed once.
+{-# INLINEABLE arbitrarySizedBoundedIntegral #-}
 arbitrarySizedBoundedIntegral =
   withBounds $ \mn mx ->
-  sized $ \s ->
-    -- TODO do this without going through Integer?
-    do let bits n | n == 0 = 0
-                  | otherwise = 1 + bits (n `quot` 2)
-           k = (toInteger s*(bits mn `max` bits mx `max` 40) `div` 80)
-           -- computes x `min` (2^k), but avoids computing 2^k
-           -- if it is too large
-           x `minexp` k
-             | bits x < k = x
-             | otherwise = x `min` (2^k)
-           -- x `max` (-2^k)
-           x `maxexpneg` k = -((-x) `minexp` k)
-       n <- chooseInteger (toInteger mn `maxexpneg` k, toInteger mx `minexp` k)
-       return (fromInteger n)
+  let ilog2 1 = 0
+      ilog2 n | n > 0 = 1 + ilog2 (n `div` 2)
+
+      -- How many bits are needed to represent this type?
+      -- (This number is an upper bound, not exact.)
+      bits = ilog2 (toInteger mx - toInteger mn + 1) in
+  sized $ \k ->
+    let
+      -- Reach maximum size by k=80, or quicker for small integer types
+      power = ((bits `max` 40) * k) `div` 80
+
+      -- Bounds should be 2^power, but:
+      --   * clamp the result to minBound/maxBound
+      --   * clamp power to 'bits', in case k is a huge number
+      lo = toInteger mn `max` (-1 `shiftL` (power `min` bits))
+      hi = toInteger mx `min` (1 `shiftL` (power `min` bits)) in
+    fmap fromInteger (chooseInteger (lo, hi))
 
 -- ** Generators for various kinds of character
 
