@@ -95,6 +95,11 @@ module Test.QuickCheck
   , Gen
     -- ** Generator combinators
   , choose
+  , chooseInt
+  , chooseInteger
+  , chooseBoundedIntegral
+  , chooseEnum
+  , chooseAny
   , oneof
   , frequency
   , elements
