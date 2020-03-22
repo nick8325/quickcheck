@@ -162,6 +162,9 @@ chooseBoundedIntegral (lo, hi)
   | toInteger mn >= toInteger (minBound :: Int64) &&
     toInteger mx <= toInteger (maxBound :: Int64) =
       fmap fromIntegral (chooseInt64 (fromIntegral lo, fromIntegral hi))
+  | toInteger mn >= toInteger (minBound :: Word64) &&
+    toInteger mx <= toInteger (maxBound :: Word64) =
+      fmap fromIntegral (chooseWord64 (fromIntegral lo, fromIntegral hi))
   | otherwise =
       fmap fromInteger (chooseInteger (toInteger lo, toInteger hi))
   where
@@ -173,7 +176,18 @@ chooseInteger :: (Integer, Integer) -> Gen Integer
 chooseInteger (lo, hi)
   | lo >= toInteger (minBound :: Int64) && hi <= toInteger (maxBound :: Int64) =
     fmap toInteger (chooseInt64 (fromInteger lo, fromInteger hi))
+  | lo >= toInteger (minBound :: Word64) && hi <= toInteger (maxBound :: Word64) =
+    fmap toInteger (chooseWord64 (fromInteger lo, fromInteger hi))
   | otherwise = choose (lo, hi)
+
+chooseWord64 :: (Word64, Word64) -> Gen Word64
+chooseWord64 (lo, hi)
+  | lo <= hi = chooseWord64' (lo, hi)
+  | otherwise = chooseWord64' (hi, lo)
+  where
+    chooseWord64' :: (Word64, Word64) -> Gen Word64
+    chooseWord64' (lo, hi) =
+      fmap (+ lo) (chooseUpTo (hi - lo))
 
 chooseInt64 :: (Int64, Int64) -> Gen Int64
 chooseInt64 (lo, hi)
@@ -185,10 +199,10 @@ chooseInt64 (lo, hi)
       w <- chooseUpTo (fromIntegral hi - fromIntegral lo)
       return (fromIntegral (w + fromIntegral lo))
 
-    chooseUpTo :: Word64 -> Gen Word64
-    chooseUpTo n =
-      MkGen $ \(QCGen g) _ ->
-        fst (bitmaskWithRejection64' n g)
+chooseUpTo :: Word64 -> Gen Word64
+chooseUpTo n =
+  MkGen $ \(QCGen g) _ ->
+    fst (bitmaskWithRejection64' n g)
 
 -- | Run a generator. The size passed to the generator is always 30;
 -- if you want another size then you should explicitly use 'resize'.
