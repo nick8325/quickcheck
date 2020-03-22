@@ -991,7 +991,7 @@ arbitrarySizedNatural =
   inBounds fromIntegral (chooseInt (0, n))
 
 inBounds :: Integral a => (Int -> a) -> Gen Int -> Gen a
-inBounds fi g = fmap fi (g `suchThat` (\x -> fromIntegral (fi x) == x))
+inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger x == toInteger (fi x)))
 
 -- | Generates a fractional number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
