@@ -412,7 +412,7 @@ instance Arbitrary () where
   arbitrary = return ()
 
 instance Arbitrary Bool where
-  arbitrary = choose (False,True)
+  arbitrary = chooseEnum (False,True)
   shrink True = [False]
   shrink False = []
 
@@ -930,7 +930,7 @@ instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
 instance Arbitrary Version where
   arbitrary = sized $ \n ->
-    do k <- choose (0, log2 n)
+    do k <- chooseInt (0, log2 n)
        xs <- vectorOf (k+1) arbitrarySizedNatural
        return (Version xs [])
     where
@@ -979,17 +979,17 @@ applyArbitrary4 f = applyArbitrary3 (uncurry f)
 arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral =
   sized $ \n ->
-  inBounds fromInteger (choose (-toInteger n, toInteger n))
+  inBounds fromIntegral (chooseInt (-n, n))
 
 -- | Generates a natural number. The number's maximum value depends on
 -- the size parameter.
 arbitrarySizedNatural :: Integral a => Gen a
 arbitrarySizedNatural =
   sized $ \n ->
-  inBounds fromInteger (choose (0, toInteger n))
+  inBounds fromIntegral (chooseInt (0, n))
 
-inBounds :: Integral a => (Integer -> a) -> Gen Integer -> Gen a
-inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger (fi x) == x))
+inBounds :: Integral a => (Int -> a) -> Gen Int -> Gen a
+inBounds fi g = fmap fi (g `suchThat` (\x -> fromIntegral (fi x) == x))
 
 -- | Generates a fractional number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
@@ -997,8 +997,8 @@ arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n ->
     let n' = toInteger n in
-      do b <- choose (1, precision)
-         a <- choose ((-n') * b, n' * b)
+      do b <- chooseInteger (1, precision)
+         a <- chooseInteger ((-n') * b, n' * b)
          return (fromRational (a % b))
  where
   precision = 9999999999999 :: Integer
@@ -1012,10 +1012,7 @@ withBounds k = k minBound maxBound
 -- the entire range of the type. You may want to use
 -- 'arbitrarySizedBoundedIntegral' instead.
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
-arbitraryBoundedIntegral =
-  withBounds $ \mn mx ->
-  do n <- choose (toInteger mn, toInteger mx)
-     return (fromInteger n)
+arbitraryBoundedIntegral = chooseBoundedIntegral (minBound, maxBound)
 
 -- | Generates an element of a bounded type. The element is
 -- chosen from the entire range of the type.
@@ -1024,10 +1021,7 @@ arbitraryBoundedRandom = choose (minBound,maxBound)
 
 -- | Generates an element of a bounded enumeration.
 arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a
-arbitraryBoundedEnum =
-  withBounds $ \mn mx ->
-  do n <- choose (fromEnum mn, fromEnum mx)
-     return (toEnum n)
+arbitraryBoundedEnum = chooseEnum (minBound, maxBound)
 
 -- | Generates an integral number from a bounded domain. The number is
 -- chosen from the entire range of the type, but small numbers are
@@ -1037,6 +1031,7 @@ arbitrarySizedBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitrarySizedBoundedIntegral =
   withBounds $ \mn mx ->
   sized $ \s ->
+    -- TODO do this without going through Integer?
     do let bits n | n == 0 = 0
                   | otherwise = 1 + bits (n `quot` 2)
            k = (toInteger s*(bits mn `max` bits mx `max` 40) `div` 80)
@@ -1047,7 +1042,7 @@ arbitrarySizedBoundedIntegral =
              | otherwise = x `min` (2^k)
            -- x `max` (-2^k)
            x `maxexpneg` k = -((-x) `minexp` k)
-       n <- choose (toInteger mn `maxexpneg` k, toInteger mx `minexp` k)
+       n <- chooseInteger (toInteger mn `maxexpneg` k, toInteger mx `minexp` k)
        return (fromInteger n)
 
 -- ** Generators for various kinds of character
@@ -1064,7 +1059,7 @@ arbitraryUnicodeChar =
 
 -- | Generates a random ASCII character (0-127).
 arbitraryASCIIChar :: Gen Char
-arbitraryASCIIChar = choose ('\0', '\127')
+arbitraryASCIIChar = chooseEnum ('\0', '\127')
 
 -- | Generates a printable Unicode character.
 arbitraryPrintableChar :: Gen Char
