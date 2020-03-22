@@ -55,6 +55,8 @@ module Test.QuickCheck.Arbitrary
   , arbitraryPrintableChar -- :: Gen Char
   -- ** Helper functions for implementing shrink
 #ifndef NO_GENERICS
+  , RecursivelyShrink
+  , GSubterms
   , genericShrink      -- :: (Generic a, Arbitrary a, RecursivelyShrink (Rep a), GSubterms (Rep a) a) => a -> [a]
   , subterms           -- :: (Generic a, Arbitrary a, GSubterms (Rep a) a) => a -> [a]
   , recursivelyShrink  -- :: (Generic a, RecursivelyShrink (Rep a)) => a -> [a]
