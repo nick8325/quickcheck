@@ -35,10 +35,13 @@ import Test.QuickCheck.Random
 import Data.List
 import Data.Ord
 import Data.Maybe
-import System.Random.SplitMix(nextWord64, nextWord64, bitmaskWithRejection64', SMGen)
+#ifndef NO_SPLITMIX
+import System.Random.SplitMix(bitmaskWithRejection64', SMGen)
+#endif
 import Data.Word
 import Data.Int
 import Data.Bits
+import Control.Applicative
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -64,9 +67,11 @@ instance Applicative Gen where
     MkGen (\_ _ -> x)
   (<*>) = ap
 
+#ifndef NO_EXTRA_METHODS_IN_APPLICATIVE
   -- We don't need to split the seed for these.
   _ *> m = m
   m <* _ = m
+#endif
 
 instance Monad Gen where
   return = pure
@@ -159,20 +164,27 @@ chooseInt = chooseBoundedIntegral
 -- | A fast implementation of 'choose' for bounded integral types.
 chooseBoundedIntegral :: (Bounded a, Integral a) => (a, a) -> Gen a
 chooseBoundedIntegral (lo, hi)
+#ifndef NO_SPLITMIX
   | toInteger mn >= toInteger (minBound :: Int64) &&
     toInteger mx <= toInteger (maxBound :: Int64) =
       fmap fromIntegral (chooseInt64 (fromIntegral lo, fromIntegral hi))
   | toInteger mn >= toInteger (minBound :: Word64) &&
     toInteger mx <= toInteger (maxBound :: Word64) =
       fmap fromIntegral (chooseWord64 (fromIntegral lo, fromIntegral hi))
+#endif
   | otherwise =
       fmap fromInteger (chooseInteger (toInteger lo, toInteger hi))
+#ifndef NO_SPLITMIX
   where
     mn = minBound `asTypeOf` lo
     mx = maxBound `asTypeOf` hi
+#endif
 
 -- | A fast implementation of 'choose' for 'Integer'.
 chooseInteger :: (Integer, Integer) -> Gen Integer
+#ifdef NO_SPLITMIX
+chooseInteger = choose
+#else
 chooseInteger (lo, hi)
   | lo >= toInteger (minBound :: Int64) && lo <= toInteger (maxBound :: Int64) &&
     hi >= toInteger (minBound :: Int64) && hi <= toInteger (maxBound :: Int64) =
@@ -205,6 +217,7 @@ chooseUpTo :: Word64 -> Gen Word64
 chooseUpTo n =
   MkGen $ \(QCGen g) _ ->
     fst (bitmaskWithRejection64' n g)
+#endif
 
 -- | Run a generator. The size passed to the generator is always 30;
 -- if you want another size then you should explicitly use 'resize'.
