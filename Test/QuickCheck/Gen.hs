@@ -141,6 +141,8 @@ scale :: (Int -> Int) -> Gen a -> Gen a
 scale f g = sized (\n -> resize (f n) g)
 
 -- | Generates a random element in the given inclusive range.
+-- Consider using one of the specialised variants of 'choose' below if
+-- you want your generator to run quickly.
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
