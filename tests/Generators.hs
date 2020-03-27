@@ -182,6 +182,16 @@ prop_no_shrinking_loop_Double = noShrinkingLoop :: Path Double -> Bool
 prop_no_shrinking_loop_Version = noShrinkingLoop :: Path Version -> Bool
 prop_no_shrinking_loop_ExitCode = noShrinkingLoop :: Path ExitCode -> Bool
 
+-- Check that shrinking a Double always produces a shrinking candidate.
+prop_shrink_candidate_double :: Property
+prop_shrink_candidate_double =
+  forAllShrink gen shrink $ \x ->
+    x > 0 ==>
+    not (null (shrink x))
+  where
+    gen :: Gen Double
+    gen = oneof [arbitrary, fmap fromInteger arbitrary]
+
 -- Bad shrink: infinite list
 --
 -- remove unexpectedFailure in prop_B1, shrinking should not loop forever.

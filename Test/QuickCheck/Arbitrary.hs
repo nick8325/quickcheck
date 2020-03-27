@@ -1153,7 +1153,7 @@ shrinkDecimal x
     [ y
     | precision <- take 6 (iterate (*10) 1),
       let m = round (toRational x * precision),
-      m `mod` 10 /= 0, -- don't allow shrinking to increase digits
+      precision == 1 || m `mod` 10 /= 0, -- don't allow shrinking to increase digits
       n <- m:shrink m,
       let y = fromRational (fromInteger n / precision),
       abs y < abs x ]
