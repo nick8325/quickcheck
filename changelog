@@ -1,3 +1,46 @@
+QuickCheck 2.14 (release 2020-03-28)
+	* QuickCheck is now much faster at generating test data!
+	  As a result, many properties can now be tested a lot faster;
+	  the examples distributed with QuickCheck run about twice as
+	  fast as before, for example. Of course, your mileage may vary.
+
+	  The reason for this is that there are now specialised versions
+	  of the 'choose' combinator for various types. These are:
+	  chooseInt, chooseInteger, chooseBoundedIntegral, and chooseEnum.
+	  These combinators are identical to 'choose' but much faster.
+	  All QuickCheck combinators, with the exception of 'choose'
+	  itself, use the new combinators behind the scenes.
+
+	  You should see a speedup without doing anything, but to get a
+	  further speedup, consider replacing any uses of 'choose' in your
+	  own generators with the new combinators.
+
+	  We are hoping that future releases of the 'random' library may
+	  speed up 'choose', in which case these combinators may no longer
+	  be needed.
+
+	  Thanks to Oleg Grenrus for suggesting to bypass 'choose' for
+	  random number generation, and providing the appropriate
+	  primitive in his 'splitmix' random number library.
+
+	* Smaller changes and bugfixes:
+		- RecursivelyShrink and GSubterms are exported from
+		  Test.QuickCheck.Test (thanks to Tom Mortiboy).
+		- Don't generate invalid unicode characters
+		  (thanks to Boris Stepanov).
+		- When a call to 'within' fails, include the duration of the
+		  timeout in the failure report (thanks to William Rusnack).
+		- In Gen, avoid splitting the seed in the implementation of
+		  >>, *> and <- (thanks to David Feuer).
+		- Fix a couple of bugs with shrinking of floating-point
+		  numbers.
+		- Export functionMapWith, functionEitherWith and
+		  functionPairWith from Test.QuickCheck.Function
+		  (thanks to Oleg Grenrus).
+		- Remove redundant RealFloat constraint from
+		  Arbitrary/CoArbitrary instances for Complex
+		  (thanks to Bodigrim).
+
 QuickCheck 2.13.2 (released 2019-06-30)
 	* Compatibility with GHC 8.8 (thanks to Bodigrim)
 	* Improve error message when 'frequency' is used with only zero weights
