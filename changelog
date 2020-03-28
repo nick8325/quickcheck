@@ -31,7 +31,7 @@ QuickCheck 2.14 (release 2020-03-28)
 		- When a call to 'within' fails, include the duration of the
 		  timeout in the failure report (thanks to William Rusnack).
 		- In Gen, avoid splitting the seed in the implementation of
-		  >>, *> and <- (thanks to David Feuer).
+		  >>, *> and <* (thanks to David Feuer).
 		- Fix a couple of bugs with shrinking of floating-point
 		  numbers.
 		- Export functionMapWith, functionEitherWith and
