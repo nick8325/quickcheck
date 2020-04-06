@@ -420,8 +420,12 @@ whenFail' m =
       then m
       else return ()
 
--- | Prints out the generated testcase every time the property is tested.
+-- | Prints out the generated test case every time the property is tested.
 -- Only variables quantified over /inside/ the 'verbose' are printed.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verbose :: Testable prop => prop -> Property
 verbose = mapResult (\res -> res { callbacks = newCallback (callbacks res):callbacks res })
   where newCallback cbs =
@@ -433,8 +437,12 @@ verbose = mapResult (\res -> res { callbacks = newCallback (callbacks res):callb
         status MkResult{ok = Just False} = "Failed"
         status MkResult{ok = Nothing} = "Skipped (precondition false)"
 
--- | Prints out the generated testcase every time the property fails, including during shrinking.
+-- | Prints out the generated test case every time the property fails, including during shrinking.
 -- Only variables quantified over /inside/ the 'verboseShrinking' are printed.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verboseShrinking :: Testable prop => prop -> Property
 verboseShrinking = mapResult (\res -> res { callbacks = newCallback (callbacks res):callbacks res })
   where newCallback cbs =

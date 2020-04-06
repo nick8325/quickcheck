@@ -237,21 +237,37 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verboseCheck :: Testable prop => prop -> IO ()
 verboseCheck p = quickCheck (verbose p)
 
 -- | Tests a property, using test arguments, and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that combines 'quickCheckWith' and 'verbose'.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verboseCheckWith :: Testable prop => Args -> prop -> IO ()
 verboseCheckWith args p = quickCheckWith args (verbose p)
 
 -- | Tests a property, produces a test result, and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that combines 'quickCheckResult' and 'verbose'.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verboseCheckResult :: Testable prop => prop -> IO Result
 verboseCheckResult p = quickCheckResult (verbose p)
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that combines 'quickCheckWithResult' and 'verbose'.
+--
+-- Note: for technical reasons, the test case is printed out /after/
+-- the property is tested. To debug a property that goes into an
+-- infinite loop, use 'within' to add a timeout instead.
 verboseCheckWithResult :: Testable prop => Args -> prop -> IO Result
 verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 
