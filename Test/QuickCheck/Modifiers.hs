@@ -263,6 +263,10 @@ newtype Positive a = Positive {getPositive :: a}
 instance Functor Positive where
   fmap f (Positive x) = Positive (f x)
 
+instance Applicative Positive where
+  pure = Positive
+  (Positive f) <*> x = f <$> x
+
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Positive a) where
   arbitrary = fmap Positive (fmap abs arbitrary `suchThat` (> 0))
   shrink (Positive x) = [ Positive x' | x' <- shrink x , x' > 0 ]
@@ -282,6 +286,10 @@ newtype Negative a = Negative {getNegative :: a}
 instance Functor Negative where
   fmap f (Negative x) = Negative (f x)
 
+instance Applicative Negative where
+  pure = Negative
+  (Negative f) <*> x = f <$> x
+
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
   arbitrary = fmap Negative (arbitrary `suchThat` (< 0))
   shrink (Negative x) = [ Negative x' | x' <- shrink x , x' < 0 ]
@@ -300,6 +308,10 @@ newtype NonZero a = NonZero {getNonZero :: a}
 
 instance Functor NonZero where
   fmap f (NonZero x) = NonZero (f x)
+
+instance Applicative NonZero where
+  pure = NonZero
+  (NonZero f) <*> x = f <$> x
 
 instance (Num a, Eq a, Arbitrary a) => Arbitrary (NonZero a) where
   arbitrary = fmap NonZero $ arbitrary `suchThat` (/= 0)
@@ -321,6 +333,10 @@ newtype NonNegative a = NonNegative {getNonNegative :: a}
 instance Functor NonNegative where
   fmap f (NonNegative x) = NonNegative (f x)
 
+instance Applicative NonNegative where
+  pure = NonNegative
+  (NonNegative f) <*> x = f <$> x
+
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonNegative a) where
   arbitrary = fmap NonNegative (fmap abs arbitrary `suchThat` (>= 0))
   shrink (NonNegative x) = [ NonNegative x' | x' <- shrink x , x' >= 0 ]
@@ -339,6 +355,10 @@ newtype NonPositive a = NonPositive {getNonPositive :: a}
 
 instance Functor NonPositive where
   fmap f (NonPositive x) = NonPositive (f x)
+
+instance Applicative NonPositive where
+  pure = NonPositive
+  (NonPositive f) <*> x = f <$> x
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (NonPositive a) where
   arbitrary = fmap NonPositive (arbitrary `suchThat` (<= 0))
