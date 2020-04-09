@@ -296,6 +296,10 @@ elements :: [a] -> Gen a
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` chooseInt (0, length xs - 1)
 
+-- | Generates one or the other.
+thisOrThat :: a -> a -> Gen a
+thisOrThat x y = elements [x, y]
+
 -- | Generates a random subsequence of the given list.
 sublistOf :: [a] -> Gen [a]
 sublistOf xs = filterM (\_ -> chooseEnum (False, True)) xs
