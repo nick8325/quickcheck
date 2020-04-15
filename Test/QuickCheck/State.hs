@@ -18,6 +18,8 @@ data State
     -- ^ the current terminal
   , maxSuccessTests           :: Int
     -- ^ maximum number of successful tests needed
+  , maxFailedPercent          :: Int
+    -- ^ maximum percent of failed tests allowed
   , maxDiscardedRatio         :: Int
     -- ^ maximum number of discarded tests per successful test
   , coverageConfidence        :: Maybe Confidence
@@ -31,6 +33,8 @@ data State
     -- dynamic
   , numSuccessTests           :: !Int
     -- ^ the current number of tests that have succeeded
+  , numFailedTests            :: Int
+    -- ^ the current number of failed tests
   , numDiscardedTests         :: !Int
     -- ^ the current number of discarded tests
   , numRecentlyDiscardedTests :: !Int

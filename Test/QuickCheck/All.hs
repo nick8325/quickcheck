@@ -82,7 +82,7 @@ expName n = if isVar n then VarE n else ConE n
 
 -- See section 2.4 of the Haskell 2010 Language Report, plus support for "[]"
 isVar :: Name -> Bool
-isVar = let isVar' (c:_) = not (isUpper c || c `elem` ":[")
+isVar = let isVar' (c:_) = not (isUpper c || c `elem` (":[" :: String))
             isVar' _     = True
         in isVar' . nameBase
 
