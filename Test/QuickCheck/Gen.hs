@@ -12,12 +12,13 @@ module Test.QuickCheck.Gen where
 --------------------------------------------------------------------------
 -- imports
 
+#ifndef NO_RANDOM
 import System.Random
   ( Random
   , random
   , randomR
-  , split
   )
+#endif
 
 import Control.Monad
   ( ap
@@ -78,7 +79,7 @@ instance Monad Gen where
 
   MkGen m >>= k =
     MkGen (\r n ->
-      case split r of
+      case splitQCGen r of
         (r1, r2) ->
           let MkGen m' = k (m r1 n)
           in m' r2 n
@@ -140,6 +141,7 @@ resize n (MkGen g) = MkGen (\r _ -> g r n)
 scale :: (Int -> Int) -> Gen a -> Gen a
 scale f g = sized (\n -> resize (f n) g)
 
+#ifndef NO_RANDOM
 -- | Generates a random element in the given inclusive range.
 -- For integral and enumerated types, the specialised variants of
 -- 'choose' below run much quicker.
@@ -149,6 +151,7 @@ choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 -- | Generates a random element over the natural range of `a`.
 chooseAny :: Random a => Gen a
 chooseAny = MkGen (\r _ -> let (x,_) = random r in x)
+#endif
 
 -- | A fast implementation of 'choose' for enumerated types.
 chooseEnum :: Enum a => (a, a) -> Gen a
@@ -194,7 +197,9 @@ chooseInteger (lo, hi)
   | lo >= toInteger (minBound :: Word64) && lo <= toInteger (maxBound :: Word64) &&
     hi >= toInteger (minBound :: Word64) && hi <= toInteger (maxBound :: Word64) =
     fmap toInteger (chooseWord64 (fromInteger lo, fromInteger hi))
+#ifndef NO_RANDOM
   | otherwise = choose (lo, hi)
+#endif
 
 chooseWord64 :: (Word64, Word64) -> Gen Word64
 chooseWord64 (lo, hi)

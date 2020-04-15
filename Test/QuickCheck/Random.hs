@@ -6,7 +6,10 @@
 #endif
 module Test.QuickCheck.Random where
 
+#ifndef NO_RANDOM
 import System.Random
+#endif
+
 #ifndef NO_SPLITMIX
 import System.Random.SplitMix
 #endif
@@ -26,14 +29,14 @@ instance Show QCGen where
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
+#ifndef NO_RANDOM
 instance RandomGen QCGen where
-  split (QCGen g) =
-    case split g of
-      (g1, g2) -> (QCGen g1, QCGen g2)
+  split = splitQCGen
   genRange (QCGen g) = genRange g
   next (QCGen g) =
     case next g of
       (x, g') -> (x, QCGen g')
+#endif
 
 newQCGen :: IO QCGen
 #ifdef NO_SPLITMIX
@@ -49,13 +52,23 @@ mkQCGen n = QCGen (mkStdGen n)
 mkQCGen n = QCGen (mkSMGen (fromIntegral n))
 #endif
 
+splitQCGen :: QCGen -> (QCGen, QCGen)
+splitQCGen (QCGen g) =
+#ifdef NO_SPLITMIX
+    case split g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+#else
+    case splitSMGen g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+#endif
+
 -- Parameterised in order to make this code testable.
 class Splittable a where
   left, right :: a -> a
 
 instance Splittable QCGen where
-  left = fst . split
-  right = snd . split
+  left = fst . splitQCGen
+  right = snd . splitQCGen
 
 -- The logic behind 'variant'. Given a random number seed, and an integer, uses
 -- splitting to transform the seed according to the integer. We use a

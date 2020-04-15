@@ -47,7 +47,9 @@ module Test.QuickCheck.Arbitrary
   , arbitraryBoundedIntegral      -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedBoundedIntegral -- :: (Bounded a, Integral a) => Gen a
   , arbitrarySizedFractional      -- :: Fractional a => Gen a
+#ifndef NO_RANDOM
   , arbitraryBoundedRandom        -- :: (Bounded a, Random a) => Gen a
+#endif
   , arbitraryBoundedEnum          -- :: (Bounded a, Enum a) => Gen a
   -- ** Generators for various kinds of character
   , arbitraryUnicodeChar   -- :: Gen Char
@@ -88,10 +90,13 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
-import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
+
+#ifdef NO_SPLITMIX
+import System.Random(Random)
+#endif
 
 {-
 import Data.Generics
@@ -1018,10 +1023,12 @@ withBounds k = k minBound maxBound
 arbitraryBoundedIntegral :: (Bounded a, Integral a) => Gen a
 arbitraryBoundedIntegral = chooseBoundedIntegral (minBound, maxBound)
 
+#ifndef NO_RANDOM
 -- | Generates an element of a bounded type. The element is
 -- chosen from the entire range of the type.
 arbitraryBoundedRandom :: (Bounded a, Random a) => Gen a
 arbitraryBoundedRandom = choose (minBound,maxBound)
+#endif
 
 -- | Generates an element of a bounded enumeration.
 arbitraryBoundedEnum :: (Bounded a, Enum a) => Gen a

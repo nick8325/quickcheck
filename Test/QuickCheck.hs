@@ -94,12 +94,16 @@ module Test.QuickCheck
     -- * The 'Gen' monad: combinators for building random generators
   , Gen
     -- ** Generator combinators
+#ifndef NO_RANDOM
   , choose
+#endif
   , chooseInt
   , chooseInteger
   , chooseBoundedIntegral
   , chooseEnum
+#ifndef NO_RANDOM
   , chooseAny
+#endif
   , oneof
   , frequency
   , elements
@@ -130,7 +134,9 @@ module Test.QuickCheck
   , arbitrarySizedFractional
   , arbitrarySizedBoundedIntegral
   , arbitraryBoundedIntegral
+#ifndef NO_RANDOM
   , arbitraryBoundedRandom
+#endif
   , arbitraryBoundedEnum
   , arbitraryUnicodeChar
   , arbitraryASCIIChar

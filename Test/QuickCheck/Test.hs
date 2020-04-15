@@ -20,7 +20,6 @@ import Test.QuickCheck.State hiding (labels, classes, tables, requiredCoverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
-import System.Random(split)
 #if defined(MIN_VERSION_containers)
 #if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
@@ -407,7 +406,7 @@ runATest st f =
                             , failingClasses  = Set.fromList (P.classes res)
                             }
  where
-  (rnd1,rnd2) = split (randomSeed st)
+  (rnd1,rnd2) = splitQCGen (randomSeed st)
 
 failureSummary :: State -> P.Result -> String
 failureSummary st res = fst (failureSummaryAndReason st res)
