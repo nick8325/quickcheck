@@ -1,0 +1,8 @@
+apt: hugs libhugs-time-bundled
+-- fails due: impl(haste)
+cabal-check: False
+
+raw-travis:
+  export CABAL
+  export HC
+  (cd ${PKGDIR_QuickCheck} && sh test-hugs)

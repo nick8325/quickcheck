@@ -7,3 +7,6 @@
 \#*
 .\#*
 *.swp
+
+quickcheck-hugs/
+hugs.output

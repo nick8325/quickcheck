@@ -8,7 +8,7 @@ import Test.QuickCheck
 data Nat = Z | S Nat deriving (Eq, Show, Generic)
 
 
-instance Arbitrary Nat
+instance Arbitrary Nat where arbitrary = error "not implemented"
 
 prop_shrink =
   genericShrink (S (S Z)) === [S Z] .&&.

@@ -1,0 +1,26 @@
+#!/bin/sh
+
+set -e
+
+CABAL=${CABAL:-cabal}
+HC=${HC:-ghc}
+
+# Install cpphs if it is not in path
+command -v cpphs || ${CABAL} v2-install --ignore-project --with-compiler "$HC" cpphs
+
+# Regenerate quickcheck-hugs
+sh make-hugs
+find quickcheck-hugs
+
+die() {
+    echo "TEST FAILED"
+    exit 1
+}
+
+dotest() {
+  echo "$2" | hugs -98 -Pquickcheck-hugs: -p'> ' "$1" | tee hugs.output
+  grep "$3" hugs.output || die
+}
+
+# Simple tests
+dotest Test.QuickCheck 'quickCheck $ \xs -> reverse (reverse xs) === (xs :: [Int])' "OK, passed 100 tests."

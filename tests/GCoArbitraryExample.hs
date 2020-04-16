@@ -9,7 +9,7 @@ import Test.QuickCheck.Function
 data D a = C1 a | C2 deriving (Eq, Show, Read, Generic)
 
 
-instance Arbitrary a => Arbitrary (D a)
+instance Arbitrary a => Arbitrary (D a) where arbitrary = error "not implemented"
 instance CoArbitrary a => CoArbitrary (D a)
 
 instance (Show a, Read a) => Function (D a) where
