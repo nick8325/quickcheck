@@ -11,6 +11,9 @@ import System.Random
 import System.Random.SplitMix
 #endif
 import Data.Bits
+#if MIN_VERSION_random(1,2,0)
+import Data.Coerce
+#endif
 
 -- | The "standard" QuickCheck random number generator.
 -- A wrapper around either 'SMGen' on GHC, or 'StdGen'
@@ -30,10 +33,20 @@ instance RandomGen QCGen where
   split (QCGen g) =
     case split g of
       (g1, g2) -> (QCGen g1, QCGen g2)
+#if MIN_VERSION_random(1,2,0)
+  genWord8 (QCGen g) = coerce (genWord8 g)
+  genWord16 (QCGen g) = coerce (genWord16 g)
+  genWord32 (QCGen g) = coerce (genWord32 g)
+  genWord64 (QCGen g) = coerce (genWord64 g)
+  genWord32R r (QCGen g) = coerce (genWord32R r g)
+  genWord64R r (QCGen g) = coerce (genWord64R r g)
+  genShortByteString n (QCGen g) = coerce (genShortByteString n g)
+#else
   genRange (QCGen g) = genRange g
   next (QCGen g) =
     case next g of
       (x, g') -> (x, QCGen g')
+#endif
 
 newQCGen :: IO QCGen
 #ifdef NO_SPLITMIX
