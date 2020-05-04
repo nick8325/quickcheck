@@ -71,6 +71,17 @@ module Test.QuickCheck.Monadic (
   , monadicST
   , runSTGen
 #endif
+
+  -- * Exceptions
+
+#ifndef NO_EXCEPTIONS
+  , assertException
+  , assertExceptionIO
+#ifndef NO_DEEPSEQ
+  , assertDeepException
+  , assertDeepExceptionIO
+#endif
+#endif
   ) where
 
 --------------------------------------------------------------------------
@@ -94,6 +105,13 @@ import Control.Monad.Trans.Class
 import qualified Control.Monad.Fail as Fail
 #endif
 
+#ifndef NO_DEEPSEQ
+import Control.DeepSeq
+#endif
+
+#ifndef NO_EXCEPTIONS
+import qualified Control.Exception as E
+#endif
 --------------------------------------------------------------------------
 -- type PropertyM
 
@@ -273,6 +291,66 @@ runSTGen :: (forall s. Gen (ST s a)) -> Gen a
 runSTGen f = do
   Capture eval <- capture
   return (runST (eval f))
+#endif
+
+-- Exceptions
+
+
+#ifndef NO_EXCEPTIONS
+
+-- | Evaluate the value to WHNF and check if it raises an exception.
+assertException ::
+     (E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> a -- ^ Value that should throw an exception, when evaluated
+  -> Property
+assertException isExc action = assertExceptionIO isExc (return action)
+
+
+-- | Make sure that an exception is thrown during an IO action. The result is
+-- evaluated to WHNF.
+assertExceptionIO ::
+     (E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> IO a -- ^ An action that should throw the exception
+  -> Property
+assertExceptionIO isExc action =
+  monadicIO $ do
+    hasFailed <-
+      run
+        (E.catch
+           (do res <- action
+               res `seq` return False)
+           (return . isExc))
+    assert hasFailed
+
+#ifndef NO_DEEPSEQ
+
+-- | Evaluate the value to NF and check if it raises an exception.
+assertDeepException ::
+     (NFData a, E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> a -- ^ Value that should throw an exception, when fully evaluated
+  -> Property
+assertDeepException isExc action = assertDeepExceptionIO isExc (return action)
+
+-- | Make sure that an exception is thrown during an IO action. The result is
+-- evaluated to WHNF.
+assertDeepExceptionIO ::
+     (NFData a, E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> IO a -- ^ An action that should throw the exception
+  -> Property
+assertDeepExceptionIO isExc action =
+  monadicIO $ do
+    hasFailed <-
+      run
+        (E.catch
+           (do res <- action
+               res `deepseq` return False)
+           (return . isExc))
+    assert hasFailed
+#endif
 #endif
 
 --------------------------------------------------------------------------
