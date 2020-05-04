@@ -56,6 +56,7 @@ module Test.QuickCheck.Monadic (
   -- * Monadic specification combinators
   , run
   , assert
+  , assertWith
   , pre
   , wp
   , pick
@@ -149,6 +150,28 @@ stop p = MkPropertyM (\_k -> return (return (property p)))
 assert :: Monad m => Bool -> PropertyM m ()
 assert True  = return ()
 assert False = fail "Assertion failed"
+
+-- | Like 'assert' but allows caller to specify an explicit message to show on failure.
+--
+-- __Example:__
+--
+-- @
+-- do
+--   assertWith True  "My first predicate."
+--   assertWith False "My other predicate."
+--   ...
+-- @
+--
+-- @
+-- Assertion failed (after 2 tests):
+--     Passed: My first predicate
+--     Failed: My other predicate
+-- @
+assertWith :: Monad m => Bool -> String -> PropertyM m ()
+assertWith condition msg = do
+    let prefix = if condition then "Passed: " else "Failed: "
+    monitor $ counterexample $ prefix <> msg
+    assert condition
 
 -- should think about strictness/exceptions here
 -- | Tests preconditions. Unlike 'assert' this does not cause the
