@@ -98,17 +98,30 @@ infoType (VarI _ ty _ _) = ty
 #endif
 
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
-deconstructType err ty0@(ForallT xs ctx ty) = do
-  let plain (PlainTV  _)       = True
-#if MIN_VERSION_template_haskell(2,8,0)
-      plain (KindedTV _ StarT) = True
-#else
-      plain (KindedTV _ StarK) = True
-#endif
-      plain _                  = False
-  unless (all plain xs) $ err "Higher-kinded type variables in type"
-  return (map (\(PlainTV x) -> x) xs, ctx, ty)
+deconstructType err ty0@(ForallT xs ctx ty) =
+  case sequence $ map plainTVName xs of
+    Just names -> return (names, ctx, ty)
+    Nothing    -> err "Higher-kinded type variables in type"
 deconstructType _ ty = return ([], [], ty)
+
+-- TH 2.17 introduces a 'Specificity' parameter.  I think we can safely ignore
+-- it here.
+#if MIN_VERSION_template_haskell(2,17,0)
+plainTVName :: TyVarBndr a -> Maybe Name
+plainTVName (PlainTV n _)        = Just n
+plainTVName (KindedTV n _ StarT) = Just n
+plainTVName _                    = Nothing
+#elif MIN_VERSION_template_haskell(2,8,0)
+plainTVName :: TyVarBndr -> Maybe Name
+plainTVName (PlainTV  n)         = Just n
+plainTVName (KindedTV n StarT)   = Just n
+plainTVName _                    = Nothing
+#else
+plainTVName :: TyVarBndr -> Maybe Name
+plainTVName (PlainTV  n)         = Just n
+plainTVName (KindedTV n StarK)   = Just n
+plainTVName _                    = Nothing
+#endif
 
 monomorphiseType :: Error -> Type -> Type -> TypeQ
 monomorphiseType err mono ty@(VarT n) = return mono
