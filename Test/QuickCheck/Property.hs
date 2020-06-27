@@ -36,6 +36,7 @@ import Control.DeepSeq
 import Data.Typeable (Typeable)
 #endif
 import Data.Maybe
+import Data.Semigroup
 
 --------------------------------------------------------------------------
 -- fixities
@@ -83,8 +84,11 @@ newtype Property = MkProperty { unProperty :: Gen Prop }
   deriving (Typeable)
 #endif
 
-instance Monoid Property where mempty = property True
-instance Semigroup Property where (<>) = (.&&.)
+instance Monoid Property where
+  mempty = property True
+  mappend = (<>)
+instance Semigroup Property where
+  (<>) = (.&&.)
 
 -- | The class of properties, i.e., types which QuickCheck knows how to test.
 -- Typically a property will be a function returning 'Bool' or 'Property'.
