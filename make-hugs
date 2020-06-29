@@ -1,9 +1,11 @@
 #!/bin/bash
 
-set -e
+set -eu
 
 TOPDIR=$(dirname "$0")
 TARGETDIR=$TOPDIR/quickcheck-hugs
+
+rm -rf "$TARGETDIR"
 
 find "$TOPDIR/src" -name '*.hs' | while read -r src; do
   tgt="$TARGETDIR/$(echo "$src" | sed "s/^$TOPDIR\/src"'//')"
@@ -21,6 +23,16 @@ find "$TOPDIR/src" -name '*.hs' | while read -r src; do
     -DNO_DEEPSEQ -DNO_EXTRA_METHODS_IN_APPLICATIVE \
     "$src" > "$tgt"
 done
+
+TMPDIR=$(mktemp -d)
+SPLITMIX=splitmix-0.1
+curl http://hackage.haskell.org/package/$SPLITMIX/$SPLITMIX.tar.gz |
+  tar xzf - -C "$TMPDIR"
+(pushd "$TMPDIR/$SPLITMIX";
+ bash ./make-hugs.sh;
+ popd) > /dev/null
+mv "$TMPDIR/$SPLITMIX"/splitmix-hugs/* "$TARGETDIR"
+rm -r "$TMPDIR"
 
 echo "A Hugs-compatible version of QuickCheck is now"
 echo "available in the quickcheck-hugs directory."
