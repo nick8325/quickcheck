@@ -35,7 +35,7 @@ import Test.QuickCheck.Random
 import Data.List
 import Data.Ord
 import Data.Maybe
-#ifdef SPLITMIX
+#ifndef NO_SPLITMIX
 import System.Random.SplitMix(bitmaskWithRejection64', SMGen, nextInteger)
 #endif
 import Data.Word
@@ -166,7 +166,7 @@ chooseInt = chooseBoundedIntegral
 -- | A fast implementation of 'choose' for bounded integral types.
 chooseBoundedIntegral :: (Bounded a, Integral a) => (a, a) -> Gen a
 chooseBoundedIntegral (lo, hi)
-#if !defined(OLD_RANDOM) || defined(SPLITMIX)
+#ifndef NO_SPLITMIX
   | toInteger mn >= toInteger (minBound :: Int64) &&
     toInteger mx <= toInteger (maxBound :: Int64) =
       fmap fromIntegral (chooseInt64 (fromIntegral lo, fromIntegral hi))
@@ -176,7 +176,7 @@ chooseBoundedIntegral (lo, hi)
 #endif
   | otherwise =
       fmap fromInteger (chooseInteger (toInteger lo, toInteger hi))
-#if !defined(OLD_RANDOM) || defined(SPLITMIX)
+#ifndef NO_SPLITMIX
   where
     mn = minBound `asTypeOf` lo
     mx = maxBound `asTypeOf` hi
@@ -184,7 +184,7 @@ chooseBoundedIntegral (lo, hi)
 
 -- | A fast implementation of 'choose' for 'Integer'.
 chooseInteger :: (Integer, Integer) -> Gen Integer
-#if defined(OLD_RANDOM) && !defined(SPLITMIX)
+#ifdef NO_SPLITMIX
 chooseInteger = choose
 #else
 chooseInteger (lo, hi)
@@ -194,11 +194,7 @@ chooseInteger (lo, hi)
   | lo >= toInteger (minBound :: Word64) && lo <= toInteger (maxBound :: Word64) &&
     hi >= toInteger (minBound :: Word64) && hi <= toInteger (maxBound :: Word64) =
     fmap toInteger (chooseWord64 (fromInteger lo, fromInteger hi))
-#ifdef SPLITMIX
   | otherwise = MkGen $ \(QCGen g) _ -> fst (nextInteger lo hi g)
-#else
-  | otherwise = choose (lo, hi)
-#endif
 
 chooseWord64 :: (Word64, Word64) -> Gen Word64
 chooseWord64 (lo, hi)
@@ -221,12 +217,8 @@ chooseInt64 (lo, hi)
 
 chooseUpTo :: Word64 -> Gen Word64
 chooseUpTo n =
-#ifdef SPLITMIX
   MkGen $ \(QCGen g) _ ->
     fst (bitmaskWithRejection64' n g)
-#else
-  choose (0, n)
-#endif
 #endif
 
 -- | Run a generator. The size passed to the generator is always 30;

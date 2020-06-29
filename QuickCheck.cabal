@@ -92,14 +92,15 @@ library
   if flag(old-random)
     Build-depends: random < 1.2.0
     cpp-options: -DOLD_RANDOM
-    -- Use splitmix even if using an old random library.
-    -- However, Hugs traps overflow on Word64, so we have to stick
-    -- with StdGen there.
-    if !impl(hugs)
-      Build-depends: splitmix >= 0.0.5 && <0.2
-      cpp-options: -DSPLITMIX
+
+  -- We always use splitmix directly rather than going through StdGen
+  -- (it's somewhat more efficient).
+  -- However, Hugs traps overflow on Word64, so we have to stick
+  -- with StdGen there.
+  if impl(hugs)
+    cpp-options: -DNO_SPLITMIX
   else
-    Build-depends: random >= 1.2.0
+    Build-depends: splitmix >= 0.1 && <0.2
 
   -- GHC-specific modules.
   if impl(ghc)

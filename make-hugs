@@ -14,7 +14,7 @@ find "$TOPDIR/src" -name '*.hs' | while read -r src; do
   # If you want to switch on and off other features, look in
   # QuickCheck.cabal to see what's available, or submit a patch
   # adding a new -DNO_... flag.
-  cpphs --noline -DOLD_RANDOM -DNO_TEMPLATE_HASKELL \
+  cpphs --noline -DOLD_RANDOM -DNO_SPLITMIX -DNO_TEMPLATE_HASKELL \
     -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS -DNO_GENERICS \
     -DNO_SAFE_HASKELL -DNO_POLYKINDS -DNO_MONADFAIL -DNO_TIMEOUT \
     -DNO_NEWTYPE_DERIVING -DNO_TYPEABLE -DNO_GADTS -DNO_TRANSFORMERS \

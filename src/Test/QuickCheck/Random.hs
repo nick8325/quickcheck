@@ -8,47 +8,38 @@
 module Test.QuickCheck.Random where
 
 import System.Random
-#ifdef SPLITMIX
+#ifndef NO_SPLITMIX
 import System.Random.SplitMix
-#endif
-#if !defined(OLD_RANDOM)
-import System.Random.Internal
 #endif
 import Data.Bits
 
 -- | The "standard" QuickCheck random number generator.
 -- A wrapper around either 'SMGen' on GHC, or 'StdGen'
 -- on other Haskell systems.
-#ifdef SPLITMIX
-newtype QCGen = QCGen SMGen
-#else
+#ifdef NO_SPLITMIX
 newtype QCGen = QCGen StdGen
+#else
+newtype QCGen = QCGen SMGen
 #endif
 
 instance Show QCGen where
   showsPrec n (QCGen g) s = showsPrec n g s
 instance Read QCGen where
-#if defined(OLD_RANDOM)
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
-#else
-  readsPrec n xs = [(QCGen (StdGen g), ys) | (g, ys) <- readsPrec n xs]
-#endif
 
 instance RandomGen QCGen where
-#ifdef SPLITMIX
-  split (QCGen g) =
-    case splitSMGen g of
-      (g1, g2) -> (QCGen g1, QCGen g2)
-  genRange _ = (minBound, maxBound)
-  next (QCGen g) =
-    case nextInt g of
-      (x, g') -> (x, QCGen g')
-#else
+#ifdef NO_SPLITMIX
   split (QCGen g) =
     case split g of
       (g1, g2) -> (QCGen g1, QCGen g2)
   genRange (QCGen g) = genRange g
   next = wrapQCGen next
+#else
+  split (QCGen g) =
+    case splitSMGen g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+  genRange _ = (minBound, maxBound)
+  next = wrapQCGen nextInt
 
 #ifndef OLD_RANDOM
   genWord8 = wrapQCGen genWord8
@@ -62,27 +53,27 @@ instance RandomGen QCGen where
 #endif
 
 {-# INLINE wrapQCGen #-}
-#ifdef SPLITMIX
-wrapQCGen :: (SMGen -> (a, SMGen)) -> (QCGen -> (a, QCGen))
-#else
+#ifdef NO_SPLITMIX
 wrapQCGen :: (StdGen -> (a, StdGen)) -> (QCGen -> (a, QCGen))
+#else
+wrapQCGen :: (SMGen -> (a, SMGen)) -> (QCGen -> (a, QCGen))
 #endif
 wrapQCGen f (QCGen g) =
   case f g of
     (x, g') -> (x, QCGen g')
 
 newQCGen :: IO QCGen
-#ifdef SPLITMIX
-newQCGen = fmap QCGen newSMGen
-#else
+#ifdef NO_SPLITMIX
 newQCGen = fmap QCGen newStdGen
+#else
+newQCGen = fmap QCGen newSMGen
 #endif
 
 mkQCGen :: Int -> QCGen
-#ifdef SPLITMIX
-mkQCGen n = QCGen (mkSMGen (fromIntegral n))
-#else
+#ifdef NO_SPLITMIX
 mkQCGen n = QCGen (mkStdGen n)
+#else
+mkQCGen n = QCGen (mkSMGen (fromIntegral n))
 #endif
 
 -- Parameterised in order to make this code testable.
