@@ -63,17 +63,13 @@ flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
 
+flag old-random
+  Description: Build against a pre-1.2.0 version of the random package.
+  Default: False
+
 library
   Hs-source-dirs: src
   Build-depends: base >=4.3 && <5, random >=1.0.0.3 && <1.3, containers
-
-  -- random is explicitly Trustworthy since 1.0.1.0
-  -- similar constraint for containers
-  -- Note: QuickCheck is Safe only with GHC >= 7.4 (see below)
-  if impl(ghc >= 7.2)
-    Build-depends: random >=1.0.1.0
-  if impl(ghc >= 7.4)
-    Build-depends: containers >=0.4.2.1
 
   -- Modules that are always built.
   Exposed-Modules:
@@ -91,6 +87,19 @@ library
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception,
     Test.QuickCheck.Features
+
+  -- New vs old random.
+  if flag(old-random)
+    Build-depends: random < 1.2.0
+    cpp-options: -DOLD_RANDOM
+    -- Use splitmix even if using an old random library.
+    -- However, Hugs traps overflow on Word64, so we have to stick
+    -- with StdGen there.
+    if !impl(hugs)
+      Build-depends: splitmix >= 0.0.5 && <0.2
+      cpp-options: -DSPLITMIX
+  else
+    Build-depends: random >= 1.2.0
 
   -- GHC-specific modules.
   if impl(ghc)
@@ -120,11 +129,12 @@ library
   if impl (ghc < 7.4)
     cpp-options: -DNO_SAFE_HASKELL
 
-  -- Use splitmix on newer GHCs.
-  if impl(ghc >= 7.0)
-    Build-depends: splitmix >= 0.0.5 && <0.2
-  else
-    cpp-options: -DNO_SPLITMIX
+  -- random is explicitly Trustworthy since 1.0.1.0
+  -- similar constraint for containers
+  if impl(ghc >= 7.2)
+    Build-depends: random >=1.0.1.0
+  if impl(ghc >= 7.4)
+    Build-depends: containers >=0.4.2.1
 
   if !impl(ghc >= 7.6)
       cpp-options: -DNO_POLYKINDS
@@ -136,7 +146,9 @@ library
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
-    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL -DNO_TYPEABLE -DNO_GADTS -DNO_EXTRA_METHODS_IN_APPLICATIVE
+    cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
+      -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL -DNO_TYPEABLE -DNO_GADTS
+      -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 
