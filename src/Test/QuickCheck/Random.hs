@@ -1,5 +1,4 @@
 {-# OPTIONS_HADDOCK hide #-}
-{-# OPTIONS_GHC -Wno-deprecations #-}
 -- | A wrapper around the system random number generator. Internal QuickCheck module.
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
