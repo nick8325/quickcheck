@@ -36,7 +36,7 @@ import Data.List
 import Data.Ord
 import Data.Maybe
 #ifndef NO_SPLITMIX
-import System.Random.SplitMix(bitmaskWithRejection64', SMGen)
+import System.Random.SplitMix(bitmaskWithRejection64', SMGen, nextInteger)
 #endif
 import Data.Word
 import Data.Int
@@ -187,14 +187,7 @@ chooseInteger :: (Integer, Integer) -> Gen Integer
 #ifdef NO_SPLITMIX
 chooseInteger = choose
 #else
-chooseInteger (lo, hi)
-  | lo >= toInteger (minBound :: Int64) && lo <= toInteger (maxBound :: Int64) &&
-    hi >= toInteger (minBound :: Int64) && hi <= toInteger (maxBound :: Int64) =
-    fmap toInteger (chooseInt64 (fromInteger lo, fromInteger hi))
-  | lo >= toInteger (minBound :: Word64) && lo <= toInteger (maxBound :: Word64) &&
-    hi >= toInteger (minBound :: Word64) && hi <= toInteger (maxBound :: Word64) =
-    fmap toInteger (chooseWord64 (fromInteger lo, fromInteger hi))
-  | otherwise = choose (lo, hi)
+chooseInteger (lo, hi) = MkGen $ \(QCGen g) _ -> fst (nextInteger lo hi g)
 
 chooseWord64 :: (Word64, Word64) -> Gen Word64
 chooseWord64 (lo, hi)

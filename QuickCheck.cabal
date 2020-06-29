@@ -122,7 +122,7 @@ library
 
   -- Use splitmix on newer GHCs.
   if impl(ghc >= 7.0)
-    Build-depends: splitmix >= 0.0.4
+    Build-depends: splitmix >= 0.0.5 && <0.2
   else
     cpp-options: -DNO_SPLITMIX
 

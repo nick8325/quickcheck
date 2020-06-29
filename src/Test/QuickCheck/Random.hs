@@ -27,13 +27,26 @@ instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
 instance RandomGen QCGen where
+#ifdef NO_SPLITMIX
   split (QCGen g) =
     case split g of
       (g1, g2) -> (QCGen g1, QCGen g2)
+
   genRange (QCGen g) = genRange g
   next (QCGen g) =
     case next g of
       (x, g') -> (x, QCGen g')
+#else
+  split (QCGen g) =
+    case splitSMGen g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+
+  genRange (QCGen g) = (minBound, maxBound)
+
+  next (QCGen g) =
+    case nextInt g of
+      (x, g') -> (x, QCGen g')
+#endif
 
 newQCGen :: IO QCGen
 #ifdef NO_SPLITMIX
