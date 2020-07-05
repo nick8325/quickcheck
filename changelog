@@ -1,6 +1,7 @@
-QuickCheck 2.14.1 (release 2020-X-X)
-	* Compatibility with new version of `random-1.2`
-QuickCheck 2.14 (release 2020-03-28)
+QuickCheck 2.14.1 (release 2020-07-05)
+	* Compatibility with random >= 1.2.
+
+QuickCheck 2.14 (released 2020-03-28)
 	* QuickCheck is now much faster at generating test data!
 	  As a result, many properties can now be tested a lot faster;
 	  the examples distributed with QuickCheck run about twice as
