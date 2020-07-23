@@ -76,6 +76,7 @@ import qualified Data.IntSet as IntSet
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import qualified Data.Sequence as Sequence
+import qualified Data.Tree as Tree
 import Data.Int
 import Data.Complex
 import Data.Foldable(toList)
@@ -338,6 +339,9 @@ instance Function a => Function (IntMap.IntMap a) where
 
 instance Function a => Function (Sequence.Seq a) where
   function = functionMap toList Sequence.fromList
+
+instance Function a => Function (Tree.Tree a) where
+  function = functionMap (\(Tree.Node x xs) -> (x,xs)) (uncurry Tree.Node)
 
 instance Function Int8 where
   function = functionBoundedEnum
