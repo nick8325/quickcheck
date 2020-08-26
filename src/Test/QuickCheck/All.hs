@@ -98,16 +98,16 @@ infoType (VarI _ ty _ _) = ty
 #endif
 
 deconstructType :: Error -> Type -> Q ([Name], Cxt, Type)
-deconstructType err ty0@(ForallT xs ctx ty) = do
-  let plain (PlainTV  _)       = True
+deconstructType err (ForallT xs ctx ty) = do
+  let plain (PlainTV nm)          = return nm
 #if MIN_VERSION_template_haskell(2,8,0)
-      plain (KindedTV _ StarT) = True
+      plain (KindedTV nm StarT)   = return nm
 #else
-      plain (KindedTV _ StarK) = True
+      plain (KindedTV nm StarK)   = return nm
 #endif
-      plain _                  = False
-  unless (all plain xs) $ err "Higher-kinded type variables in type"
-  return (map (\(PlainTV x) -> x) xs, ctx, ty)
+      plain _                     = err "Higher-kinded type variables in type"
+  xs' <- traverse plain xs
+  return (xs', ctx, ty)
 deconstructType _ ty = return ([], [], ty)
 
 monomorphiseType :: Error -> Type -> Type -> TypeQ
