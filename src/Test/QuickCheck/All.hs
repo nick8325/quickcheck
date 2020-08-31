@@ -111,7 +111,7 @@ deconstructType err (ForallT xs ctx ty) = do
 #  endif
 #endif
       plain _                     = err "Higher-kinded type variables in type"
-  xs' <- traverse plain xs
+  xs' <- mapM plain xs
   return (xs', ctx, ty)
 deconstructType _ ty = return ([], [], ty)
 
