@@ -1006,7 +1006,7 @@ instance Arbitrary Newline where
 instance Arbitrary NewlineMode where
   arbitrary = NewlineMode <$> arbitrary <*> arbitrary
 
-  shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | inNL' <- shrink inNL, outNL' <- shrink outNL]
+  shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
 
 -- ** Helper functions for implementing arbitrary
 
