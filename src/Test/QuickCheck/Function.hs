@@ -82,10 +82,15 @@ import Data.Complex
 import Data.Foldable(toList)
 import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,4,0) && !defined(__NHC__) && !defined(__HUGS__)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
   )
+#endif
+#endif
 
 #ifndef NO_FIXED
 import Data.Fixed
@@ -371,6 +376,8 @@ instance Function Word32 where
 instance Function Word64 where
   function = functionIntegral
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,4,0) && !defined(__NHC__) && !defined(__HUGS__)
 instance Function Newline where
   function = functionMap g h
     where
@@ -385,6 +392,8 @@ instance Function NewlineMode where
     where
       g (NewlineMode inNL outNL) = (inNL,outNL)
       h (inNL,outNL) = NewlineMode inNL outNL
+#endif
+#endif
 
 -- instances for Data.Monoid newtypes
 
