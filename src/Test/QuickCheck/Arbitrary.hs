@@ -138,7 +138,7 @@ import Data.List
 import Data.Version (Version (..))
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,4,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -997,7 +997,7 @@ instance Arbitrary ExitCode where
   shrink _        = []
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,4,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1475,7 +1475,7 @@ instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,4,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
 instance CoArbitrary Newline where
   coarbitrary LF = variant 0
   coarbitrary CRLF = variant 1
