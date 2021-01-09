@@ -1,4 +1,9 @@
-{-# LANGUAGE TemplateHaskell, Rank2Types, CPP #-}
+{-# LANGUAGE Rank2Types, CPP #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE TemplateHaskellQuotes #-}
+#else
+{-# LANGUAGE TemplateHaskell #-}
+#endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -44,7 +49,7 @@ import qualified System.IO as S
 -- property, the same scoping problems pop up as in 'quickCheckAll':
 -- see the note there about @return []@.
 polyQuickCheck :: Name -> ExpQ
-polyQuickCheck x = [| quickCheck $(monomorphic x) |]
+polyQuickCheck x = [| quickCheck |] `appE` monomorphic x
 
 -- | Test a polymorphic property, defaulting all type variables to 'Integer'.
 -- This is just a convenience function that combines 'verboseCheck' and 'monomorphic'.
@@ -53,7 +58,7 @@ polyQuickCheck x = [| quickCheck $(monomorphic x) |]
 -- property, the same scoping problems pop up as in 'quickCheckAll':
 -- see the note there about @return []@.
 polyVerboseCheck :: Name -> ExpQ
-polyVerboseCheck x = [| verboseCheck $(monomorphic x) |]
+polyVerboseCheck x = [| verboseCheck |] `appE` monomorphic x
 
 type Error = forall a. String -> a
 
@@ -132,7 +137,7 @@ monomorphiseType err mono ty = return ty
 -- 'forAllProperties' has the same issue with scoping as 'quickCheckAll':
 -- see the note there about @return []@.
 forAllProperties :: Q Exp -- :: (Property -> IO Result) -> IO Bool
-forAllProperties = [| runQuickCheckAll $allProperties |]
+forAllProperties = [| runQuickCheckAll |] `appE` allProperties
 
 -- | List all properties in the current module.
 --
@@ -155,10 +160,15 @@ allProperties = do
       quickCheckOne :: (Int, String) -> Q [Exp]
       quickCheckOne (l, x) = do
         exists <- (warning x >> return False) `recover` (reify (mkName x) >> return True)
-        if exists then sequence [ [| ($(stringE $ x ++ " from " ++ filename ++ ":" ++ show l),
-                                     property $(monomorphic (mkName x))) |] ]
+        if exists
+         then sequence
+          [ tupE
+            [ stringE $ x ++ " from " ++ filename ++ ":" ++ show l
+            , [| property |] `appE` monomorphic (mkName x)
+            ]
+          ]
          else return []
-  [| $(fmap (ListE . concat) (mapM quickCheckOne idents)) :: [(String, Property)] |]
+  fmap (ListE . concat) (mapM quickCheckOne idents) `sigE` [t| [(String, Property)] |]
 
 readUTF8File name = S.openFile name S.ReadMode >>=
                     set_utf8_io_enc >>=
@@ -195,7 +205,7 @@ set_utf8_io_enc h = return h
 -- of the module, which means that the later call to 'quickCheckAll'
 -- can see everything that was defined before the @return []@. Yikes!
 quickCheckAll :: Q Exp
-quickCheckAll = [| $(forAllProperties) quickCheckResult |]
+quickCheckAll = forAllProperties `appE` [| quickCheckResult |]
 
 -- | Test all properties in the current module.
 -- This is just a convenience function that combines 'quickCheckAll' and 'verbose'.
@@ -203,7 +213,7 @@ quickCheckAll = [| $(forAllProperties) quickCheckResult |]
 -- 'verboseCheckAll' has the same issue with scoping as 'quickCheckAll':
 -- see the note there about @return []@.
 verboseCheckAll :: Q Exp
-verboseCheckAll = [| $(forAllProperties) verboseCheckResult |]
+verboseCheckAll = forAllProperties `appE` [| verboseCheckResult |]
 
 runQuickCheckAll :: [(String, Property)] -> (Property -> IO Result) -> IO Bool
 runQuickCheckAll ps qc =
