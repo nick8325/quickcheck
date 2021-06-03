@@ -778,7 +778,19 @@ True  ==> p = property p
 --
 -- Bad: @prop_foo a b c = ...; main = quickCheck (within 1000000 prop_foo)@
 within :: Testable prop => Int -> prop -> Property
-within n = mapRoseResult f
+within n = onTimeout
+   (failed { reason = "Timeout of " ++ show n ++ " microseconds exceeded." })
+   n
+
+-- | Like 'within', but instead of fail in case of a timeout it only rejects
+-- the test case. It can make sense to use this for algorithms with a good
+-- average complexity, but much longer worst-case runtime.
+rejectOnTimeout n = onTimeout
+   (rejected { reason = "Timeout of " ++ show n ++ " microseconds exceeded." })
+   n
+
+onTimeout :: Testable prop => Result -> Int -> prop -> Property
+onTimeout timeoutResult n = mapRoseResult f
   where
     f rose = ioRose $ do
       let m `orError` x = fmap (fromMaybe x) m
@@ -787,11 +799,11 @@ within n = mapRoseResult f
       res' <- timeout n (protectResult (return res)) `orError`
         timeoutResult
       return (MkRose res' (map f roses))
-
-    timeoutResult = failed { reason = "Timeout of " ++ show n ++ " microseconds exceeded." }
 #ifdef NO_TIMEOUT
     timeout _ = fmap Just
 #endif
+
+
 
 -- | Explicit universal quantification: uses an explicitly given
 -- test case generator.
