@@ -170,7 +170,7 @@ assert False = fail "Assertion failed"
 assertWith :: Monad m => Bool -> String -> PropertyM m ()
 assertWith condition msg = do
     let prefix = if condition then "Passed: " else "Failed: "
-    monitor $ counterexample $ prefix <> msg
+    monitor $ counterexample $ prefix ++ msg
     assert condition
 
 -- should think about strictness/exceptions here
