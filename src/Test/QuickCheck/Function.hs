@@ -84,7 +84,7 @@ import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,2,0)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -377,7 +377,7 @@ instance Function Word64 where
   function = functionIntegral
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+#if MIN_VERSION_base(4,2,0)
 instance Function Newline where
   function = functionMap g h
     where
