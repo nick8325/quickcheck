@@ -137,6 +137,15 @@ import Data.List
 
 import Data.Version (Version (..))
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+import System.IO
+  ( Newline(..)
+  , NewlineMode(..)
+  )
+#endif
+#endif
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -987,7 +996,25 @@ instance Arbitrary ExitCode where
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+instance Arbitrary Newline where
+  arbitrary = elements [LF, CRLF]
 
+  -- The behavior of code for LF is generally simpler than for CRLF
+  -- See the documentation for this type, which states that Haskell
+  -- Internally always assumes newlines are \n and this type represents
+  -- how to translate that to and from the outside world, where LF means
+  -- no translation.
+  shrink LF = []
+  shrink CRLF = [LF]
+
+instance Arbitrary NewlineMode where
+  arbitrary = NewlineMode <$> arbitrary <*> arbitrary
+
+  shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
+#endif
+#endif
 
 -- ** Helper functions for implementing arbitrary
 
@@ -1446,6 +1473,17 @@ instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,7,0) || MIN_VERSION_base(4,2,0) && !defined(__NHC__) && !defined(__HUGS__)
+instance CoArbitrary Newline where
+  coarbitrary LF = variant 0
+  coarbitrary CRLF = variant 1
+
+instance CoArbitrary NewlineMode where
+  coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
+#endif
+#endif
 
 -- ** Helpers for implementing coarbitrary
 
