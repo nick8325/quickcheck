@@ -48,6 +48,7 @@ module Test.QuickCheck.Function
   , functionIntegral
   , functionRealFrac
   , functionBoundedEnum
+  , functionElements
   , functionVoid
   , functionMapWith
   , functionEitherWith
@@ -174,7 +175,11 @@ class Function a where
 -- Use only for small types (i.e. not integers): creates
 -- the list @['minBound'..'maxBound']@!
 functionBoundedEnum :: (Eq a, Bounded a, Enum a) => (a->b) -> (a:->b)
-functionBoundedEnum f = Table [(x,f x) | x <- [minBound..maxBound]]
+functionBoundedEnum = functionElements [minBound..maxBound]
+
+-- | Provides a 'Function' instance for small finite types.
+functionElements :: (Eq a, Bounded a, Enum a) => [a] ->  (a->b) -> (a:->b)
+functionElements xs f = Table [(x,f x) | x <- xs]
 
 -- | Provides a 'Function' instance for types with 'RealFrac'.
 functionRealFrac :: RealFrac a => (a->b) -> (a:->b)
