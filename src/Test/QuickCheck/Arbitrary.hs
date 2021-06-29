@@ -1146,7 +1146,7 @@ shrinkNothing _ = []
 -- shrinkOrderedList :: (Ord a, Arbitrary a) => [a] -> [[a]]
 -- shrinkOrderedList = shrinkMap sort id
 --
--- shrinkSet :: (Ord a, Arbitrary a) => Set a -> Set [a]
+-- shrinkSet :: (Ord a, Arbitrary a) => Set a -> [Set a]
 -- shrinkSet = shrinkMap fromList toList
 -- @
 shrinkMap :: Arbitrary a => (a -> b) -> (b -> a) -> b -> [b]

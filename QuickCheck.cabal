@@ -62,10 +62,12 @@ source-repository this
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
   Default: True
+  Manual: True
 
 flag old-random
   Description: Build against a pre-1.2.0 version of the random package.
   Default: False
+  Manual: False
 
 library
   Hs-source-dirs: src
@@ -114,7 +116,10 @@ library
 
   if impl(ghc) && flag(templateHaskell) && !impl(haste)
     Build-depends: template-haskell >= 2.4
-    Other-Extensions: TemplateHaskell
+    if impl(ghc >=8.0)
+      Other-Extensions: TemplateHaskellQuotes
+    else
+      Other-Extensions: TemplateHaskell
     Exposed-Modules: Test.QuickCheck.All
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
