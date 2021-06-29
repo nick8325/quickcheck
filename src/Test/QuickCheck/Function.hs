@@ -178,7 +178,7 @@ functionBoundedEnum :: (Eq a, Bounded a, Enum a) => (a->b) -> (a:->b)
 functionBoundedEnum = functionElements [minBound..maxBound]
 
 -- | Provides a 'Function' instance for small finite types.
-functionElements :: (Eq a, Bounded a, Enum a) => [a] ->  (a->b) -> (a:->b)
+functionElements :: Eq a => [a] ->  (a->b) -> (a:->b)
 functionElements xs f = Table [(x,f x) | x <- xs]
 
 -- | Provides a 'Function' instance for types with 'RealFrac'.
