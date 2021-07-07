@@ -495,7 +495,10 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 -}
 
 instance Integral a => Arbitrary (Ratio a) where
-  arbitrary = arbitrarySizedFractional
+  arbitrary = sized $ \n -> do
+    numer <- chooseInt (-n, n)
+    denom <- chooseInt (1, max 1 n)
+    pure $ fromIntegral numer / fromIntegral denom
   shrink    = shrinkRealFrac
 
 #if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
