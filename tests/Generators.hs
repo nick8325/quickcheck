@@ -204,5 +204,17 @@ instance Arbitrary B1 where
 prop_B1 :: B1 -> Property
 prop_B1 (B1 n) = expectFailure $ n === n + 1
 
+-- Double properties:
+
+-- We occasionaly generate duplicates.
+prop_double_duplicate_list :: [Double] -> Property
+prop_double_duplicate_list xs = expectFailure $ nub xs === xs where
+  sorted = sort xs
+
+-- And enough numbers to show basic IEEE pit falls.
+prop_double_assoc :: Double -> Double -> Double -> Property
+prop_double_assoc x y z = expectFailure $ x + (y + z) === (x + y) + z
+
+
 return []
 main = do True <- $forAllProperties (quickCheckWithResult stdArgs { maxShrinks = 10000 }); return ()
