@@ -269,7 +269,7 @@ module Test.QuickCheck
   , noShrinking
   , withMaxSuccess
   , within
-  , rejectOnTimeout
+  , discardAfter
   , once
   , again
   , mapSize
