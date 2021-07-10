@@ -88,6 +88,9 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
+#if __GLASGOW_HASKELL__ >= 800
+import Data.List.NonEmpty(NonEmpty((:|)))
+#endif
 import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
@@ -493,6 +496,20 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
                ++ [ x:xs' | xs' <- shrink xs ]
                ++ [ x':xs | x'  <- shrink x ]
 -}
+
+#if __GLASGOW_HASKELL__ >= 800
+instance Arbitrary1 NonEmpty where
+  liftArbitrary arb = (:|) <$> arb <*> listOf arb
+
+  liftShrink shr (l :| ls) = ((:| ls) <$> shr l) ++ go
+    where go | (y:ys) <- ls = (y :| ys) : tl
+             | otherwise = tl
+          tl = (l :|) <$> shrinkList shr ls
+
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = arbitrarySizedFractional
