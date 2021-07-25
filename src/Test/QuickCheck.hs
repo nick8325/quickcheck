@@ -128,7 +128,9 @@ module Test.QuickCheck
 
     -- * The 'Gen' monad: combinators for building random generators
   , Gen
+#ifndef OLD_RANDOM
   , QC(..)
+#endif
     -- ** Generator combinators
   , choose
   , chooseInt
