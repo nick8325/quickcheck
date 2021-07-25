@@ -93,6 +93,7 @@ module Test.QuickCheck
 
     -- * The 'Gen' monad: combinators for building random generators
   , Gen
+  , QC(..)
     -- ** Generator combinators
   , choose
   , chooseInt

@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
 #endif
@@ -42,7 +43,9 @@ import Data.Word
 import Data.Int
 import Data.Bits
 import Control.Applicative
-
+#ifndef OLD_RANDOM
+import System.Random.Stateful
+#endif
 --------------------------------------------------------------------------
 -- ** Generator type
 
@@ -92,6 +95,15 @@ instance MonadFix Gen where
       let a = unGen (f a) r n
       in a
 
+#ifndef OLD_RANDOM
+data QC = QC
+
+instance StatefulGen QC Gen where
+  uniformWord32 QC = MkGen (\r _n -> runStateGen_ r uniformWord32)
+  uniformWord64 QC = MkGen (\r _n -> runStateGen_ r uniformWord64)
+  uniformShortByteString k QC =
+    MkGen (\r _n -> runStateGen_ r (uniformShortByteString k))
+#endif
 --------------------------------------------------------------------------
 -- ** Primitive generator combinators
 
