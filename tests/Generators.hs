@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, GeneralizedNewtypeDeriving, Rank2Types, NoMonomorphismRestriction #-}
 import Test.QuickCheck
 import Test.QuickCheck.Gen.Unsafe
-import Data.List
+import Data.List (inits, sort)
 import Data.Int
 import Data.Word
 import Data.Version

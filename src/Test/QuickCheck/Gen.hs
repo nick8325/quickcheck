@@ -32,7 +32,7 @@ import Control.Applicative
   ( Applicative(..) )
 
 import Test.QuickCheck.Random
-import Data.List
+import Data.List (sortBy)
 import Data.Ord
 import Data.Maybe
 #ifndef NO_SPLITMIX
