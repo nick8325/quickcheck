@@ -1100,8 +1100,8 @@ inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger x == toInteger (fi x)))
 arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n -> do
-    numer <- chooseInt (-n, n)
     denom <- chooseInt (1, max 1 n)
+    numer <- chooseInt (-n*denom, n*denom)
     pure $ fromIntegral numer / fromIntegral denom
 
 -- Useful for getting at minBound and maxBound without having to
