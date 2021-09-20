@@ -9,7 +9,7 @@ import Test.QuickCheck.State
 import Test.QuickCheck.Text
 import qualified Data.Set as Set
 import Data.Set(Set)
-import Data.List
+import Data.List (intersperse)
 import Data.IORef
 import Data.Maybe
 
