@@ -558,6 +558,9 @@ instance Functor (Fun a) where
 pattern Fn :: (a -> b) -> Fun a b
 #endif
 pattern Fn f <- (applyFun -> f)
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Fn #-}
+#endif
 
 -- | A modifier for testing binary functions.
 --
@@ -567,12 +570,18 @@ pattern Fn f <- (applyFun -> f)
 pattern Fn2 :: (a -> b -> c) -> Fun (a, b) c
 #endif
 pattern Fn2 f <- (applyFun2 -> f)
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Fn2 #-}
+#endif
 
 -- | A modifier for testing ternary functions.
 #if __GLASGOW_HASKELL__ >= 800
 pattern Fn3 :: (a -> b -> c -> d) -> Fun (a, b, c) d
 #endif
 pattern Fn3 f <- (applyFun3 -> f)
+#if __GLASGOW_HASKELL__ >= 802
+{-# COMPLETE Fn3 #-}
+#endif
 #endif
 
 mkFun :: (a :-> b) -> b -> Fun a b
