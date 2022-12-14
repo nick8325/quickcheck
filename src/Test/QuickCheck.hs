@@ -51,6 +51,51 @@ module Test.QuickCheck
   , verboseCheckWith
   , verboseCheckWithResult
   , verboseCheckResult
+    -- ** Running tests in parallel
+    {- | After intense labour by Lord Robert von Krook Af Göhteborgh, the internal
+    testing loop can be instructed to run tests in parallel. Note. Not running properties
+    in parallel, but the tests of a property.
+    
+    As an example, running the property above with 4 HECs
+
+@
+quickCheckPar $ withMaxSuccess 10000 prop_reverse
++++ OK, passed 10000 tests                                
+  tester 0: 2693 tests
+  tester 1: 2514 tests
+  tester 2: 2503 tests
+  tester 3: 2290 tests
+@
+
+    To make use of this functionality, GHC needs the options @-threaded@ and @-rtsopts@.
+    Furthermore, the runtime options need to specify that more HECs should be used, with
+    the @-with-rtsopts=-N@ flag. You could optionally specify exactly how many HECs to
+    use, e.g @-with-rtsopts=-N4@. I've found @-feager-blackholing@ to benefit parallel
+    Haskell before.
+
+    Example of an options section in a cabal file
+
+@
+ghc-options:
+  -threaded
+  -rtsopts
+  -feager-blackholing
+  -with-rtsopts=-N4
+@
+
+    The parallelism is implemented using @Control.Concurrent@ and @forkIO@. Instead of
+    running one sequential test loop, quickCheck will spawn n sequential test loops
+    with @forkIO@. The threads are all assigned an equal share of the desired number of
+    tests to run, but by default attempt to steal the right to run more tests from
+    sibling threads if they run out. Please see `rightToWorkSteal`.
+
+    -}
+  , quickCheckPar
+  , ParallelArgs(..), SizeStrategy(..)
+  , stdParArgs
+  , quickCheckParWith
+  , quickCheckParResult
+  , quickCheckParWithResult
 #ifndef NO_TEMPLATE_HASKELL
     -- ** Testing all properties in a module
 
@@ -307,7 +352,6 @@ module Test.QuickCheck
 
 --------------------------------------------------------------------------
 -- imports
-
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Modifiers
@@ -318,7 +362,6 @@ import Test.QuickCheck.Exception
 import Test.QuickCheck.Function
 #endif
 import Test.QuickCheck.Features
-import Test.QuickCheck.State
 #ifndef NO_TEMPLATE_HASKELL
 import Test.QuickCheck.All
 #endif

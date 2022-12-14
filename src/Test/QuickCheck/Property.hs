@@ -17,7 +17,8 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State( State(terminal), Confidence(..) )
+import Test.QuickCheck.Text
+import Test.QuickCheck.Random
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -25,6 +26,8 @@ import System.Timeout(timeout)
 import Data.Maybe
 import Control.Applicative
 import Control.Monad
+import Control.Concurrent
+import Control.Exception
 import qualified Data.Map as Map
 import Data.Map(Map)
 import qualified Data.Set as Set
@@ -36,6 +39,7 @@ import Control.DeepSeq
 import Data.Typeable (Typeable)
 #endif
 import Data.Maybe
+import Data.IORef
 
 --------------------------------------------------------------------------
 -- fixities
@@ -992,3 +996,152 @@ total x = property (rnf x)
 
 --------------------------------------------------------------------------
 -- the end.
+
+data QCException = QCInterrupted
+  deriving Show
+
+instance Exception QCException
+
+{- | Strategy used to compute the synthetic number of successful tests to be used when
+computing the size to use for a test. If only one thread is running, both of these
+strategies produce the same result. If using more than one, they start to behave
+differently.
+
+To compute the size to use for a property, we need both the number of successful tests
+so far (the more tests we run, the bigger the size we want) and the number of tests that
+we discarded in a row (if we start to discard too many we want to adjust the size).
+
+If each thread passed in its own thread-local number of successful tests, they would all
+pass in the same numbers. To adjust for this, a thread will compute a synthetic number
+to use instead of the thread-local number of successful tests so far. This can be done in
+two different ways.
+
+  1. @Offset@ specifies that each thread should add an offset to the thread-local number
+  of successful tests. E.g asking for 100 tests to be run on 4 cores, the 4 testers would
+  use the offsets @0@, @25@, @50@ and @75@. The first number used by the first thread
+  be 0, while the first number used by the fourth thread will be 75.
+  This option is good if you want to explore different sizes from the start. However,
+  if the test size depends on the size there is a chance that the thread with the low
+  offset will exhaust its share of the tests first. When it starts to steal the right
+  to run more tests from its siblings, it might steal one test from the fourth thread
+  and then pass in its own offset to the size function, running a smaller test than
+  would have been run if the fourth thread ran it.
+
+  2. @Stride@ makes each thread take a stride, rather than incrementing the
+  synthetic number of tests by one each time. E.g using 4 threads and @Stride@, the
+  first thread will use numbers @[0,4,8,...]@, thread two will use numbers
+  @[1,5,9,...]@, and so on. If a thread steals the right to run another test from
+  another thread, it will now use a number that is close to what that thread would
+  have used itself.
+
+-}
+data SizeStrategy
+  = Stride
+  -- ^ Compute numbers using a stride
+  | Offset
+  -- ^ Compute numbers by adding an offset to the thread-local number of successful tests
+
+-- | State represents QuickCheck's internal state while testing a property.
+-- The state is made visible to callback functions.
+data State
+  = MkState
+  -- static
+  { terminal                  :: Terminal
+    -- ^ the current terminal
+  , maxSuccessTests           :: Int
+    -- ^ maximum number of successful tests needed
+  , maxDiscardedRatio         :: Int
+    -- ^ maximum number of discarded tests per successful test
+  , coverageConfidence        :: Maybe Confidence
+    -- ^ required coverage confidence
+  , computeSize               :: Int -> Int -> Int
+    -- ^ how to compute the size of test cases from
+    --   #tests and #discarded tests
+  , numTotMaxShrinks          :: !Int
+    -- ^ How many shrinks to try before giving up
+
+    -- dynamic
+  , numSuccessTests           :: !Int
+    -- ^ the current number of tests that have succeeded
+  , numDiscardedTests         :: !Int
+    -- ^ the current number of discarded tests
+  , numRecentlyDiscardedTests :: !Int
+    -- ^ the number of discarded tests since the last successful test
+  , stlabels                    :: !(Map [String] Int)
+    -- ^ counts for each combination of labels (label/collect)
+  , stclasses                   :: !(Map String Int)
+    -- ^ counts for each class of test case (classify/cover)
+  , sttables                    :: !(Map String (Map String Int))
+    -- ^ tables collected using tabulate
+  , strequiredCoverage          :: !(Map (Maybe String, String) Double)
+    -- ^ coverage requirements
+  , expected                  :: !Bool
+    -- ^ indicates the expected result of the property
+  , randomSeed                :: !QCGen
+    -- ^ the current random seed
+
+    -- shrinking
+  , numSuccessShrinks         :: !Int
+    -- ^ number of successful shrinking steps so far
+  , numTryShrinks             :: !Int
+    -- ^ number of failed shrinking steps since the last successful shrink
+  , numTotTryShrinks          :: !Int
+    -- ^ total number of failed shrinking steps
+
+  -- parallelism
+  , numConcurrent               :: Int
+    -- ^ Number of concurrent siblings
+  , numSuccessOffset            :: !Int
+    -- ^ Offset to use when calculating numSuccessTests for computeSize
+  , myId                        :: !Int
+    -- ^ Id of this concurrent tester
+  , signalGaveUp                :: IO ()
+    -- ^ Signal to the parent that the concurrent testers should give up
+  , signalTerminating           :: IO ()
+    -- ^ Signal to the parent that you're terminating gracefully (not because of an exceptional event)
+  , signalFailureFound          :: State -> QCGen -> Result -> [Rose Result] -> Int -> IO ()
+
+  , shouldUpdateAfterWithMaxSuccess :: Bool
+    -- ^ Should the budgets be adjusted after seeing withMaxSuccess number?
+  , stsizeStrategy              :: SizeStrategy
+
+  , testBudget                  :: IORef Int
+    -- ^ How many tests I can successfully test, my 'budget'
+  , stealTests                  :: IO (Maybe Int)
+    -- ^ Steal tests from concurrent testers, if any
+
+  , discardBudget               :: IORef Int
+    -- ^ How many discards I can perform, my 'budget'
+  , stealDiscards               :: IO (Maybe Int)
+    -- ^ Steal discards from concurrent testers, if any
+  }
+
+-- | The statistical parameters used by 'checkCoverage'.
+data Confidence =
+  Confidence {
+    certainty :: Integer,
+    -- ^ How certain 'checkCoverage' must be before the property fails.
+    -- If the coverage requirement is met, and the certainty parameter is @n@,
+    -- then you should get a false positive at most one in @n@ runs of QuickCheck.
+    -- The default value is @10^9@.
+    -- 
+    -- Lower values will speed up 'checkCoverage' at the cost of false
+    -- positives.
+    --
+    -- If you are using 'checkCoverage' as part of a test suite, you should
+    -- be careful not to set @certainty@ too low. If you want, say, a 1% chance
+    -- of a false positive during a project's lifetime, then @certainty@ should
+    -- be set to at least @100 * m * n@, where @m@ is the number of uses of
+    -- 'cover' in the test suite, and @n@ is the number of times you expect the
+    -- test suite to be run during the project's lifetime. The default value
+    -- is chosen to be big enough for most projects.
+    tolerance :: Double
+    -- ^ For statistical reasons, 'checkCoverage' will not reject coverage
+    -- levels that are only slightly below the required levels.
+    -- If the required level is @p@ then an actual level of @tolerance * p@
+    -- will be accepted. The default value is @0.9@.
+    --
+    -- Lower values will speed up 'checkCoverage' at the cost of not detecting
+    -- minor coverage violations.
+    }
+  deriving Show

@@ -18,6 +18,7 @@ module Test.QuickCheck.Text
   , withStdioTerminal
   , withHandleTerminal
   , withNullTerminal
+  , withBuffering
   , terminalOutput
   , handle
   , Terminal

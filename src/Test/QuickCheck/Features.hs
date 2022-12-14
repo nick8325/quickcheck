@@ -5,7 +5,6 @@ import Test.QuickCheck.Property hiding (Result, reason)
 import qualified Test.QuickCheck.Property as P
 import Test.QuickCheck.Test
 import Test.QuickCheck.Gen
-import Test.QuickCheck.State
 import Test.QuickCheck.Text
 import qualified Data.Set as Set
 import Data.Set(Set)
@@ -81,26 +80,26 @@ labelledExamplesResult prop = labelledExamplesWithResult stdArgs prop
 
 -- | A variant of 'labelledExamples' that takes test arguments and returns a result.
 labelledExamplesWithResult :: Testable prop => Args -> prop -> IO Result
-labelledExamplesWithResult args prop =
-  withState args $ \state -> do
-    let
-      loop :: Set String -> State -> IO Result
-      loop feats state = withNullTerminal $ \nullterm -> do
-        res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
-        let feats' = features (failingLabels res) (failingClasses res)
-        case res of
-          Failure{reason = "New feature found"} -> do
-            putLine (terminal state) $
-              "*** Found example of " ++
-              concat (intersperse ", " (Set.toList (feats' Set.\\ feats)))
-            mapM_ (putLine (terminal state)) (failingTestCase res)
-            putStrLn ""
-            loop (Set.union feats feats')
-              state{randomSeed = usedSeed res, computeSize = computeSize state `at0` usedSize res}
-          _ -> do
-            out <- terminalOutput nullterm
-            putStr out
-            return res
-      at0 f s 0 0 = s
-      at0 f s n d = f n d
-    loop Set.empty state
+labelledExamplesWithResult args prop = undefined -- TODO fix this
+  -- withState args (\state -> do
+  --   let
+  --     loop :: Set String -> State -> IO Result
+  --     loop feats state = withNullTerminal $ \nullterm -> do
+  --       res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
+  --       let feats' = features (failingLabels res) (failingClasses res)
+  --       case res of
+  --         Failure{reason = "New feature found"} -> do
+  --           putLine (terminal state) $
+  --             "*** Found example of " ++
+  --             concat (intersperse ", " (Set.toList (feats' Set.\\ feats)))
+  --           mapM_ (putLine (terminal state)) (failingTestCase res)
+  --           putStrLn ""
+  --           loop (Set.union feats feats')
+  --             state{randomSeed = usedSeed res, computeSize = computeSize state `at0` usedSize res}
+  --         _ -> do
+  --           out <- terminalOutput nullterm
+  --           putStr out
+  --           return res
+  --     at0 f s 0 0 = s
+  --     at0 f s n d = f n d
+  --   loop Set.empty state) Nothing 0

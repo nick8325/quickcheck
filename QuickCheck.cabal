@@ -102,7 +102,6 @@ library
     Test.QuickCheck.Test,
     Test.QuickCheck.Text,
     Test.QuickCheck.Poly,
-    Test.QuickCheck.State,
     Test.QuickCheck.Random,
     Test.QuickCheck.Exception,
     Test.QuickCheck.Features
@@ -179,6 +178,21 @@ Test-Suite test-quickcheck
         examples
     main-is: Heap.hs
     build-depends: base, QuickCheck
+    if !flag(templateHaskell) || impl(haste)
+        Buildable: False
+
+Test-Suite robert-test-quickcheck
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs:
+        examples
+    main-is: MyList.hs
+    build-depends: base, QuickCheck, directory
+    ghc-options:
+      -threaded
+      -rtsopts
+      -feager-blackholing
+      -with-rtsopts=-N4
     if !flag(templateHaskell) || impl(haste)
         Buildable: False
 

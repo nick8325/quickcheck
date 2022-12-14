@@ -63,6 +63,7 @@ module Test.QuickCheck.Monadic (
   , forAllM
   , monitor
   , stop
+  , graceful
 
   -- * Run functions
   , monadic
@@ -85,6 +86,8 @@ import Control.Monad(liftM, liftM2)
 
 import Control.Monad.ST
 import Control.Applicative
+import Control.Exception hiding (assert)
+import Control.Concurrent
 
 #ifndef NO_TRANSFORMERS
 import Control.Monad.IO.Class
@@ -272,6 +275,43 @@ monadic' (MkPropertyM m) = m (\prop -> return (return (property prop)))
 --
 monadicIO :: Testable a => PropertyM IO a -> Property
 monadicIO = monadic ioProperty
+
+{- | Add a graceful optional termination of an IO action. If your test needs to perform
+some IO that, if interrupted by CTRL-C being pressed, needs to do some teardown, this
+combinator is for you!
+
+Example:
+
+@
+prop_graceful :: Property
+prop_graceful = monadicIO $ do
+    -- first IO action that might leave unwanted artifacts
+    c1 <- graceful
+            (do writeFile "firstfile.txt" "hi"
+                c <- readFile "firstfile.txt"
+                removeFile "firstfile.txt"
+                return c)
+            -- cleanup function only called if ctrl-c pressed
+            (do b <- doesFileExist "firstfile.txt"
+                if b then removeFile "firstfile.txt" else return ())
+
+    -- second IO action that might leave unwanted artifacts
+    c2 <- graceful
+           (do writeFile "secondfile.txt" "hi"
+               c <- readFile "secondfile.txt"
+               removeFile "secondfile.txt"
+               return c)
+           -- cleanup function only called if ctrl-c pressed
+           (do b <- doesFileExist "secondfile.txt"
+               if b then removeFile "secondfile.txt" else return ())
+
+    -- donkey property
+    assert (c1 == c2)
+@
+
+-}
+graceful :: IO a -> IO () -> PropertyM IO a
+graceful prop ioa = run $ prop `catch` \QCInterrupted -> ioa >> myThreadId >>= killThread >> error "this will never be evaluated"
 
 #ifndef NO_ST_MONAD
 -- | Runs the property monad for 'ST'-computations.
