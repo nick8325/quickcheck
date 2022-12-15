@@ -447,7 +447,7 @@ quickCheckInternal a pa p = do
                                     })
 
       -- continuously print current state
-      printerID <- if chatty a then Just <$> forkIO (printer 200 states) else return Nothing
+      printerID <- if chatty a then Just <$> forkIO (withBuffering $ printer 200 states) else return Nothing
 
       -- the IO actions that run the test loops      
       let testers = map (\vst -> testLoop vst True (property p)) states
@@ -685,17 +685,13 @@ printer delay vsts = do
     printStuff :: IO ()
     printStuff = do
       states <- sequence $ map readMVar vsts
-      putTemp (terminal (head states)) ( concat ["(", summary states, individual states, ")"] )
+      putTemp (terminal (head states)) ( concat ["(", summary states, ")"] )
       where
         summary states =
           number (sum (map numSuccessTests states)) "test" ++
           concat [ ";" ++ show (sum (map numDiscardedTests states)) ++ " discarded"
                  | sum (map numDiscardedTests states) > 0
                  ]
-        
-        individual states = if length states > 1
-          then concat [" {", intercalate "," (map (\st -> summary [st]) states), "}"]
-          else ""
 
 {- | This function inspects the final @Result@ of testing and prints a summary to the
 terminal. The parameters to this function are
@@ -1119,6 +1115,113 @@ localMinFound st res =
      -- we are about to return to the user anyway
      return (numSuccessShrinks st, numTotTryShrinks st - numTryShrinks st, numTryShrinks st, res)
 
+--------------------------------------------------------------------------
+-- new shrinking loop
+
+-- foundFailure2 :: State -> P.Result -> [Rose P.Result] -> ParallelArgs -> IO (Int, Int, Int, P.Result)
+-- foundFailure2 st res ts pa = undefined
+--   where
+--   -- loop
+--   --   print summary
+--   --   try to evaluate/generate shrinklist
+--   --   if shrinklist empty
+--   --     then return
+--   --     else do check first candidate
+--   --             update shrink state and loop back
+
+--     localMin2 :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+--     localMin2 st res [] = localMinFound st res
+--     localMin2 st res ts
+--       | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st = localMinFound st res
+--       | otherwise = do
+--         r <- tryEvaluateIO $ putTemp (terminal st) (failureSummary st res)
+--         case r of
+--           Left err -> localMinFound st (exception "Exception while printing status message" err) { callbacks = callbacks res }
+--           Right () -> do
+--             r <- tryEvaluate ts
+--             case r of
+--               Left err -> localMinFound st (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
+--               Right ts' -> checkCandidates st res ts'
+              
+--     checkCandidates :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+--     checkCandidates st res ts
+--       -- parallel shrinking
+--       | True {- parallelShrink pa -} = do
+--         let currentCandidates = take (numTesters pa) ts
+        
+--         counts <- newIORef (numTesters pa)
+--         shrinkres <- newEmptyMVar
+
+--         let signalDone = do b <- atomicModifyIORef' counts $ \c -> (c - 1, c - 1 == 0)
+--                             if b then tryPutMVar shrinkres NoneFailed >> return () else return ()
+
+--         -- spawn workers
+--         tids <- mapM (\candidate -> forkIO $ do (res, ts, b) <- testOneShrink st res [candidate]
+--                                                 if b
+--                                                   then tryPutMvar shrinkres (ThisFailed res ts)
+--                                                   else signalDone)
+--                      currentCandidates
+
+--         r <- takeMVar shrinkres
+--         case r of
+--           NoneFailed        -> undefined
+--           ThisFailed res ts -> undefined
+
+--       -- sequential shrinking
+--       | otherwise = do
+--         (res, ts, b) <- testOneShrink st res ts
+--         localMin2 (if b
+--                      then st{ numSuccessShrinks = numSuccessShrinks st + 1
+--                             , numTryShrinks     = 0
+--                             }
+--                      else st{ numTryShrinks = numTryShrinks st + 1
+--                             , numTotTryShrinks = numTotTryShrinks st + 1
+--                             })
+--                   res
+--                   ts
+
+-- testOneShrink :: State -> P.Result -> [Rose P.Result] -> IO (P.Result, [Rose P.Result], Bool)
+-- testOneShrink st res (t:ts) = do
+--   MkRose res' ts' <- protectRose (reduceRose t)
+--   res' <- callbackPostTest st res'
+--   if ok res' == Just False
+--     then (res', ts', True)
+--     else (res,  ts,  False)
+
+-- data ConcurrentShrinkResult = NoneFailed | ThisFailed P.Result [Rose P.Result]
+
+-- failureSummaryAndReason2 :: Int -> Int -> Int -> P.Result -> (String, [String])
+-- failureSummaryAndReason2 numSuccess numSuccessShrinks numTryShrinks res = (summary, full)
+--   where
+--     theReason :: String
+--     theReason = P.reason res
+
+--     summary :: String
+--     summary = header ++ short 26 (oneLine theReason ++ " ") ++ count True ++ "..."
+
+--     full :: [String]
+--     full =
+--       (header ++
+--        (if isOneLine theReason then theReason ++ " " else "") ++
+--        count False ++ ":"):
+--       if isOneLine theReason then [] else lines theReason
+
+--     header :: String
+--     header = if expect res then bold "*** Failed! " else "+++ OK, failed as expected. "
+
+--     count :: Bool -> String
+--     count full =
+--       "(after " ++ number (numSuccess+1) "test" ++
+--       concat [
+--         " and " ++
+--         show numSuccessShrinks ++
+--         concat [ "." ++ show numTryShrinks | showNumTryShrinks ] ++
+--         " shrink" ++
+--         (if numSuccessShrinks == 1 && not showNumTryShrinks then "" else "s")
+--         | numSuccessShrinks > 0 || showNumTryShrinks ] ++
+--       ")"
+--       where
+--         showNumTryShrinks = full && numTryShrinks > 0
 --------------------------------------------------------------------------
 -- callbacks
 

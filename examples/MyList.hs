@@ -66,13 +66,15 @@ prop_graceful = monadicIO $ do
 -- import           Criterion.Types
 -- import           Statistics.Types
 
---prop_test :: [Int] -> Property
-prop_test :: [Int] -> Bool
-prop_test xs = length xs >= length (nub (reverse xs))
+prop_test :: [Int] -> Property
+--prop_test :: [Int] -> Bool
+--prop_test xs = length xs >= length (nub (reverse xs))
 --prop_test xs = not $ length xs == 23
 --prop_test xs = length xs == 20 ==> True
 --prop_test xs = length xs > length (reverse xs) ==> True
---prop_test xs = cover 20 (length xs > 1) "longer than one" $ length xs >= length (nub (reverse xs))
+prop_test xs = cover 20 (length xs > 1) "longer than one" $
+                 cover 20 (length xs > 5) "longer than five" $
+                   cover 80 (length xs > 10) "longer than ten" $ length xs >= length (nub (reverse xs))
 
 --main :: IO ()
 --main = quickCheckPar prop_test
@@ -110,7 +112,7 @@ prop_reverse xs = reverse (reverse xs) == xs
 
 main :: IO ()
 main = do
-    quickCheckParWith stdArgs (stdParArgs { numTesters = 4, rightToWorkSteal = False }) $ withMaxSuccess 10000 prop_reverse
+    quickCheckPar $ withMaxSuccess 1000000 prop_test
 --  main2
 --    quickCheckPar $ withMaxSuccess 1000000 prop_test
 --    quickCheckWith myArgs prop_test
