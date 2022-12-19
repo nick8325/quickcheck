@@ -277,7 +277,7 @@ quickCheckResult p = quickCheckInternal stdArgs stdParArgs p
 
 -- | Tests a property, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult args p = undefined
+quickCheckWithResult args p = quickCheckInternal args stdParArgs p
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
@@ -459,7 +459,7 @@ quickCheckInternal a pa p = do
       s <- readMVar signal `catch` (\UserInterrupt -> return Interrupted)
       mt <- case s of
         Interrupted -> mapM_ (\tid -> throwTo tid QCInterrupted) tids >> mapM_ killThread tids >> return Nothing
-        KillTesters tid st seed res ts size -> do mapM_ killThread (filter ((/=) tid) tids)
+        KillTesters tid st seed res ts size -> do mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) (filter ((/=) tid) tids)
                                                   return $ Just tid
         FinishedTesting -> return Nothing
         NoMoreDiscardBudget tid -> do mapM_ killThread (filter ((/=) tid) tids)
@@ -474,7 +474,7 @@ quickCheckInternal a pa p = do
       reports <- case s of
         KillTesters tid st seed res ts size -> do
           let abortedvsts = map snd $ filter (\(tid', _) -> tid /= tid') (zip tids states)
-          failed <- withBuffering $ shrinkResult st seed res ts size
+          failed <- withBuffering $ shrinkResult (chatty a) st seed (numTesters pa) res ts size
           aborted <- mapM (\vst -> readMVar vst >>= abortConcurrent) abortedvsts
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
@@ -759,9 +759,9 @@ return a final report. The parameters are
   5. The size fed to the test case
 
 -}
-shrinkResult :: State -> QCGen -> P.Result -> [Rose P.Result] -> Int -> IO Result
-shrinkResult st rs res ts size = do
-  (numShrinks, totFailed, lastFailed, res) <- foundFailure st res ts
+shrinkResult :: Bool -> State -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
+shrinkResult chatty st rs n res ts size = do
+  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty st n res ts
   theOutput <- terminalOutput (terminal st)
   if not (expect res) then
     return Success{ labels       = stlabels st,
@@ -1072,9 +1072,9 @@ showTable k mtable m =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailure :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-foundFailure st res ts =
-  do localMin st{ numTryShrinks = 0 } res ts
+-- foundFailure :: State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+-- foundFailure st n res ts =
+--   do localMin st{ numTryShrinks = 0 } res ts
 
 localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 -- Don't try to shrink for too long
@@ -1118,110 +1118,169 @@ localMinFound st res =
 --------------------------------------------------------------------------
 -- new shrinking loop
 
--- foundFailure2 :: State -> P.Result -> [Rose P.Result] -> ParallelArgs -> IO (Int, Int, Int, P.Result)
--- foundFailure2 st res ts pa = undefined
---   where
---   -- loop
---   --   print summary
---   --   try to evaluate/generate shrinklist
---   --   if shrinklist empty
---   --     then return
---   --     else do check first candidate
---   --             update shrink state and loop back
+foundFailure :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+foundFailure chatty st n res ts = do
+  re@(n1,n2,n3,r) <- producer chatty st n res ts
+  putStrLn $ show (n1, n2, n3)
+  return re
 
---     localMin2 :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
---     localMin2 st res [] = localMinFound st res
---     localMin2 st res ts
---       | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st = localMinFound st res
---       | otherwise = do
---         r <- tryEvaluateIO $ putTemp (terminal st) (failureSummary st res)
---         case r of
---           Left err -> localMinFound st (exception "Exception while printing status message" err) { callbacks = callbacks res }
---           Right () -> do
---             r <- tryEvaluate ts
---             case r of
---               Left err -> localMinFound st (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
---               Right ts' -> checkCandidates st res ts'
-              
---     checkCandidates :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
---     checkCandidates st res ts
---       -- parallel shrinking
---       | True {- parallelShrink pa -} = do
---         let currentCandidates = take (numTesters pa) ts
-        
---         counts <- newIORef (numTesters pa)
---         shrinkres <- newEmptyMVar
+data WorkerResult
+  = UnsuccessfulShrink
+  | SuccessfulShrink P.Result [Rose P.Result] Int
+  | NoMoreWorkers
 
---         let signalDone = do b <- atomicModifyIORef' counts $ \c -> (c - 1, c - 1 == 0)
---                             if b then tryPutMVar shrinkres NoneFailed >> return () else return ()
+producer :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+producer chatty st n res ts = do
 
---         -- spawn workers
---         tids <- mapM (\candidate -> forkIO $ do (res, ts, b) <- testOneShrink st res [candidate]
---                                                 if b
---                                                   then tryPutMvar shrinkres (ThisFailed res ts)
---                                                   else signalDone)
---                      currentCandidates
+  jobs       <- newIORef (0, ts)
+  results    <- newEmptyMVar :: IO (MVar WorkerResult)
+  numWorkers <- newIORef n
+  stats      <- newIORef (0,0,0)
 
---         r <- takeMVar shrinkres
---         case r of
---           NoneFailed        -> undefined
---           ThisFailed res ts -> undefined
+  let signalTerminating = do
+        b <- atomicModifyIORef' numWorkers $ \n -> (n - 1, n - 1 == 0)
+        if b
+          then putMVar results NoMoreWorkers
+          else return ()
 
---       -- sequential shrinking
---       | otherwise = do
---         (res, ts, b) <- testOneShrink st res ts
---         localMin2 (if b
---                      then st{ numSuccessShrinks = numSuccessShrinks st + 1
---                             , numTryShrinks     = 0
---                             }
---                      else st{ numTryShrinks = numTryShrinks st + 1
---                             , numTotTryShrinks = numTotTryShrinks st + 1
---                             })
---                   res
---                   ts
+  -- continuously print current state
+  printerID <- if chatty then Just <$> forkIO (shrinkPrinter (terminal st) stats numWorkers (numSuccessTests st) res 200) else return Nothing
 
--- testOneShrink :: State -> P.Result -> [Rose P.Result] -> IO (P.Result, [Rose P.Result], Bool)
--- testOneShrink st res (t:ts) = do
---   MkRose res' ts' <- protectRose (reduceRose t)
---   res' <- callbackPostTest st res'
---   if ok res' == Just False
---     then (res', ts', True)
---     else (res,  ts,  False)
+--  tids <- mapM forkIO $ replicate n (worker st jobs results signalTerminating)
+  tids <- spawnWorkers n st jobs results signalTerminating
 
--- data ConcurrentShrinkResult = NoneFailed | ThisFailed P.Result [Rose P.Result]
+  r <- producerLoop numWorkers signalTerminating res jobs results stats tids
 
--- failureSummaryAndReason2 :: Int -> Int -> Int -> P.Result -> (String, [String])
--- failureSummaryAndReason2 numSuccess numSuccessShrinks numTryShrinks res = (summary, full)
---   where
---     theReason :: String
---     theReason = P.reason res
+  case printerID of
+    Just tid -> killThread tid
+    Nothing -> return ()
+  
+  return r
+  where
+    spawnWorkers :: Int -> State -> IORef (Int, [Rose P.Result]) -> MVar WorkerResult -> IO () -> IO [ThreadId]
+    spawnWorkers n st candidates resultMVar signalTerminating =
+      -- default handler so that the internal interrupted exception is not printing to
+      -- the terminal
+      sequence $ replicate n (forkIO $ worker st candidates resultMVar signalTerminating `catch`
+                                          \QCInterrupted -> myThreadId >>= killThread >> error "will never evaluate")
 
---     summary :: String
---     summary = header ++ short 26 (oneLine theReason ++ " ") ++ count True ++ "..."
+    producerLoop :: IORef Int
+                 -> IO ()
+                 -> P.Result
+                 -> IORef (Int, [Rose P.Result])
+                 -> MVar WorkerResult
+                 -> IORef (Int, Int, Int)
+                 -> [ThreadId]
+                 -> IO (Int, Int, Int, P.Result)
+    producerLoop numWorkers signalTerminating res candidates resultMVar stats tids = do
+      -- wait for a worker to return a result
+      wr <- takeMVar resultMVar
+      (ns, nt, ntotalt) <- readIORef stats
+      case wr of
+        -- a worker didn't advance shrinking
+        UnsuccessfulShrink -> do
+          writeIORef stats (ns, nt + 1, ntotalt + 1)
+          producerLoop numWorkers signalTerminating res candidates resultMVar stats tids
+        -- a worker found a smaller counterexample! Update the work pool 
+        SuccessfulShrink res' ts'  ns' -> do
+          -- possibly set new source of jobs
+          b <- atomicModifyIORef' candidates $ \(oldns, xs) ->
+            if ns' /= oldns
+              then ((oldns, xs), False)
+              else ((ns' + 1, ts'), True)
 
---     full :: [String]
---     full =
---       (header ++
---        (if isOneLine theReason then theReason ++ " " else "") ++
---        count False ++ ":"):
---       if isOneLine theReason then [] else lines theReason
+          -- send interrupt signal and kill concurrent workers
+          if b
+            then do sequence_ $ map (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
+                    --tids <- mapM forkIO $ replicate n (worker st candidates resultMVar signalTerminating)
+                    tids <- spawnWorkers n st candidates resultMVar signalTerminating
+                    writeIORef stats (ns + 1, 0, ntotalt)
+                    producerLoop numWorkers signalTerminating res' candidates resultMVar stats tids
+            else do -- if some workers died, respawn them (this happens when one worker is evaluating the last candidate)
+                 n' <- readIORef numWorkers
+                 tids <- if n' < n
+                           then do atomicModifyIORef' numWorkers $ \_ -> (n, ())
+                                   --mapM forkIO $ replicate (n - n') (worker st candidates resultMVar signalTerminating)
+                                   spawnWorkers (n - n') st candidates resultMVar signalTerminating
+                           else return tids
+                 writeIORef stats (ns, nt + 1, ntotalt + 1)
+                 producerLoop numWorkers signalTerminating res candidates resultMVar stats tids
 
---     header :: String
---     header = if expect res then bold "*** Failed! " else "+++ OK, failed as expected. "
+        NoMoreWorkers -> do
+          sequence_ [ putLine (terminal st) msg | msg <- failureReason st res ]
+          callbackPostFinalFailure st res
+          -- NB no need to check if callbacks threw an exception because
+          -- we are about to return to the user anyway
+          return (ns, ntotalt - nt, nt, res)
 
---     count :: Bool -> String
---     count full =
---       "(after " ++ number (numSuccess+1) "test" ++
---       concat [
---         " and " ++
---         show numSuccessShrinks ++
---         concat [ "." ++ show numTryShrinks | showNumTryShrinks ] ++
---         " shrink" ++
---         (if numSuccessShrinks == 1 && not showNumTryShrinks then "" else "s")
---         | numSuccessShrinks > 0 || showNumTryShrinks ] ++
---       ")"
---       where
---         showNumTryShrinks = full && numTryShrinks > 0
+worker :: State -> IORef (Int, [Rose P.Result]) -> MVar WorkerResult -> IO () -> IO ()
+worker st candidates resultMVar signalTerminating = do
+
+  -- get next shrink candidate from pool
+  candidate <- atomicModifyIORef' candidates $ \(n, xs) ->
+    case xs of
+      (t:ts) -> ((n, ts), Just (n, t))
+      []     -> ((n, []), Nothing)
+  
+  case candidate of
+    Nothing -> signalTerminating
+    Just (n, t) -> do
+      -- actually run the candidate
+      MkRose res ts <- protectRose (reduceRose t)
+      res <- callbackPostTest st res
+
+      -- report result to producer thread
+      if ok res == Just False
+        then putMVar resultMVar $ SuccessfulShrink res ts n
+        else putMVar resultMVar $ UnsuccessfulShrink
+      
+      -- continue
+      worker st candidates resultMVar signalTerminating
+
+shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> IORef Int -> Int -> P.Result -> Int -> IO ()
+shrinkPrinter terminal stats numConcurrent n res delay = do
+  triple <- readIORef stats
+  numconc <- readIORef numConcurrent
+  let output = fst $ failureSummaryAndReason2 triple n numconc res
+  withBuffering $ putTemp terminal output
+  threadDelay delay
+  shrinkPrinter terminal stats numConcurrent n res delay
+
+failureSummaryAndReason2 :: (Int, Int, Int) -> Int -> Int -> P.Result -> (String, [String])
+failureSummaryAndReason2 (ns, nt, _) numSuccTests numConc res = (summary, full)
+  where
+    summary =
+      header ++
+      short 26 (oneLine theReason ++ " ") ++
+      count True ++ "..."
+
+    full =
+      (header ++
+       (if isOneLine theReason then theReason ++ " " else "") ++
+       count False ++ ":"):
+      if isOneLine theReason then [] else lines theReason
+
+    theReason = P.reason res
+
+    header =
+      if expect res then
+        bold "*** Failed! "
+      else "+++ OK, failed as expected. "
+
+    count full =
+      "concurrent testers: " ++ show numConc ++ " " ++
+      "(after " ++ number (numSuccTests + 1) "test" ++
+      concat [
+        " and " ++
+        show ns ++
+        concat [ "." ++ show nt | showNumTryShrinks ] ++
+        " shrink" ++
+        (if ns == 1 && not showNumTryShrinks then "" else "s")
+        | ns > 0 || showNumTryShrinks ] ++
+      ")"
+      where
+        showNumTryShrinks = full && nt > 0
+
 --------------------------------------------------------------------------
 -- callbacks
 
