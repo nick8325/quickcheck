@@ -1,3 +1,5 @@
+Roberts fork: this fork contains experimental support for running tests in parallel, and shrinking in parallel.
+
 This is QuickCheck 2, a library for random testing of program properties.
 
 Add `QuickCheck` to your package dependencies to use it in tests or REPL.
