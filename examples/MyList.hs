@@ -112,7 +112,9 @@ prop_reverse xs = reverse (reverse xs) == xs
 
 main :: IO ()
 main = do
-    quickCheckPar $ withMaxSuccess 100000 prop_test
+--    r <- quickCheckParWithResult stdArgs{ replay = Just (read "SMGen 12040314176921925721 11360527517743311437", 32)} stdParArgs{ numTesters = 1 } $ withMaxSuccess 100000 prop_test
+    r <- quickCheckResult $ withMaxSuccess 100000 prop_test
+    putStrLn $ show r
 --  main2
 --    quickCheckPar $ withMaxSuccess 1000000 prop_test
 --    quickCheckWith myArgs prop_test
