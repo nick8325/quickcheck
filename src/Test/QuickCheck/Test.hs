@@ -47,6 +47,7 @@ import Data.List
   , zip4
   , zip5
   , zip6
+  , partition
   )
 
 import Data.Maybe(fromMaybe, isNothing, isJust, catMaybes)
@@ -1072,9 +1073,9 @@ showTable k mtable m =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
--- foundFailure :: State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
--- foundFailure st n res ts =
---   do localMin st{ numTryShrinks = 0 } res ts
+foundFailureOld :: State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+foundFailureOld st n res ts =
+  do localMin st{ numTryShrinks = 0 } res ts
 
 localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 -- Don't try to shrink for too long
@@ -1119,107 +1120,159 @@ localMinFound st res =
 -- new shrinking loop
 
 foundFailure :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+-- foundFailure chatty st n res ts = do
+--   (n1,n2,n3,r) <- foundFailureOld st n res ts
+--   putStrLn $ show (n1,n2,n3)
+--   return (n1,n2,n3,r)
 foundFailure chatty st n res ts = do
-  re@(n1,n2,n3,r) <- producer chatty st n res ts
+  re@(n1,n2,n3,r) <- producer chatty False st n res ts
   putStrLn $ show (n1, n2, n3)
   return re
 
-data WorkerResult
-  = UnsuccessfulShrink
-  | SuccessfulShrink P.Result [Rose P.Result] Int Int
-  | NoMoreWorkers
+producer :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+producer chatty detshrinking st n res ts = do
 
-type Jobs = (Int, Int, Map.Map ThreadId (Int, Int), [Rose P.Result])
-
-producer :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-producer chatty st n res ts = do
-
-  jobs       <- newIORef (0, 0, Map.empty, ts)
-  results    <- newEmptyMVar :: IO (MVar WorkerResult)
+  jobs       <- newMVar (0, 0, Map.empty, [], res, ts)
   numWorkers <- newIORef 0
   stats      <- newIORef (0,0,0)
-
-  let signalTerminating = do
-        b <- atomicModifyIORef' numWorkers $ \n -> (n - 1, n - 1 == 0)
-        if b
-          then putMVar results NoMoreWorkers
-          else return ()
+  signal     <- newEmptyMVar
 
   -- continuously print current state
   printerID <- if chatty
                  then Just <$> forkIO (shrinkPrinter (terminal st) stats numWorkers (numSuccessTests st) res 200)
                  else return Nothing
 
-  spawnWorkers st numWorkers jobs results signalTerminating
+  -- start shrinking
+  spawnWorkers n jobs stats numWorkers signal
 
-  r <- producerLoop numWorkers signalTerminating res jobs results stats []
-
+  -- stop printing
   case printerID of
     Just tid -> killThread tid
     Nothing -> return ()
   
-  return r
+  -- need to block here until completely done, somehow
+  takeMVar signal
+
+  -- get res
+  (r,p) <- (\(_,_,_,p,r,_) -> (r,p)) <$> readMVar jobs
+  (ns,nt,ntot) <- readIORef stats
+  mapM_ (putStrLn . show) $ reverse p
+
+  return (ns, ntot-nt, nt, r)
   where
-    spawnWorkers :: State -> IORef Int -> IORef Jobs -> MVar WorkerResult -> IO () -> IO [ThreadId]
-    spawnWorkers st numWorkers candidates resultMVar signalTerminating = do
-      -- how many workers from the desired number are currently working?
-      n' <- atomicModifyIORef' numWorkers $ \i -> (n, n - i)
-      -- default handler so that the internal interrupted exception is not printing to
-      -- the terminal
-      sequence $ replicate n' (forkIO $ worker st candidates resultMVar signalTerminating `catch`
-                                          \QCInterrupted -> myThreadId >>= killThread >> error "will never evaluate")
+    worker :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
+           -> IORef (Int, Int, Int)
+           -> IORef Int
+           -> MVar ()
+           -> IO ()
+    worker jobs stats numFinished signal = do
+      j <- getJob jobs
+      case j of
+        Nothing      -> removeFromMap jobs >> notifyFinished numFinished signal --undefined -- wake up parent
+        Just (r,c,t) -> do
+          mec <- evaluateCandidate t
+          case mec of
+            Nothing          -> do
+              putStrLn $ concat ["unsuccessful shrink: ", show (r,c)]
+              failedShrink stats
+              worker jobs stats numFinished signal
+            Just (res', ts') -> do
+              successShrink stats
+              updateWork res' ts' (r,c) jobs stats numFinished signal
+              worker jobs stats numFinished signal
 
-    producerLoop :: IORef Int
-                 -> IO ()
-                 -> P.Result
-                 -> IORef Jobs
-                 -> MVar WorkerResult
+    getJob :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
+           -> IO (Maybe (Int, Int, Rose P.Result))
+    getJob jobs = do
+      tid <- myThreadId
+      modifyMVar jobs $ \(r,c,wm,path,res,xs) ->
+        case xs of
+          []     -> return ((r,c,wm,path,res,[]), Nothing)
+          (t:ts) -> return ((r,c+1,Map.insert tid (r,c) wm,path,res,ts), Just (r, c, t))
+
+    notifyFinished :: IORef Int -> MVar () -> IO ()
+    notifyFinished numFinished signal = do
+      b <- atomicModifyIORef' numFinished $ \i -> (i + 1, i + 1)
+      if b == n
+        then putMVar signal ()
+        else return ()
+
+    resetFinished :: IORef Int -> IO ()
+    resetFinished numFinished = atomicModifyIORef' numFinished $ \_ -> (0, ())
+
+    removeFromMap :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result]) -> IO ()
+    removeFromMap jobs = do
+      tid <- myThreadId
+      modifyMVar jobs $ \(r,c,wm,path,res,xs) -> return ((r,c,Map.delete tid wm, path, res, xs), ())
+
+    evaluateCandidate :: Rose P.Result -> IO (Maybe (P.Result, [Rose P.Result]))
+    evaluateCandidate t = do
+      MkRose res' ts' <- protectRose (reduceRose t)
+      res' <- callbackPostTest st res'
+      if ok res' == Just False
+        then return $ Just (res', ts')
+        else return Nothing
+
+    failedShrink :: IORef (Int, Int, Int) -> IO ()
+    failedShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns, nt + 1, ntot + 1), ())
+
+    successShrink :: IORef (Int, Int, Int) -> IO ()
+    successShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns + 1, 0, ntot), ())
+
+    updateWork :: P.Result
+               -> [Rose P.Result]
+               -> (Int, Int)
+               -> MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
+               -> IORef (Int, Int, Int)
+               -> IORef Int
+               -> MVar ()
+               -> IO ()
+    updateWork res' ts' cand@(r',c') jobs stats numFinished signal = do
+      tid <- myThreadId
+      if null ts'
+        then do modifyMVar jobs $ \(r,c,wm,path,res,ts) -> do
+                  let (path', _) = computePath path cand
+                      tids = filter (\tid' -> tid /= tid') $ Map.keys wm -- ids of all other workers
+                  gracefullyKill tids
+                  return ((r'+1,0,Map.empty,path',res',ts'), ())
+                putMVar signal ()
+        else modifyMVar jobs $ \(r,c,wm,path,res,ts) -> do
+               let (path', b)  = computePath path cand
+                   (tids, wm') = toKill tid wm path'
+               gracefullyKill tids
+               spawnWorkers (length tids) jobs stats numFinished signal
+               n <- readIORef numFinished
+               resetFinished numFinished
+               spawnWorkers n jobs stats numFinished signal
+               return ((r'+1,0,wm',path',res',ts'), ())
+      where
+        toKill :: ThreadId
+               -> Map.Map ThreadId (Int, Int)
+               -> [(Int, Int)]
+               -> ([ThreadId], Map.Map ThreadId (Int, Int))
+        toKill tid wm path
+          | detshrinking = let asList          = Map.toList wm
+                               jobsToTerminate = shouldDie (map snd asList) path
+                               (tokill, keep)  = partition (\worker -> snd worker `elem` jobsToTerminate) asList
+                           in (filter ((/=) tid) (map fst tokill), Map.fromList keep)
+          | otherwise    = (filter ((/=) tid) $ Map.keys wm, Map.empty) -- kill everyone
+
+    gracefullyKill :: [ThreadId] -> IO ()
+    gracefullyKill tids = mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
+
+    spawnWorkers :: Int
+                 -> MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
                  -> IORef (Int, Int, Int)
-                 -> [(Int, Int)]
-                 -> IO (Int, Int, Int, P.Result)
-    producerLoop numWorkers signalTerminating res candidates resultMVar stats path = do
-      --putStrLn $ show path
-      -- wait for a worker to return a result
-      wr <- takeMVar resultMVar
-      (ns, nt, ntotalt) <- readIORef stats
-      case wr of
-
-        -- a worker didn't advance shrinking
-        UnsuccessfulShrink -> do
-          writeIORef stats (ns, nt + 1, ntotalt + 1)
-          producerLoop numWorkers signalTerminating res candidates resultMVar stats path
-
-        -- a worker found a smaller counterexample! Possibly update the work pool 
-        SuccessfulShrink res' ts'  ns' col
-            | not (snd (computePath path (ns', col))) -> do
-              putStrLn $ concat ["candidate ", show ns', ",", show col, " arrived, but will not be treated"] 
-              producerLoop numWorkers signalTerminating res candidates resultMVar stats path
-            | otherwise -> do
-          putStrLn $ show path
-          putStrLn $ concat ["candidate ", show ns', ",", show col, " arrived"]
-          (_,_,curr,_) <- readIORef candidates
-          putStrLn $ show curr
-          (path, toKill, cancelledJobs) <- atomicModifyIORef' candidates $ \(_, _, workerMap, _) ->
-            let (path', _) = computePath path (ns', col)                                               -- new path
-                toCancel   = shouldDie (Map.elems workerMap) path'                                     -- should any jobs be cancelled?
-                tids       = map fst $ filter (\(_,job) -> job `elem` toCancel) $ Map.toList workerMap -- the processes running those jobs
-                workerMap' = foldl (\m tid -> Map.delete tid m) workerMap tids                         -- new worker map without those jobs
-            in ((ns' + 1, 0, workerMap', ts'), (path', tids, toCancel))
-
-          gracefullyKill toKill -- terminate jobs that are no longer interesting
-          atomicModifyIORef' numWorkers $ \i -> (i - length toKill, ())
-          spawnWorkers st numWorkers candidates resultMVar signalTerminating
-          putStrLn $ show path
-          putStrLn $ concat ["cancelled ", show cancelledJobs, " after ", show ns', ",", show col, " succeeded"]
-          writeIORef stats (ns' + 1, 0, ntotalt)
-          producerLoop numWorkers signalTerminating res' candidates resultMVar stats path
-
-        NoMoreWorkers -> do
-          sequence_ [ putLine (terminal st) msg | msg <- failureReason st res ]
-          callbackPostFinalFailure st res
-          -- NB no need to check if callbacks threw an exception because
-          -- we are about to return to the user anyway
-          return (ns, ntotalt - nt, nt, res)
+                 -> IORef Int
+                 -> MVar ()
+                 -> IO ()
+    spawnWorkers num jobs stats numFinished signal =
+      sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats numFinished signal
+      where
+        defHandler :: IO a -> IO a
+        defHandler ioa = ioa `catch` \QCInterrupted -> do tid <- myThreadId
+                                                          killThread tid
+                                                          error "will never evaluate"
 
     {- | Given a list of jobs being evaluated, and the taken path, return a list of those
     jobs that should be cancelled. -}
@@ -1231,64 +1284,24 @@ producer chatty st n res ts = do
         []          -> False
                     -- are you a candidate 'to the left' of the already chosen one?
         ((sr,sc):_) | sr == wr -> wc > sc
-                    | sr < wr  -> True      
-
-    {- | gracefully kill the threads by first sending an asyncronous internal exception
-    to them, followed by a kill-signal. -}
-    gracefullyKill :: [ThreadId] -> IO ()
-    gracefullyKill tids =
-      sequence_ $ map (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
-
-{- | Given the current path and a new candidate location, check if the new location
-should be part of the path, or if the path should remain unchanged.
-Returns the path to use, and a bool to indicate if it is a different path than the
-one fed into the function.  
--}
-computePath :: [(Int, Int)] -> (Int, Int) -> ([(Int, Int)], Bool)
-computePath [] (x,y) = ([(x,y)], True)
-computePath ((ox,oy):xs) (x,y)
-  | x > ox            = ((x,y)   : (ox,oy) : xs, True)
-  | x == ox && y < oy = ((x,y)   :           xs, True)
-  | x == ox && y > oy = ((ox,oy) :           xs, False)
-  | x < ox            =
-      let (xs',b) = computePath xs (x,y)
-      in if b
-           then (xs', b)
-           else ((ox,oy) : xs, b)
-
-worker :: State
-       -> IORef Jobs
-       -> MVar WorkerResult
-       -> IO ()
-       -> IO ()
-worker st candidates resultMVar signalTerminating = do
-
-  -- get next shrink candidate from pool
-  candidate <- fetchJob
-  
-  case candidate of
-    Nothing -> signalTerminating -- out of work
-    Just (n, col, t) -> do
-      -- actually run the candidate
-      MkRose res ts <- protectRose (reduceRose t)
-      res <- callbackPostTest st res
-
-      -- report result to producer thread
-      if ok res == Just False
-        then putMVar resultMVar $ SuccessfulShrink res ts n col
-        else putMVar resultMVar $ UnsuccessfulShrink
-      
-      -- continue
-      worker st candidates resultMVar signalTerminating
-  where
-    -- | try to fetch a job from the job pool
-    fetchJob :: IO (Maybe (Int, Int, Rose P.Result))
-    fetchJob = do
-      tid <- myThreadId
-      atomicModifyIORef' candidates $ \(n, col, workerMap, xs) ->
-        case xs of
-          (t:ts) -> ((n, col + 1, Map.insert tid (n, col) workerMap, ts), Just (n, col, t))
-          []     -> ((n, col, workerMap, xs), Nothing)
+                    | sr < wr  -> True
+    
+    {- | Given the current path and a new candidate location, check if the new location
+    should be part of the path, or if the path should remain unchanged.
+    Returns the path to use, and a bool to indicate if it is a different path than the
+    one fed into the function.  
+    -}
+    computePath :: [(Int, Int)] -> (Int, Int) -> ([(Int, Int)], Bool)
+    computePath [] (x,y) = ([(x,y)], True)
+    computePath ((ox,oy):xs) (x,y)
+      | x > ox            = ((x,y)   : (ox,oy) : xs, True)
+      | x == ox && y < oy = ((x,y)   :           xs, True)
+      | x == ox && y > oy = ((ox,oy) :           xs, False)
+      | x < ox            =
+          let (xs',b) = computePath xs (x,y)
+          in if b
+               then (xs', b)
+               else ((ox,oy) : xs, b)
 
 shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> IORef Int -> Int -> P.Result -> Int -> IO ()
 shrinkPrinter terminal stats numConcurrent n res delay = do
