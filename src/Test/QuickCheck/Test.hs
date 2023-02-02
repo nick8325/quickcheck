@@ -72,25 +72,35 @@ import Control.Monad.Fix
 -- | Args specifies arguments to the QuickCheck driver
 data Args
   = Args
-  { replay          :: Maybe (QCGen,Int)
+  { replay           :: Maybe (QCGen,Int)
     -- ^ Should we replay a previous test?
     -- Note: saving a seed from one version of QuickCheck and
     -- replaying it in another is not supported.
     -- If you want to store a test case permanently you should save
     -- the test case itself.
-  , maxSuccess      :: Int
+  , maxSuccess       :: Int
     -- ^ Maximum number of successful tests before succeeding. Testing stops
     -- at the first failure. If all tests are passing and you want to run more tests,
     -- increase this number.
-  , maxDiscardRatio :: Int
+  , maxDiscardRatio  :: Int
     -- ^ Maximum number of discarded tests per successful test before giving up
-  , maxSize         :: Int
+  , maxSize          :: Int
     -- ^ Size to use for the biggest test cases
-  , chatty          :: Bool
+  , chatty           :: Bool
     -- ^ Whether to print anything
-  , maxShrinks      :: Int
+  , maxShrinks       :: Int
     -- ^ Maximum number of shrinks to before giving up. Setting this to zero
     --   turns shrinking off.
+  , numTesters       :: Int
+    -- ^ How many concurrent testers to run (uses @forkIO@ internally). A good number to
+    --   use is as many as you have physical cores. Hyperthreading does not seem to add
+    --   much value.
+  , sizeStrategy     :: SizeStrategy
+    -- ^ How to compute the number of successful tests so far to use when computing the
+    --   size for a test.
+  , rightToWorkSteal :: Bool
+    -- ^ Should the testers try to steal the right to run more tests from each other if
+    --   they run out?
   }
  deriving ( Show, Read
 #ifndef NO_TYPEABLE
@@ -197,64 +207,83 @@ isNoExpectedFailure _                   = False
 -- | The default test arguments
 stdArgs :: Args
 stdArgs = Args
-  { replay          = Nothing
-  , maxSuccess      = 100
-  , maxDiscardRatio = 10
-  , maxSize         = 100
-  , chatty          = True
-  , maxShrinks      = maxBound
+  { replay           = Nothing
+  , maxSuccess       = 100
+  , maxDiscardRatio  = 10
+  , maxSize          = 100
+  , chatty           = True
+  , maxShrinks       = maxBound
+  , numTesters       = 1
+  , sizeStrategy     = Offset
+  , rightToWorkSteal = True
   }
 
--- | @ParallelArgs@ specify the internal testing loops parallel behavior
-data ParallelArgs
-  = ParallelArgs
-  { numTesters :: Int
-  {- ^ How many concurrent testers to run (uses @forkIO@ internally). A good number to
-  use is as many as you have physical cores. Hyperthreading does not seem to add
-  much value. -}
-  , sizeStrategy :: SizeStrategy
-  {- ^ How to compute the number of successful tests so far to use when computing the
-  size for a test. -}
-  , rightToWorkSteal :: Bool
-  {- ^ Should the testers try to steal the right to run more tests from each other if
-  they run out? -}
-  }
+-- -- | @ParallelArgs@ specify the internal testing loops parallel behavior
+-- data ParallelArgs
+--   = ParallelArgs
+--   { numTesters :: Int
+--   {- ^ How many concurrent testers to run (uses @forkIO@ internally). A good number to
+--   use is as many as you have physical cores. Hyperthreading does not seem to add
+--   much value. -}
+--   , sizeStrategy :: SizeStrategy
+--   {- ^ How to compute the number of successful tests so far to use when computing the
+--   size for a test. -}
+--   , rightToWorkSteal :: Bool
+--   {- ^ Should the testers try to steal the right to run more tests from each other if
+--   they run out? -}
+--   }
 
 {- | The dafault parallel test arguments. By default, the parallel arguments specify that
 one HEC should be used, and that the size strategy is @Stride@. The size strategy does not
 matter, as using one core makes them behave the same. Right-to-work-stealing is set to
 @True@, but has no effect in the precense of only one thread. -}
-stdParArgs :: ParallelArgs
-stdParArgs = ParallelArgs
-  { numTesters = 1
-  , sizeStrategy = Stride
-  , rightToWorkSteal = True
-  }
+-- stdParArgs :: ParallelArgs
+-- stdParArgs = ParallelArgs
+--   { numTesters = 1
+--   , sizeStrategy = Stride
+--   , rightToWorkSteal = True
+--   }
+
+quickCheckPar' :: (Int -> IO a) -> IO a
+quickCheckPar' test = do
+  numHECs <- getNumCapabilities
+  if numHECs == 1
+    then do putStrLn "donkey"
+            test numHECs
+    else test numHECs
 
 {- | Run a property in parallel. This is done by distributing the total number of tests
 over all available HECs. If only one HEC is available, it reverts to the sequential
 testing framework. -}
 quickCheckPar :: Testable prop => prop -> IO ()
-quickCheckPar p = do
-  numHecs <- getNumCapabilities
-  if numHecs == 1
-    then do putStrLn $ concat [ "quickCheckPar called, but only one HEC available -- "
-                              , "invoking sequential quickCheck"
-                              ]
-            quickCheck p
-    else quickCheckInternal stdArgs (stdParArgs { numTesters = numHecs } ) p >> return ()
+quickCheckPar p = quickCheckPar' $ \numhecs ->
+  quickCheckInternal (stdArgs { numTesters = numhecs }) p >> return ()
+  -- do
+  -- numHecs <- getNumCapabilities
+  -- if numHecs == 1
+  --   then do putStrLn $ concat [ "quickCheckPar called, but only one HEC available -- "
+  --                             , "testing will be sequential..."
+  --                             ]
+  --           quickCheck p
+  --   else quickCheckInternal (stdArgs { numTesters = numHECs }) p >> return ()
 
 -- | The parallel version of `quickCheckWith`
-quickCheckParWith :: Testable prop => Args -> ParallelArgs -> prop -> IO ()
-quickCheckParWith a pa p = quickCheckInternal a pa p >> return ()
+quickCheckParWith :: Testable prop => Args -> prop -> IO ()
+quickCheckParWith a p = quickCheckPar' $ \numhecs ->
+  quickCheckInternal (a { numTesters = numhecs }) p >> return ()
+  --quickCheckInternal a pa p >> return ()
 
--- | The parallel version of `quickCheckResult`
+-- -- | The parallel version of `quickCheckResult`
 quickCheckParResult :: Testable prop => prop -> IO Result
-quickCheckParResult p = quickCheckInternal stdArgs stdParArgs p
+quickCheckParResult p = quickCheckPar' $ \numhecs ->
+  quickCheckInternal (stdArgs { numTesters = numhecs }) p
+-- quickCheckParResult p = quickCheckInternal stdArgs stdParArgs p
 
--- | The parallel version of `quickCheckWithResult`
-quickCheckParWithResult :: Testable prop => Args -> ParallelArgs -> prop -> IO Result
-quickCheckParWithResult a pa p = quickCheckInternal a pa p
+-- -- | The parallel version of `quickCheckWithResult`
+quickCheckParWithResult :: Testable prop => Args -> prop -> IO Result
+quickCheckParWithResult a p = quickCheckPar' $ \numhecs ->
+  quickCheckInternal (a { numTesters = numhecs }) p
+  --quickCheckInternal a pa p
 
 -- | Tests a property and prints the results to 'stdout'.
 --
@@ -270,15 +299,15 @@ quickCheck p = quickCheckWith stdArgs p
 
 -- | Tests a property, using test arguments, and prints the results to 'stdout'.
 quickCheckWith :: Testable prop => Args -> prop -> IO ()
-quickCheckWith args p = quickCheckInternal args stdParArgs p >> return ()
+quickCheckWith args p = quickCheckInternal args p >> return ()
 
 -- | Tests a property, produces a test result, and prints the results to 'stdout'.
 quickCheckResult :: Testable prop => prop -> IO Result
-quickCheckResult p = quickCheckInternal stdArgs stdParArgs p
+quickCheckResult p = quickCheckInternal stdArgs p
 
 -- | Tests a property, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
-quickCheckWithResult args p = quickCheckInternal args stdParArgs p
+quickCheckWithResult args p = quickCheckInternal args p
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
@@ -334,8 +363,8 @@ data TesterSignal
   this constructor is given to the main thread, at which point it will abort everything. -}
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
-quickCheckInternal :: Testable prop => Args -> ParallelArgs -> prop -> IO Result
-quickCheckInternal a pa p = do
+quickCheckInternal :: Testable prop => Args -> prop -> IO Result
+quickCheckInternal a p = do
       -- either reuse the supplied seed, or generate a new one
       rnd <- case replay a of
                Nothing      -> newQCGen
@@ -357,32 +386,32 @@ quickCheckInternal a pa p = do
       let initialSeeds = snd $ foldr (\_ (rnd, a) -> let (r1,r2) = split rnd
                                                      in (r1, a ++ [rnd]))
                                      (rnd, [])
-                                     [0..numTesters pa - 1]
+                                     [0..numTesters a - 1]
 
       -- how big to make each testers buffer
-      let numTestsPerTester = maxSuccess a `div` numTesters pa
+      let numTestsPerTester = maxSuccess a `div` numTesters a
 
       -- number of tests and numsuccessoffset for each tester to use
       let testsoffsetsanddiscards = snd $
             foldr (\_ ((numtests, offset, numdiscards), acc) ->
                       ((numTestsPerTester, offset+numtests, numTestsPerTester * maxDiscardRatio a), acc ++ [(numtests, offset, numdiscards)]))
-                  (( numTestsPerTester + (maxSuccess a `rem` numTesters pa)
+                  (( numTestsPerTester + (maxSuccess a `rem` numTesters a)
                    , 0
-                   , numTestsPerTester * maxDiscardRatio a + ((maxSuccess a `rem` numTesters pa) * maxDiscardRatio a) 
+                   , numTestsPerTester * maxDiscardRatio a + ((maxSuccess a `rem` numTesters a) * maxDiscardRatio a) 
                    ), [])
-                  [0..numTesters pa - 1]
+                  [0..numTesters a - 1]
 
       -- the MVars that holds the test budget for each tester
-      testbudgets <- sequence $ replicate (numTesters pa) (newIORef 0)
+      testbudgets <- sequence $ replicate (numTesters a) (newIORef 0)
 
       -- the MVars that hold each testers discard budget
-      budgets <- sequence $ replicate (numTesters pa) (newIORef 0)
+      budgets <- sequence $ replicate (numTesters a) (newIORef 0)
 
       -- the MVars that hold each testers state
-      states <- sequence $ replicate (numTesters pa) newEmptyMVar
+      states <- sequence $ replicate (numTesters a) newEmptyMVar
 
       -- the components making up a tester
-      let testerinfo = zip6 states initialSeeds [0..numTesters pa - 1] testbudgets budgets testsoffsetsanddiscards
+      let testerinfo = zip6 states initialSeeds [0..numTesters a - 1] testbudgets budgets testsoffsetsanddiscards
         
           -- this function tries to steal budget from an MVar Int, if any budget remains.
           -- used for stealing test budgets and discard budgets.
@@ -395,7 +424,7 @@ quickCheckInternal a pa p = do
 
       -- parent thread will block on this mvar. When it is unblocked, testing should terminate
       signal <- newEmptyMVar
-      numrunning <- newIORef (numTesters pa)
+      numrunning <- newIORef (numTesters a)
 
       -- initialize the states of each tester
       flip mapM_ testerinfo $ \(st, seed, testerID, tbudget, dbudget, (numtests, testoffset, numdiscards)) -> do
@@ -425,13 +454,13 @@ quickCheckInternal a pa p = do
            
                                     -- new
                                     , testBudget                = tbudget
-                                    , stealTests                = if rightToWorkSteal pa
+                                    , stealTests                = if rightToWorkSteal a
                                                                     then tryStealBudget $ filter ((/=) tbudget) testbudgets
                                                                     else return Nothing
-                                    , numConcurrent             = numTesters pa
+                                    , numConcurrent             = numTesters a
                                     , numSuccessOffset          = testoffset
                                     , discardBudget             = dbudget
-                                    , stealDiscards             = if rightToWorkSteal pa
+                                    , stealDiscards             = if rightToWorkSteal a
                                                                     then tryStealBudget $ filter ((/=) dbudget) budgets
                                                                     else return Nothing
                                     , myId                      = testerID
@@ -444,7 +473,7 @@ quickCheckInternal a pa p = do
                                                                                       tryPutMVar signal (KillTesters tid st seed res ts size)
                                                                                       return ()
                                     , shouldUpdateAfterWithMaxSuccess = True
-                                    , stsizeStrategy                  = sizeStrategy pa
+                                    , stsizeStrategy                  = sizeStrategy a
                                     })
 
       -- continuously print current state
@@ -475,7 +504,7 @@ quickCheckInternal a pa p = do
       reports <- case s of
         KillTesters tid st seed res ts size -> do
           let abortedvsts = map snd $ filter (\(tid', _) -> tid /= tid') (zip tids states)
-          failed <- withBuffering $ shrinkResult (chatty a) st seed (numTesters pa) res ts size
+          failed <- withBuffering $ shrinkResult (chatty a) st seed (numTesters a) res ts size
           aborted <- mapM (\vst -> readMVar vst >>= abortConcurrent) abortedvsts
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
@@ -1126,7 +1155,6 @@ foundFailure :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, 
 --   return (n1,n2,n3,r)
 foundFailure chatty st n res ts = do
   re@(n1,n2,n3,r) <- producer chatty False st n res ts
-  putStrLn $ show (n1, n2, n3)
   return re
 
 producer :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
@@ -1154,9 +1182,8 @@ producer chatty detshrinking st n res ts = do
   takeMVar signal
 
   -- get res
-  (r,p) <- (\(_,_,_,p,r,_) -> (r,p)) <$> readMVar jobs
+  r <- (\(_,_,_,p,r,_) -> r) <$> readMVar jobs
   (ns,nt,ntot) <- readIORef stats
-  mapM_ (putStrLn . show) $ reverse p
 
   return (ns, ntot-nt, nt, r)
   where

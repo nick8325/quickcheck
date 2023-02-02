@@ -1040,6 +1040,7 @@ data SizeStrategy
   -- ^ Compute numbers using a stride
   | Offset
   -- ^ Compute numbers by adding an offset to the thread-local number of successful tests
+  deriving (Show, Read)
 
 -- | State represents QuickCheck's internal state while testing a property.
 -- The state is made visible to callback functions.

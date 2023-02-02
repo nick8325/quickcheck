@@ -91,8 +91,7 @@ ghc-options:
 
     -}
   , quickCheckPar
-  , ParallelArgs(..), SizeStrategy(..)
-  , stdParArgs
+  , SizeStrategy(..)
   , quickCheckParWith
   , quickCheckParResult
   , quickCheckParWithResult

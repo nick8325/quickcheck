@@ -68,8 +68,8 @@ prop_graceful = monadicIO $ do
 
 --prop_test :: [Int] -> Property
 prop_test :: [Int] -> Bool
---prop_test xs = length xs >= length (nub (reverse xs))
-prop_test xs = not $ length xs == 23
+prop_test xs = length xs >= length (nub (reverse xs))
+--prop_test xs = not $ length xs == 23
 --prop_test xs = length xs == 20 ==> True
 --prop_test xs = length xs > length (reverse xs) ==> True
 -- prop_test xs = cover 20 (length xs > 1) "longer than one" $
@@ -102,17 +102,17 @@ myArgs = stdArgs { maxSuccess = numSuccess, chatty = True{-, replay = Just (read
 --         [1 .. cores]
 --     appendFile "report.txt" $ show (map getTime reports) ++ "\n"
 
-main2 :: IO ()
-main2 = do
-    vi <- newIORef 0
-    quickCheckParWith myArgs (stdParArgs { numTesters = 4 }) $ prop_test_cleanup vi
+-- main2 :: IO ()
+-- main2 = do
+--     vi <- newIORef 0
+--     quickCheckParWith myArgs (stdParArgs { numTesters = 4 }) $ prop_test_cleanup vi
 
 prop_reverse :: [Int] -> Bool
 prop_reverse xs = reverse (reverse xs) == xs
 
 main :: IO ()
 main = do
-    r <- quickCheckParWithResult stdArgs stdParArgs{ numTesters = 4 } $ withMaxSuccess 100000 prop_test
+    r <- quickCheckParWithResult stdArgs $ withMaxSuccess 3000000 prop_test
 --    r <- quickCheckResult $ withMaxSuccess 100000 prop_test
     putStrLn $ show r
 --  main2
