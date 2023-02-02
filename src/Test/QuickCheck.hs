@@ -70,8 +70,9 @@ quickCheckPar $ withMaxSuccess 10000 prop_reverse
     To make use of this functionality, GHC needs the options @-threaded@ and @-rtsopts@.
     Furthermore, the runtime options need to specify that more HECs should be used, with
     the @-with-rtsopts=-N@ flag. You could optionally specify exactly how many HECs to
-    use, e.g @-with-rtsopts=-N4@. I've found @-feager-blackholing@ to benefit parallel
-    Haskell before.
+    use, e.g @-with-rtsopts=-N4@. This is where the API fetches the number of parallel
+    workers to launch. It will be equal to however many you instruct the RTS to use.
+    I've found @-feager-blackholing@ to benefit parallel Haskell before.
 
     Example of an options section in a cabal file
 
@@ -88,6 +89,11 @@ ghc-options:
     with @forkIO@. The threads are all assigned an equal share of the desired number of
     tests to run, but by default attempt to steal the right to run more tests from
     sibling threads if they run out. Please see `rightToWorkSteal`.
+
+    The functions below behave the same as their non-parallel counterparts, with the
+    exception that they ask the RTS how many schedulers are available, and populate the
+    @numTesters@ field with that number. E.g @quickCheckPar p@ when you compiled with
+    @-N4@ is equivalent to @quickCheckWith (stdArgs { numTesters = 4 }) p@.
 
     -}
   , quickCheckPar

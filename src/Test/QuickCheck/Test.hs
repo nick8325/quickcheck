@@ -214,35 +214,9 @@ stdArgs = Args
   , chatty           = True
   , maxShrinks       = maxBound
   , numTesters       = 1
-  , sizeStrategy     = Offset
+  , sizeStrategy     = Stride
   , rightToWorkSteal = True
   }
-
--- -- | @ParallelArgs@ specify the internal testing loops parallel behavior
--- data ParallelArgs
---   = ParallelArgs
---   { numTesters :: Int
---   {- ^ How many concurrent testers to run (uses @forkIO@ internally). A good number to
---   use is as many as you have physical cores. Hyperthreading does not seem to add
---   much value. -}
---   , sizeStrategy :: SizeStrategy
---   {- ^ How to compute the number of successful tests so far to use when computing the
---   size for a test. -}
---   , rightToWorkSteal :: Bool
---   {- ^ Should the testers try to steal the right to run more tests from each other if
---   they run out? -}
---   }
-
-{- | The dafault parallel test arguments. By default, the parallel arguments specify that
-one HEC should be used, and that the size strategy is @Stride@. The size strategy does not
-matter, as using one core makes them behave the same. Right-to-work-stealing is set to
-@True@, but has no effect in the precense of only one thread. -}
--- stdParArgs :: ParallelArgs
--- stdParArgs = ParallelArgs
---   { numTesters = 1
---   , sizeStrategy = Stride
---   , rightToWorkSteal = True
---   }
 
 quickCheckPar' :: (Int -> IO a) -> IO a
 quickCheckPar' test = do
