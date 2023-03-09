@@ -1128,13 +1128,30 @@ foundFailure :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, 
 --   putStrLn $ show (n1,n2,n3)
 --   return (n1,n2,n3,r)
 foundFailure chatty st n res ts = do
-  re@(n1,n2,n3,r) <- producer chatty False st n res ts
+  re@(n1,n2,n3,r) <- shrinker chatty False st n res ts
   return re
 
-producer :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-producer chatty detshrinking st n res ts = do
+-- | State kept during shrinking, will live in an MVar to make all shrinkers able
+-- to modify it
+data ShrinkSt = ShrinkSt
+  { row :: Int
+  -- ^ current row
+  , col :: Int
+  -- ^ current column
+  , book :: Map.Map ThreadId (Int, Int)
+  -- ^ map from @ThreadId@ to the candidate they are currently evaluating
+  , path :: [(Int, Int)]
+  -- ^ path taken when shrinking so far
+  , currentResult :: P.Result
+  -- ^ current best candidate
+  , candidates :: [Rose P.Result]
+  -- ^ candidates yet to evaluate
+  }
 
-  jobs       <- newMVar (0, 0, Map.empty, [], res, ts)
+shrinker :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+shrinker chatty detshrinking st n res ts = do
+
+  jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] res ts
   numWorkers <- newIORef 0
   stats      <- newIORef (0,0,0)
   signal     <- newEmptyMVar
@@ -1156,16 +1173,12 @@ producer chatty detshrinking st n res ts = do
   takeMVar signal
 
   -- get res
-  r <- (\(_,_,_,p,r,_) -> r) <$> readMVar jobs
+  r <- (\st -> currentResult st) <$> readMVar jobs
   (ns,nt,ntot) <- readIORef stats
 
   return (ns, ntot-nt, nt, r)
   where
-    worker :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
-           -> IORef (Int, Int, Int)
-           -> IORef Int
-           -> MVar ()
-           -> IO ()
+    worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> IORef Int -> MVar () -> IO ()
     worker jobs stats numFinished signal = do
       j <- getJob jobs
       case j of
@@ -1174,22 +1187,25 @@ producer chatty detshrinking st n res ts = do
           mec <- evaluateCandidate t
           case mec of
             Nothing          -> do
-              putStrLn $ concat ["unsuccessful shrink: ", show (r,c)]
+              putStrLn $ concat ["--unsuccessful shrink: ", show (r,c)]
               failedShrink stats
               worker jobs stats numFinished signal
             Just (res', ts') -> do
+              putStrLn $ concat ["++successful shrink: ", show (r,c)]
               successShrink stats
               updateWork res' ts' (r,c) jobs stats numFinished signal
               worker jobs stats numFinished signal
 
-    getJob :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
-           -> IO (Maybe (Int, Int, Rose P.Result))
+    getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
-      modifyMVar jobs $ \(r,c,wm,path,res,xs) ->
-        case xs of
-          []     -> return ((r,c,wm,path,res,[]), Nothing)
-          (t:ts) -> return ((r,c+1,Map.insert tid (r,c) wm,path,res,ts), Just (r, c, t))
+      modifyMVar jobs $ \st ->
+        case candidates st of
+          []     -> return (st, Nothing)
+          (t:ts) -> return (st { col        = col st + 1
+                               , book       = Map.insert tid (row st, col st) (book st)
+                               , candidates = ts
+                               }, Just (row st, col st, t))
 
     notifyFinished :: IORef Int -> MVar () -> IO ()
     notifyFinished numFinished signal = do
@@ -1201,10 +1217,10 @@ producer chatty detshrinking st n res ts = do
     resetFinished :: IORef Int -> IO ()
     resetFinished numFinished = atomicModifyIORef' numFinished $ \_ -> (0, ())
 
-    removeFromMap :: MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result]) -> IO ()
+    removeFromMap :: MVar ShrinkSt -> IO ()
     removeFromMap jobs = do
       tid <- myThreadId
-      modifyMVar jobs $ \(r,c,wm,path,res,xs) -> return ((r,c,Map.delete tid wm, path, res, xs), ())
+      modifyMVar jobs $ \st -> return (st { book = Map.delete tid (book st)}, ())
 
     evaluateCandidate :: Rose P.Result -> IO (Maybe (P.Result, [Rose P.Result]))
     evaluateCandidate t = do
@@ -1220,37 +1236,38 @@ producer chatty detshrinking st n res ts = do
     successShrink :: IORef (Int, Int, Int) -> IO ()
     successShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns + 1, 0, ntot), ())
 
-    updateWork :: P.Result
-               -> [Rose P.Result]
-               -> (Int, Int)
-               -> MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
-               -> IORef (Int, Int, Int)
-               -> IORef Int
-               -> MVar ()
-               -> IO ()
+    updateWork :: P.Result -> [Rose P.Result] -> (Int, Int) -> MVar ShrinkSt -> IORef (Int, Int, Int)
+               -> IORef Int -> MVar () -> IO ()
     updateWork res' ts' cand@(r',c') jobs stats numFinished signal = do
       tid <- myThreadId
       if null ts'
-        then do modifyMVar jobs $ \(r,c,wm,path,res,ts) -> do
-                  let (path', _) = computePath path cand
-                      tids = filter (\tid' -> tid /= tid') $ Map.keys wm -- ids of all other workers
+        then do modifyMVar jobs $ \st -> do
+                  let (path', _) = computePath (path st) cand
+                      tids = filter (\tid' -> tid /= tid') $ Map.keys (book st) -- ids of all other workers
                   gracefullyKill tids
-                  return ((r'+1,0,Map.empty,path',res',ts'), ())
+                  return (st { row           = r' + 1
+                             , col           = 0
+                             , book          = Map.empty
+                             , path          = path'
+                             , currentResult = res'
+                             , candidates    = ts'}, ())
                 putMVar signal ()
-        else modifyMVar jobs $ \(r,c,wm,path,res,ts) -> do
-               let (path', b)  = computePath path cand
-                   (tids, wm') = toKill tid wm path'
+        else modifyMVar jobs $ \st -> do
+               let (path', b)  = computePath (path st) cand
+                   (tids, wm') = toKill tid (book st) path'
                gracefullyKill tids
                spawnWorkers (length tids) jobs stats numFinished signal
                n <- readIORef numFinished
                resetFinished numFinished
                spawnWorkers n jobs stats numFinished signal
-               return ((r'+1,0,wm',path',res',ts'), ())
+               return (st { row           = r' + 1
+                          , col           = 0
+                          , book          = wm'
+                          , path          = path'
+                          , currentResult = res'
+                          , candidates    = ts'}, ())
       where
-        toKill :: ThreadId
-               -> Map.Map ThreadId (Int, Int)
-               -> [(Int, Int)]
-               -> ([ThreadId], Map.Map ThreadId (Int, Int))
+        toKill :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
         toKill tid wm path
           | detshrinking = let asList          = Map.toList wm
                                jobsToTerminate = shouldDie (map snd asList) path
@@ -1261,12 +1278,7 @@ producer chatty detshrinking st n res ts = do
     gracefullyKill :: [ThreadId] -> IO ()
     gracefullyKill tids = mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
 
-    spawnWorkers :: Int
-                 -> MVar (Int, Int, Map.Map ThreadId (Int, Int), [(Int, Int)], P.Result, [Rose P.Result])
-                 -> IORef (Int, Int, Int)
-                 -> IORef Int
-                 -> MVar ()
-                 -> IO ()
+    spawnWorkers :: Int -> MVar ShrinkSt -> IORef (Int, Int, Int) -> IORef Int -> MVar () -> IO ()
     spawnWorkers num jobs stats numFinished signal =
       sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats numFinished signal
       where
