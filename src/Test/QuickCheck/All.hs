@@ -29,7 +29,7 @@ import Language.Haskell.TH
 import Test.QuickCheck.Property hiding (Result)
 import Test.QuickCheck.Test
 import Data.Char
-import Data.List
+import Data.List (isPrefixOf, nubBy)
 import Control.Monad
 
 import qualified System.IO as S

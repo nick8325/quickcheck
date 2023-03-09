@@ -693,11 +693,55 @@ instance Arbitrary Char where
                 )
 
 instance Arbitrary Float where
-  arbitrary = arbitrarySizedFractional
+  arbitrary = oneof
+    -- generate 0..1 numbers with full precision
+    [ genFloat
+    -- generate integral numbers
+    , fromIntegral <$> (arbitrary :: Gen Int)
+    -- generate fractions with small denominators
+    , smallDenominators
+    -- uniform -size..size with with denominators ~ size
+    , uniform
+    -- and uniform -size..size with higher precision
+    , arbitrarySizedFractional
+    ]
+    where
+      smallDenominators = sized $ \n -> do
+        i <- chooseInt (0, n)
+        pure (fromRational (streamNth i rationalUniverse))
+
+      uniform = sized $ \n -> do
+        let n' = toInteger n
+        b <- chooseInteger (1, max 1 n')
+        a <- chooseInteger ((-n') * b, n' * b)
+        return (fromRational (a % b))
+
   shrink    = shrinkDecimal
 
 instance Arbitrary Double where
-  arbitrary = arbitrarySizedFractional
+  arbitrary = oneof
+    -- generate 0..1 numbers with full precision
+    [ genDouble
+    -- generate integral numbers
+    , fromIntegral <$> (arbitrary :: Gen Int)
+    -- generate fractions with small denominators
+    , smallDenominators
+    -- uniform -size..size with with denominators ~ size
+    , uniform
+    -- and uniform -size..size with higher precision
+    , arbitrarySizedFractional
+    ]
+    where
+      smallDenominators = sized $ \n -> do
+        i <- chooseInt (0, n)
+        pure (fromRational (streamNth i rationalUniverse))
+
+      uniform = sized $ \n -> do
+        let n' = toInteger n
+        b <- chooseInteger (1, max 1 n')
+        a <- chooseInteger ((-n') * b, n' * b)
+        return (fromRational (a % b))
+
   shrink    = shrinkDecimal
 
 instance Arbitrary CChar where
@@ -1051,13 +1095,13 @@ arbitrarySizedNatural =
 inBounds :: Integral a => (Int -> a) -> Gen Int -> Gen a
 inBounds fi g = fmap fi (g `suchThat` (\x -> toInteger x == toInteger (fi x)))
 
--- | Generates a fractional number. The number can be positive or negative
+-- | Uniformly generates a fractional number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
 arbitrarySizedFractional :: Fractional a => Gen a
 arbitrarySizedFractional =
   sized $ \n -> do
-    numer <- chooseInt (-n, n)
     denom <- chooseInt (1, max 1 n)
+    numer <- chooseInt (-n*denom, n*denom)
     pure $ fromIntegral numer / fromIntegral denom
 
 -- Useful for getting at minBound and maxBound without having to
@@ -1516,6 +1560,42 @@ orderedList = sort `fmap` arbitrary
 -- | Generates an infinite list.
 infiniteList :: Arbitrary a => Gen [a]
 infiniteList = infiniteListOf arbitrary
+
+
+--------------------------------------------------------------------------
+-- ** Rational helper
+
+infixr 5 :<
+data Stream a = !a :< Stream a
+
+streamNth :: Int -> Stream a -> a
+streamNth n (x :< xs) | n <= 0    = x
+                      | otherwise = streamNth (n - 1) xs
+
+-- We read into this stream only with ~size argument,
+-- so it's ok to have it as CAF.
+--
+rationalUniverse :: Stream Rational
+rationalUniverse = 0 :< 1 :< (-1) :< go leftSideStream
+  where
+    go (x :< xs) =
+      let nx = -x
+          rx = recip x
+          nrx = -rx
+      in nx `seq` rx `seq` nrx `seq` (x :< rx :< nx :< nrx :< go xs)
+
+-- All the rational numbers on the left side of the Calkin-Wilf tree,
+-- in breadth-first order.
+leftSideStream :: Stream Rational
+leftSideStream = (1 % 2) :< go leftSideStream
+  where
+    go (x :< xs) =
+        lChild `seq` rChild `seq`
+        (lChild :< rChild :< go xs)
+      where
+        nd = numerator x + denominator x
+        lChild = numerator x % nd
+        rChild = nd % denominator x
 
 --------------------------------------------------------------------------
 -- the end.

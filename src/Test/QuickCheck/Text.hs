@@ -43,7 +43,7 @@ import System.IO
   )
 
 import Data.IORef
-import Data.List
+import Data.List (intersperse, transpose)
 import Text.Printf
 import Test.QuickCheck.Exception
 

@@ -1,6 +1,6 @@
 import Test.QuickCheck
 import Test.QuickCheck.Random
-import Data.List
+import Data.List (group, isPrefixOf, sort)
 
 -- This type allows us to run integerVariant and get a list of bits out.
 newtype Splits = Splits { unSplits :: [Bool] } deriving (Eq, Ord, Show)
