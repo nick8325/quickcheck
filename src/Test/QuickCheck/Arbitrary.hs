@@ -1234,7 +1234,7 @@ shrinkIntegral x =
 -- >>> shrinkBoundedEnum E0
 -- []
 --
-shrinkBoundedEnum :: forall a. (Bounded a, Enum a, Eq a) => a -> [a]
+shrinkBoundedEnum :: (Bounded a, Enum a, Eq a) => a -> [a]
 shrinkBoundedEnum a
   | a == minBound =
     []
@@ -1242,7 +1242,7 @@ shrinkBoundedEnum a
     toEnum <$> filter (>= minBoundInt) (shrinkIntegral $ fromEnum a)
   where
     minBoundInt :: Int
-    minBoundInt = fromEnum (minBound :: a)
+    minBoundInt = fromEnum (minBound `asTypeOf` a)
 
 -- | Shrink a fraction, preferring numbers with smaller
 -- numerators or denominators. See also 'shrinkDecimal'.
