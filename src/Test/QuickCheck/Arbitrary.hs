@@ -68,6 +68,7 @@ module Test.QuickCheck.Arbitrary
   , shrinkMapBy              -- :: (a -> b) -> (b -> a) -> (a -> [a]) -> b -> [b]
   , shrinkIntegral           -- :: Integral a => a -> [a]
   , shrinkRealFrac           -- :: RealFrac a => a -> [a]
+  , shrinkBoundedEnum        -- :: (Bounded a, Enum a) => a -> [a]
   , shrinkDecimal            -- :: RealFrac a => a -> [a]
   -- ** Helper functions for implementing coarbitrary
   , coarbitraryIntegral      -- :: Integral a => a -> Gen b -> Gen b
@@ -1214,6 +1215,34 @@ shrinkIntegral x =
             (False, False) -> a > b
             (True,  False) -> a + b < 0
             (False, True)  -> a + b > 0
+
+-- | Shrink an element of a bounded enumeration.
+--
+-- === __Example__
+--
+-- @
+-- data MyEnum = E0 | E1 | E2 | E3 | E4 | E5 | E6 | E7 | E8 | E9
+--    deriving (Bounded, Enum, Eq, Ord, Show)
+-- @
+--
+-- >>> shrinkBoundedEnum E9
+-- [E0,E5,E7,E8]
+--
+-- >>> shrinkBoundedEnum E5
+-- [E0,E3,E4]
+--
+-- >>> shrinkBoundedEnum E0
+-- []
+--
+shrinkBoundedEnum :: forall a. (Bounded a, Enum a, Eq a) => a -> [a]
+shrinkBoundedEnum a
+  | a == minBound =
+    []
+  | otherwise =
+    toEnum <$> filter (>= minBoundInt) (shrinkIntegral $ fromEnum a)
+  where
+    minBoundInt :: Int
+    minBoundInt = fromEnum (minBound :: a)
 
 -- | Shrink a fraction, preferring numbers with smaller
 -- numerators or denominators. See also 'shrinkDecimal'.
