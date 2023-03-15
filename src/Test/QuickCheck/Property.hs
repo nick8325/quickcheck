@@ -217,12 +217,12 @@ instance Functor Rose where
   fmap f (MkRose x rs) = MkRose (f x) [ fmap f r | r <- rs ]
 
 instance Applicative Rose where
-  pure = return
+  pure x = MkRose x []
   -- f must be total
   (<*>) = liftM2 ($)
 
 instance Monad Rose where
-  return x = MkRose x []
+  return = pure
   -- k must be total
   m >>= k  = joinRose (fmap k m)
 
