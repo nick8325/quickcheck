@@ -1259,9 +1259,8 @@ shrinker chatty detshrinking st n res ts = do
         else modifyMVar jobs $ \st -> do
                putStrLn $ concat ["+ successful candidate: ", show cand]
                let (path', b)  = computePath (path st) cand
-                   (tids, wm') = toKill tid (book st) path'
-               gracefullyKill tids
-               spawnWorkers (length tids) jobs stats signal
+                   (tids, wm') = toRestart tid (book st) path'
+               interruptShrinkers tids
                let n = selfTerminated st
                spawnWorkers n jobs stats signal
                return (st { row            = r' + 1
@@ -1272,8 +1271,8 @@ shrinker chatty detshrinking st n res ts = do
                           , candidates     = ts'
                           , selfTerminated = 0}, ())
       where
-        toKill :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
-        toKill tid wm path
+        toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
+        toRestart tid wm path
           | detshrinking = let asList          = Map.toList wm
                                jobsToTerminate = shouldDie (map snd asList) path
                                (tokill, keep)  = partition (\worker -> snd worker `elem` jobsToTerminate) asList
@@ -1283,14 +1282,15 @@ shrinker chatty detshrinking st n res ts = do
     gracefullyKill :: [ThreadId] -> IO ()
     gracefullyKill tids = mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
 
+    interruptShrinkers :: [ThreadId] -> IO ()
+    interruptShrinkers tids = mapM_ (\tid -> throwTo tid QCInterrupted) tids
+
     spawnWorkers :: Int -> MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
     spawnWorkers num jobs stats signal =
       sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats signal
       where
         defHandler :: IO a -> IO a
-        defHandler ioa = ioa `catch` \QCInterrupted -> do tid <- myThreadId
-                                                          killThread tid
-                                                          error "will never evaluate"
+        defHandler ioa = ioa `catch` \QCInterrupted -> defHandler ioa--worker jobs stats signal
 
     {- | Given a list of jobs being evaluated, and the taken path, return a list of those
     jobs that should be cancelled. -}
