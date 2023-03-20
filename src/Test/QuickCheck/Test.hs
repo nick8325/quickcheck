@@ -1163,24 +1163,21 @@ shrinker :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (I
 shrinker chatty detshrinking st n res ts = do
 
   jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] 0 res ts
---  numWorkers <- newIORef 0
   stats      <- newIORef (0,0,0)
   signal     <- newEmptyMVar
 
   -- continuously print current state
   printerID <- if chatty
-                 then Just <$> forkIO (shrinkPrinter (terminal st) stats {-numWorkers-} (numSuccessTests st) res 200)
+                 then Just <$> forkIO (shrinkPrinter (terminal st) stats (numSuccessTests st) res 200)
                  else return Nothing
 
   -- start shrinking
-  spawnWorkers n jobs stats {-numWorkers-} signal
+  spawnWorkers n jobs stats signal
 
   -- stop printing
-  case printerID of
-    Just tid -> killThread tid
-    Nothing -> return ()
+  maybe (return ()) killThread printerID
   
-  -- need to block here until completely done, somehow
+  -- need to block here until completely done
   takeMVar signal
 
   -- get res
