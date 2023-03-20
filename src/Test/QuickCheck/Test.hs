@@ -1142,27 +1142,38 @@ data ShrinkSt = ShrinkSt
   -- ^ map from @ThreadId@ to the candidate they are currently evaluating
   , path :: [(Int, Int)]
   -- ^ path taken when shrinking so far
+  , selfTerminated :: Int
+  -- ^ how many threads died on their own
   , currentResult :: P.Result
   -- ^ current best candidate
   , candidates :: [Rose P.Result]
   -- ^ candidates yet to evaluate
   }
 
+{-
+
+Notes from meetings with nick:
+- test different parallel test loops
+- test a shrink loop with probably bad performance
+- test with lots of garbage, does that impact parallelism?
+
+-}
+
 shrinker :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 shrinker chatty detshrinking st n res ts = do
 
-  jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] res ts
-  numWorkers <- newIORef 0
+  jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] 0 res ts
+--  numWorkers <- newIORef 0
   stats      <- newIORef (0,0,0)
   signal     <- newEmptyMVar
 
   -- continuously print current state
   printerID <- if chatty
-                 then Just <$> forkIO (shrinkPrinter (terminal st) stats numWorkers (numSuccessTests st) res 200)
+                 then Just <$> forkIO (shrinkPrinter (terminal st) stats {-numWorkers-} (numSuccessTests st) res 200)
                  else return Nothing
 
   -- start shrinking
-  spawnWorkers n jobs stats numWorkers signal
+  spawnWorkers n jobs stats {-numWorkers-} signal
 
   -- stop printing
   case printerID of
@@ -1178,23 +1189,22 @@ shrinker chatty detshrinking st n res ts = do
 
   return (ns, ntot-nt, nt, r)
   where
-    worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> IORef Int -> MVar () -> IO ()
-    worker jobs stats numFinished signal = do
+    worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
+    worker jobs stats signal = do
       j <- getJob jobs
       case j of
-        Nothing      -> removeFromMap jobs >> notifyFinished numFinished signal --undefined -- wake up parent
+        Nothing      -> removeFromMap jobs signal -- wake up parent
         Just (r,c,t) -> do
           mec <- evaluateCandidate t
           case mec of
             Nothing          -> do
-              putStrLn $ concat ["--unsuccessful shrink: ", show (r,c)]
+              putStrLn $ concat ["- failed shrink: ", show (r,c)]
               failedShrink stats
-              worker jobs stats numFinished signal
+              worker jobs stats signal
             Just (res', ts') -> do
-              putStrLn $ concat ["++successful shrink: ", show (r,c)]
               successShrink stats
-              updateWork res' ts' (r,c) jobs stats numFinished signal
-              worker jobs stats numFinished signal
+              updateWork res' ts' (r,c) jobs stats signal
+              worker jobs stats signal
 
     getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
     getJob jobs = do
@@ -1207,20 +1217,16 @@ shrinker chatty detshrinking st n res ts = do
                                , candidates = ts
                                }, Just (row st, col st, t))
 
-    notifyFinished :: IORef Int -> MVar () -> IO ()
-    notifyFinished numFinished signal = do
-      b <- atomicModifyIORef' numFinished $ \i -> (i + 1, i + 1)
-      if b == n
-        then putMVar signal ()
-        else return ()
-
-    resetFinished :: IORef Int -> IO ()
-    resetFinished numFinished = atomicModifyIORef' numFinished $ \_ -> (0, ())
-
-    removeFromMap :: MVar ShrinkSt -> IO ()
-    removeFromMap jobs = do
+    removeFromMap :: MVar ShrinkSt -> MVar () -> IO ()
+    removeFromMap jobs signal = do
       tid <- myThreadId
-      modifyMVar jobs $ \st -> return (st { book = Map.delete tid (book st)}, ())
+      modifyMVar jobs $ \st -> do
+        let newst = selfTerminated st + 1
+        if newst == n then putMVar signal () else return ()
+        return ( st { book           = Map.delete tid (book st)
+                    , selfTerminated = newst}
+               , ()
+               )
 
     evaluateCandidate :: Rose P.Result -> IO (Maybe (P.Result, [Rose P.Result]))
     evaluateCandidate t = do
@@ -1237,35 +1243,37 @@ shrinker chatty detshrinking st n res ts = do
     successShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns + 1, 0, ntot), ())
 
     updateWork :: P.Result -> [Rose P.Result] -> (Int, Int) -> MVar ShrinkSt -> IORef (Int, Int, Int)
-               -> IORef Int -> MVar () -> IO ()
-    updateWork res' ts' cand@(r',c') jobs stats numFinished signal = do
+               -> MVar () -> IO ()
+    updateWork res' ts' cand@(r',c') jobs stats signal = do
       tid <- myThreadId
       if null ts'
         then do modifyMVar jobs $ \st -> do
                   let (path', _) = computePath (path st) cand
                       tids = filter (\tid' -> tid /= tid') $ Map.keys (book st) -- ids of all other workers
                   gracefullyKill tids
-                  return (st { row           = r' + 1
-                             , col           = 0
-                             , book          = Map.empty
-                             , path          = path'
-                             , currentResult = res'
-                             , candidates    = ts'}, ())
+                  return (st { row            = r' + 1
+                             , col            = 0
+                             , book           = Map.empty
+                             , path           = path'
+                             , currentResult  = res'
+                             , candidates     = ts'
+                             , selfTerminated = 0}, ())
                 putMVar signal ()
         else modifyMVar jobs $ \st -> do
+               putStrLn $ concat ["+ successful candidate: ", show cand]
                let (path', b)  = computePath (path st) cand
                    (tids, wm') = toKill tid (book st) path'
                gracefullyKill tids
-               spawnWorkers (length tids) jobs stats numFinished signal
-               n <- readIORef numFinished
-               resetFinished numFinished
-               spawnWorkers n jobs stats numFinished signal
-               return (st { row           = r' + 1
-                          , col           = 0
-                          , book          = wm'
-                          , path          = path'
-                          , currentResult = res'
-                          , candidates    = ts'}, ())
+               spawnWorkers (length tids) jobs stats signal
+               let n = selfTerminated st
+               spawnWorkers n jobs stats signal
+               return (st { row            = r' + 1
+                          , col            = 0
+                          , book           = wm'
+                          , path           = path'
+                          , currentResult  = res'
+                          , candidates     = ts'
+                          , selfTerminated = 0}, ())
       where
         toKill :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
         toKill tid wm path
@@ -1278,9 +1286,9 @@ shrinker chatty detshrinking st n res ts = do
     gracefullyKill :: [ThreadId] -> IO ()
     gracefullyKill tids = mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) tids
 
-    spawnWorkers :: Int -> MVar ShrinkSt -> IORef (Int, Int, Int) -> IORef Int -> MVar () -> IO ()
-    spawnWorkers num jobs stats numFinished signal =
-      sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats numFinished signal
+    spawnWorkers :: Int -> MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
+    spawnWorkers num jobs stats signal =
+      sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats signal
       where
         defHandler :: IO a -> IO a
         defHandler ioa = ioa `catch` \QCInterrupted -> do tid <- myThreadId
@@ -1316,17 +1324,16 @@ shrinker chatty detshrinking st n res ts = do
                then (xs', b)
                else ((ox,oy) : xs, b)
 
-shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> IORef Int -> Int -> P.Result -> Int -> IO ()
-shrinkPrinter terminal stats numConcurrent n res delay = do
+shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> Int -> P.Result -> Int -> IO ()
+shrinkPrinter terminal stats n res delay = do
   triple <- readIORef stats
-  numconc <- readIORef numConcurrent
-  let output = fst $ failureSummaryAndReason2 triple n numconc res
+  let output = fst $ failureSummaryAndReason2 triple n res
   withBuffering $ putTemp terminal output
   threadDelay delay
-  shrinkPrinter terminal stats numConcurrent n res delay
+  shrinkPrinter terminal stats n res delay
 
-failureSummaryAndReason2 :: (Int, Int, Int) -> Int -> Int -> P.Result -> (String, [String])
-failureSummaryAndReason2 (ns, nt, _) numSuccTests numConc res = (summary, full)
+failureSummaryAndReason2 :: (Int, Int, Int) -> Int -> P.Result -> (String, [String])
+failureSummaryAndReason2 (ns, nt, _) numSuccTests res = (summary, full)
   where
     summary =
       header ++
@@ -1347,7 +1354,6 @@ failureSummaryAndReason2 (ns, nt, _) numSuccTests numConc res = (summary, full)
       else "+++ OK, failed as expected. "
 
     count full =
-      "concurrent testers: " ++ show numConc ++ " " ++
       "(after " ++ number (numSuccTests + 1) "test" ++
       concat [
         " and " ++
