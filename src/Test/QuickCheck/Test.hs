@@ -1186,6 +1186,11 @@ shrinker chatty detshrinking st n res ts = do
 
   return (ns, ntot-nt, nt, r)
   where
+    printAppendTid :: String -> IO ()
+    printAppendTid str = do
+      tid <- myThreadId
+      putStrLn $ show tid <> ": " <> str
+
     worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
     worker jobs stats signal = do
       j <- getJob jobs
@@ -1195,7 +1200,7 @@ shrinker chatty detshrinking st n res ts = do
           mec <- evaluateCandidate t
           case mec of
             Nothing          -> do
-              putStrLn $ concat ["- failed shrink: ", show (r,c)]
+              printAppendTid $ concat ["- failed shrink: ", show (r,c)]
               failedShrink stats
               worker jobs stats signal
             Just (res', ts') -> do
@@ -1218,12 +1223,14 @@ shrinker chatty detshrinking st n res ts = do
     removeFromMap jobs signal = do
       tid <- myThreadId
       modifyMVar jobs $ \st -> do
+        printAppendTid "self terminating..."
         let newst = selfTerminated st + 1
         if newst == n then putMVar signal () else return ()
         return ( st { book           = Map.delete tid (book st)
                     , selfTerminated = newst}
                , ()
                )
+      killThread tid
 
     evaluateCandidate :: Rose P.Result -> IO (Maybe (P.Result, [Rose P.Result]))
     evaluateCandidate t = do
@@ -1257,12 +1264,16 @@ shrinker chatty detshrinking st n res ts = do
                              , selfTerminated = 0}, ())
                 putMVar signal ()
         else modifyMVar jobs $ \st -> do
-               putStrLn $ concat ["+ successful candidate: ", show cand]
+               printAppendTid $ concat ["+ successful candidate: ", show cand, ". Number of new candidates: ", show (length ts')]
                let (path', b)  = computePath (path st) cand
                    (tids, wm') = toRestart tid (book st) path'
+               printAppendTid $ concat ["book: ", show (book st)]
+               printAppendTid $ concat ["about to interrupt: ", show tids]
                interruptShrinkers tids
                let n = selfTerminated st
-               spawnWorkers n jobs stats signal
+               if n > 0
+                then printAppendTid ("about to launch: " ++ show n) >> spawnWorkers n jobs stats signal
+                else return ()
                return (st { row            = r' + 1
                           , col            = 0
                           , book           = wm'
@@ -1290,7 +1301,14 @@ shrinker chatty detshrinking st n res ts = do
       sequence_ $ replicate num $ forkIO $ defHandler $ worker jobs stats signal
       where
         defHandler :: IO a -> IO a
-        defHandler ioa = ioa `catch` \QCInterrupted -> defHandler ioa--worker jobs stats signal
+        defHandler ioa = do
+          (printAppendTid "about to shrink" >> ioa >> return ()) `catch` \QCInterrupted -> printAppendTid "interrupted!"
+          defHandler ioa
+        -- defHandler ioa = do
+        --   r <- try ioa
+        --   case r of
+        --     Right a -> return a
+        --     Left QCInterrupted -> printAppendTid "about to shrink" >> defHandler ioa
 
     {- | Given a list of jobs being evaluated, and the taken path, return a list of those
     jobs that should be cancelled. -}

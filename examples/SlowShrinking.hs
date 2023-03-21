@@ -40,13 +40,13 @@ instance Arbitrary Tree where
     shrink (Node _ _ xs) = xs
 
 depth :: (Int, Int)
-depth = (3,15)
+depth = (3,30)
 
 delays :: (Int, Int)
 delays = (150000, 200000)
 
 width :: (Int, Int)
-width = (0,20)
+width = (0,30)
 
 genTree :: Gen Tree
 genTree = do
@@ -57,6 +57,7 @@ genTree = do
 genShrinkList :: Int -> Int -> Gen [Tree]
 genShrinkList 0 _ = return $ [Node 0 False []]
 genShrinkList d i = do
+--    successes <- sequence $ replicate i $ genSuccessfulNode 
     successes <- sequence $ replicate i $ frequency [ (19, genSuccessfulNode)
                                                     , (1, do delay <- chooseInt delays
                                                              nextix <- chooseInt width
