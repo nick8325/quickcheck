@@ -23,6 +23,7 @@ module Test.QuickCheck.Text
   , handle
   , Terminal
   , putTemp
+  , clearTemp
   , putPart
   , putLine
   )
@@ -229,5 +230,9 @@ putTemp tm@(MkTerminal _ tmp _ err) s =
        s ++ [ '\b' | _ <- s ]
      writeIORef tmp (length s)
 
+clearTemp tm@(MkTerminal _ tmp _ err) =
+  do n <- readIORef tmp
+     err $
+       replicate n ' ' ++ replicate n '\b'
 --------------------------------------------------------------------------
 -- the end.
