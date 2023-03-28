@@ -1179,10 +1179,10 @@ shrinker chatty detshrinking st n res ts = do
   mapM_ killThread tids
 
   -- get res
-  r <- (\st -> currentResult st) <$> readMVar jobs
-  (ns,nt,ntot) <- readIORef stats
+  ShrinkSt _ _ _ p _ _ r _ <- readMVar jobs
+  (_,nt,ntot) <- readIORef stats
 
-  return (ns, ntot-nt, nt, r)
+  return (length p, ntot-nt, nt, r)
   where
     worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
     worker jobs stats signal = do
