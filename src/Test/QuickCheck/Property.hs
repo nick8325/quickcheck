@@ -998,7 +998,7 @@ total x = property (rnf x)
 -- the end.
 
 data QCException = QCInterrupted
-  deriving Show
+  deriving (Show, Typeable)
 
 instance Exception QCException
 
