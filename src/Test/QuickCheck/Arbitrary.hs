@@ -1290,7 +1290,7 @@ shrinkDecimal x
 
 #ifndef NO_GENERICS
 -- | Used for random generation of functions.
--- You should consider using 'Test.QuickCheck.Fun' instead, which
+-- You should consider using 'Test.QuickCheck.Function' instead, which
 -- can show the generated functions as strings.
 --
 -- If you are using a recent GHC, there is a default definition of
