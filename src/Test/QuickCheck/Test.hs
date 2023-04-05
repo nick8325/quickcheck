@@ -479,9 +479,14 @@ quickCheckInternal a p = do
       -- get report depending on what happened
       reports <- case s of
         KillTesters tid st seed res ts size -> do
+          -- mvar states of all testers that are are aborted
           let abortedvsts = map snd $ filter (\(tid', _) -> tid /= tid') (zip tids states)
-          failed <- withBuffering $ shrinkResult (chatty a) st seed (numTesters a) res ts size
-          aborted <- mapM (\vst -> readMVar vst >>= abortConcurrent) abortedvsts
+          -- read the states from those mvars
+          abortedsts <- mapM readMVar abortedvsts
+          -- complete number of tests that were run over all testers
+          let  numsucc = numSuccessTests st + sum (map numSuccessTests abortedsts)
+          failed <- withBuffering $ shrinkResult (chatty a) st numsucc seed (numTesters a) res ts size -- shrink and return report from failed
+          aborted <- mapM abortConcurrent abortedsts -- reports from aborted testers
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
         FinishedTesting                  -> mapM (\vst -> readMVar vst >>= flip doneTesting (property p)) states
@@ -765,9 +770,9 @@ return a final report. The parameters are
   5. The size fed to the test case
 
 -}
-shrinkResult :: Bool -> State -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
-shrinkResult chatty st rs n res ts size = do
-  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty st n res ts
+shrinkResult :: Bool -> State -> Int -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
+shrinkResult chatty st numsucc rs n res ts size = do
+  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty st numsucc n res ts
   theOutput <- terminalOutput (terminal st)
   if not (expect res) then
     return Success{ labels       = stlabels st,
@@ -1124,10 +1129,10 @@ localMinFound st res =
 --------------------------------------------------------------------------
 -- new shrinking loop
 
-foundFailure :: Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-foundFailure chatty st n res ts = do
-  re@(n1,n2,n3,r) <- shrinker chatty False st n res ts
-  sequence_ [ putLine (terminal st) msg | msg <- snd $ failureSummaryAndReason2 (n1, n2, n3) (numSuccessTests st) r ]
+foundFailure :: Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+foundFailure chatty st numsucc n res ts = do
+  re@(n1,n2,n3,r) <- shrinker chatty False st numsucc n res ts
+  sequence_ [ putLine (terminal st) msg | msg <- snd $ failureSummaryAndReason2 (n1, n2, n3) numsucc r ]
   callbackPostFinalFailure st r
   return re
 
@@ -1152,8 +1157,8 @@ data ShrinkSt = ShrinkSt
   -- ^ candidates yet to evaluate
   }
 
-shrinker :: Bool -> Bool -> State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-shrinker chatty detshrinking st n res ts = do
+shrinker :: Bool -> Bool -> State -> Int ->  Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+shrinker chatty detshrinking st numsucc n res ts = do
 
   blocker    <- newEmptyMVar
   jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] 0 blocker res ts
@@ -1162,7 +1167,7 @@ shrinker chatty detshrinking st n res ts = do
 
   -- continuously print current state
   printerID <- if chatty
-                 then Just <$> forkIO (shrinkPrinter (terminal st) stats (numSuccessTests st) res 200)
+                 then Just <$> forkIO (shrinkPrinter (terminal st) stats numsucc res 200)
                  else return Nothing
 
   -- start shrinking
