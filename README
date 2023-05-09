@@ -1,4 +1,7 @@
 Roberts fork: this fork contains experimental support for running tests in parallel, and shrinking in parallel.
+Add GHC compiler flags `-threaded -feager-blackholing -rtsopts` and then pass in `+RTS -N` at runtime.
+Change your `quickCheck p` to `quickCheckPar p
+
 
 This is QuickCheck 2, a library for random testing of program properties.
 
