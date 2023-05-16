@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 {-# OPTIONS_HADDOCK hide #-}
 module Test.QuickCheck.Features where
 

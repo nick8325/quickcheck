@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 {-# OPTIONS_HADDOCK hide #-}
 -- | Terminal control and text helper functions. Internal QuickCheck module.
 module Test.QuickCheck.Text

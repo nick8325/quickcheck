@@ -2,6 +2,9 @@
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
 #endif
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 -- | Test case generation.
 --
 -- __Note__: the contents of this module (except for the definition of

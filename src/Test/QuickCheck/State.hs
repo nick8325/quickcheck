@@ -1,3 +1,7 @@
+{-# LANGUAGE CPP #-}
+#ifndef NO_SAFE_HASKELL
+{-# LANGUAGE Safe #-}
+#endif
 {-# OPTIONS_HADDOCK hide #-}
 -- | QuickCheck's internal state. Internal QuickCheck module.
 module Test.QuickCheck.State where
