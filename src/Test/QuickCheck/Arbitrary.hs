@@ -1248,10 +1248,10 @@ shrinkBoundedEnum a
 -- numerators or denominators. See also 'shrinkDecimal'.
 shrinkRealFrac :: RealFrac a => a -> [a]
 shrinkRealFrac x
-  | not (x == x)  = 0 : take 10 (iterate (*2) 0) -- NaN
-  | not (2*x+1>x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
+  | not (x == x)  = 0 : takeWhile (< 1000) numbers -- NaN
+  | x > 0 && not (2*x+1>x) = 0 : takeWhile (<x) numbers -- infinity
   | x < 0 = negate x:map negate (shrinkRealFrac (negate x))
-  | otherwise =
+  | otherwise = -- x is finite and >= 0
     -- To ensure termination
     filter (\y -> abs y < abs x) $
       -- Try shrinking to an integer first
@@ -1265,14 +1265,16 @@ shrinkRealFrac x
   where
     num = numerator (toRational x)
     denom = denominator (toRational x)
+    numbers = iterate (*2) 1
 
 -- | Shrink a real number, preferring numbers with shorter
 -- decimal representations. See also 'shrinkRealFrac'.
 shrinkDecimal :: RealFrac a => a -> [a]
 shrinkDecimal x
-  | not (x == x)  = 0 : take 10 (iterate (*2) 0)        -- NaN
-  | not (2*abs x+1>abs x) = 0 : takeWhile (<x) (iterate (*2) 0) -- infinity
-  | otherwise =
+  | not (x == x)  = 0 : takeWhile (< 1000) numbers -- NaN
+  | not (2*abs x+1>abs x) = 0 : takeWhile (<x) numbers -- infinity
+  | x < 0 = negate x:map negate (shrinkDecimal (negate x))
+  | otherwise = -- x is finite and >= 0
     -- e.g. shrink pi =
     --   shrink 3 ++ map (/ 10) (shrink 31) ++
     --   map (/ 100) (shrink 314) + ...,
@@ -1284,6 +1286,9 @@ shrinkDecimal x
       n <- m:shrink m,
       let y = fromRational (fromInteger n / precision),
       abs y < abs x ]
+  where
+    -- 1, 2, 3, ..., 10, 20, 30, ..., 100, 200, 300, etc.
+    numbers = concat $ iterate (map (*10)) (map fromInteger [1..9])
 
 --------------------------------------------------------------------------
 -- ** CoArbitrary
