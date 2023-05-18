@@ -226,11 +226,11 @@ putPart tm@(MkTerminal res _ out _) s =
 putLine tm s = putPart tm (s ++ "\n")
 
 putTemp tm@(MkTerminal _ tmp _ err) s =
-  do n <- readIORef tmp
-     err $
-       replicate n ' ' ++ replicate n '\b' ++
-       s ++ [ '\b' | _ <- s ]
-     writeIORef tmp (length s)
+  do oldLen <- readIORef tmp
+     let newLen = length s
+         maxLen = max newLen oldLen
+     err $ s ++ replicate (maxLen - newLen) ' ' ++ replicate maxLen '\b'
+     writeIORef tmp newLen
 
 --------------------------------------------------------------------------
 -- the end.
