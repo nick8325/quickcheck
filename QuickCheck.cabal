@@ -201,13 +201,12 @@ Test-Suite robert-test-shrinking
     Default-language: Haskell2010
     hs-source-dirs:
         examples
-    main-is: SlowShrinking.hs
+    main-is: MyList.hs
     build-depends: base, QuickCheck, directory
     ghc-options:
       -threaded
       -rtsopts
       -feager-blackholing
-      -with-rtsopts=-N4
     if !flag(templateHaskell) || impl(haste)
         Buildable: False
 

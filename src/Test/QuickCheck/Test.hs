@@ -103,6 +103,9 @@ data Args
   , rightToWorkSteal :: Bool
     -- ^ Should the testers try to steal the right to run more tests from each other if
     --   they run out?
+  , parallelShrinking :: Bool
+    -- ^ Shrink in parallel? Does nothing if numTesters == 1, and otherwise spawns numTesters
+    --   workers.
   }
  deriving ( Show, Read
 #ifndef NO_TYPEABLE
@@ -209,15 +212,16 @@ isNoExpectedFailure _                   = False
 -- | The default test arguments
 stdArgs :: Args
 stdArgs = Args
-  { replay           = Nothing
-  , maxSuccess       = 100
-  , maxDiscardRatio  = 10
-  , maxSize          = 100
-  , chatty           = True
-  , maxShrinks       = maxBound
-  , numTesters       = 1
-  , sizeStrategy     = Stride
-  , rightToWorkSteal = True
+  { replay            = Nothing
+  , maxSuccess        = 100
+  , maxDiscardRatio   = 10
+  , maxSize           = 100
+  , chatty            = True
+  , maxShrinks        = maxBound
+  , numTesters        = 1
+  , sizeStrategy      = Stride
+  , rightToWorkSteal  = True
+  , parallelShrinking = False
   }
 
 quickCheckPar' :: (Int -> IO a) -> IO a
@@ -233,7 +237,7 @@ over all available HECs. If only one HEC is available, it reverts to the sequent
 testing framework. -}
 quickCheckPar :: Testable prop => prop -> IO ()
 quickCheckPar p = quickCheckPar' $ \numhecs ->
-  quickCheckInternal (stdArgs { numTesters = numhecs }) p >> return ()
+  quickCheckInternal (stdArgs { numTesters = numhecs, parallelShrinking = True }) p >> return ()
   -- do
   -- numHecs <- getNumCapabilities
   -- if numHecs == 1
@@ -485,7 +489,8 @@ quickCheckInternal a p = do
           abortedsts <- mapM readMVar abortedvsts
           -- complete number of tests that were run over all testers
           let  numsucc = numSuccessTests st + sum (map numSuccessTests abortedsts)
-          failed <- withBuffering $ shrinkResult (chatty a) st numsucc seed (numTesters a) res ts size -- shrink and return report from failed
+               numShrinkers = if parallelShrinking a then numTesters a else 1
+          failed <- withBuffering $ shrinkResult (chatty a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
           aborted <- mapM abortConcurrent abortedsts -- reports from aborted testers
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
