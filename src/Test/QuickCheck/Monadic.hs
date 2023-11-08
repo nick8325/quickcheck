@@ -311,10 +311,10 @@ prop_graceful = monadicIO $ do
 
 -}
 graceful :: IO a -> IO () -> PropertyM IO a
-graceful prop ioa = run $ prop `catch` \QCInterrupted -> do
+graceful prop ioa = run $ prop `catch` \UserInterrupt -> do
   ioa
   tid <- myThreadId
-  throwTo tid QCInterrupted -- defer to default handler
+  throwTo tid UserInterrupt -- defer to default handler
   error "this will never evaluate, but will have the correct type!"
 
 #ifndef NO_ST_MONAD

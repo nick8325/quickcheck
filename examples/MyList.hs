@@ -112,7 +112,7 @@ prop_reverse xs = reverse (reverse xs) == xs
 
 main :: IO ()
 main = do
-    r <- quickCheckParWithResult (stdArgs { chatty = False}) $ withMaxSuccess 3000000 prop_test
+    r <- quickCheckParWithResult (stdArgs { chatty = True}) $ withMaxSuccess 3000000 prop_test
 --    r <- quickCheckResult $ withMaxSuccess 100000 prop_test
     putStrLn $ show r
 --  main2

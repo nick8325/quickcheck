@@ -106,6 +106,13 @@ data Args
   , parallelShrinking :: Bool
     -- ^ Shrink in parallel? Does nothing if numTesters == 1, and otherwise spawns numTesters
     --   workers.
+  , parallelTesting :: Bool
+    -- ^ Test in parallel? Default is True, but if you are replaying a seed with multiple cores,
+    -- but you want the same counterexample evry time, setting this to False guarantee that
+  , boundWorkers :: Bool
+    -- ^ Use forkIO or forkOS? True = forkOS, False = forkIO
+  , deterministicShrinking :: Bool
+    -- ^ Should shrinking be deterministic? Only matters if more than one core is used to shrink
   }
  deriving ( Show, Read
 #ifndef NO_TYPEABLE
@@ -222,6 +229,9 @@ stdArgs = Args
   , sizeStrategy      = Stride
   , rightToWorkSteal  = True
   , parallelShrinking = False
+  , parallelTesting   = True
+  , boundWorkers      = False
+  , deterministicShrinking = True
   }
 
 quickCheckPar' :: (Int -> IO a) -> IO a
@@ -237,7 +247,7 @@ over all available HECs. If only one HEC is available, it reverts to the sequent
 testing framework. -}
 quickCheckPar :: Testable prop => prop -> IO ()
 quickCheckPar p = quickCheckPar' $ \numhecs ->
-  quickCheckInternal (stdArgs { numTesters = numhecs, parallelShrinking = True }) p >> return ()
+  quickCheckInternal (stdArgs { numTesters = numhecs, parallelShrinking = True, parallelTesting = True }) p >> return ()
   -- do
   -- numHecs <- getNumCapabilities
   -- if numHecs == 1
@@ -350,6 +360,9 @@ quickCheckInternal a p = do
                Nothing      -> newQCGen
                Just (rnd,_) -> return rnd
 
+      let numtesters = if parallelTesting a then numTesters a else 1
+      let numShrinkers = if parallelShrinking a then numTesters a else 1
+
       {- initial seeds for each tester. The seed will be split like this:
       
                      rnd
@@ -366,32 +379,32 @@ quickCheckInternal a p = do
       let initialSeeds = snd $ foldr (\_ (rnd, a) -> let (r1,r2) = split rnd
                                                      in (r1, a ++ [rnd]))
                                      (rnd, [])
-                                     [0..numTesters a - 1]
+                                     [0..numtesters - 1]
 
       -- how big to make each testers buffer
-      let numTestsPerTester = maxSuccess a `div` numTesters a
+      let numTestsPerTester = maxSuccess a `div` numtesters
 
       -- number of tests and numsuccessoffset for each tester to use
       let testsoffsetsanddiscards = snd $
             foldr (\_ ((numtests, offset, numdiscards), acc) ->
                       ((numTestsPerTester, offset+numtests, numTestsPerTester * maxDiscardRatio a), acc ++ [(numtests, offset, numdiscards)]))
-                  (( numTestsPerTester + (maxSuccess a `rem` numTesters a)
+                  (( numTestsPerTester + (maxSuccess a `rem` numtesters)
                    , 0
-                   , numTestsPerTester * maxDiscardRatio a + ((maxSuccess a `rem` numTesters a) * maxDiscardRatio a) 
+                   , numTestsPerTester * maxDiscardRatio a + ((maxSuccess a `rem` numtesters) * maxDiscardRatio a) 
                    ), [])
-                  [0..numTesters a - 1]
+                  [0..numtesters - 1]
 
       -- the MVars that holds the test budget for each tester
-      testbudgets <- sequence $ replicate (numTesters a) (newIORef 0)
+      testbudgets <- sequence $ replicate numtesters (newIORef 0)
 
       -- the MVars that hold each testers discard budget
-      budgets <- sequence $ replicate (numTesters a) (newIORef 0)
+      budgets <- sequence $ replicate numtesters (newIORef 0)
 
       -- the MVars that hold each testers state
-      states <- sequence $ replicate (numTesters a) newEmptyMVar
+      states <- sequence $ replicate numtesters newEmptyMVar
 
       -- the components making up a tester
-      let testerinfo = zip6 states initialSeeds [0..numTesters a - 1] testbudgets budgets testsoffsetsanddiscards
+      let testerinfo = zip6 states initialSeeds [0..numtesters - 1] testbudgets budgets testsoffsetsanddiscards
         
           -- this function tries to steal budget from an MVar Int, if any budget remains.
           -- used for stealing test budgets and discard budgets.
@@ -404,7 +417,7 @@ quickCheckInternal a p = do
 
       -- parent thread will block on this mvar. When it is unblocked, testing should terminate
       signal <- newEmptyMVar
-      numrunning <- newIORef (numTesters a)
+      numrunning <- newIORef numtesters
 
       -- initialize the states of each tester
       flip mapM_ testerinfo $ \(st, seed, testerID, tbudget, dbudget, (numtests, testoffset, numdiscards)) -> do
@@ -437,7 +450,7 @@ quickCheckInternal a p = do
                                     , stealTests                = if rightToWorkSteal a
                                                                     then tryStealBudget $ filter ((/=) tbudget) testbudgets
                                                                     else return Nothing
-                                    , numConcurrent             = numTesters a
+                                    , numConcurrent             = numtesters
                                     , numSuccessOffset          = testoffset
                                     , discardBudget             = dbudget
                                     , stealDiscards             = if rightToWorkSteal a
@@ -463,7 +476,10 @@ quickCheckInternal a p = do
       let testers = map (\vst -> testLoop vst True (property p)) states
 
       -- spawn testers
-      tids <- zipWithM (\comp vst -> forkIO comp) testers states
+      tids <- if numtesters > 1
+                then let fork = if boundWorkers a then forkOS else forkIO
+                     in zipWithM (\comp vst -> fork comp) testers states
+                else do head testers >> return [] -- if only one worker, let the main thread run the tests
 
       -- wait for wakeup
       s <- readMVar signal `catch` (\UserInterrupt -> return Interrupted)
@@ -489,8 +505,7 @@ quickCheckInternal a p = do
           abortedsts <- mapM readMVar abortedvsts
           -- complete number of tests that were run over all testers
           let  numsucc = numSuccessTests st + sum (map numSuccessTests abortedsts)
-               numShrinkers = if parallelShrinking a then numTesters a else 1
-          failed <- withBuffering $ shrinkResult (chatty a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
+          failed <- withBuffering $ shrinkResult (chatty a) (deterministicShrinking a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
           aborted <- mapM abortConcurrent abortedsts -- reports from aborted testers
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
@@ -775,9 +790,9 @@ return a final report. The parameters are
   5. The size fed to the test case
 
 -}
-shrinkResult :: Bool -> State -> Int -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
-shrinkResult chatty st numsucc rs n res ts size = do
-  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty st numsucc n res ts
+shrinkResult :: Bool -> Bool -> State -> Int -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
+shrinkResult chatty detshrinking st numsucc rs n res ts size = do
+  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty detshrinking st numsucc n res ts
   theOutput <- terminalOutput (terminal st)
   if not (expect res) then
     return Success{ labels       = stlabels st,
@@ -788,7 +803,7 @@ shrinkResult chatty st numsucc rs n res ts size = do
                     output       = theOutput }
    else do
     testCase <- mapM showCounterexample (P.testCase res)
-    return Failure{ usedSeed        = (randomSeed st) --rs
+    return Failure{ usedSeed        = rs
                   , usedSize        = size
                   , numTests        = numSuccessTests st+1
                   , numDiscarded    = numDiscardedTests st
@@ -1134,9 +1149,9 @@ localMinFound st res =
 --------------------------------------------------------------------------
 -- new shrinking loop
 
-foundFailure :: Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-foundFailure chatty st numsucc n res ts = do
-  re@(n1,n2,n3,r) <- shrinker chatty False st numsucc n res ts
+foundFailure :: Bool -> Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+foundFailure chatty detshrinking st numsucc n res ts = do
+  re@(n1,n2,n3,r) <- shrinker chatty detshrinking st numsucc n res ts
   sequence_ [ putLine (terminal st) msg | msg <- snd $ failureSummaryAndReason2 (n1, n2, n3) numsucc r ]
   callbackPostFinalFailure st r
   return re
@@ -1251,34 +1266,21 @@ shrinker chatty detshrinking st numsucc n res ts = do
                -> MVar () -> IO ()
     updateWork res' ts' cand@(r',c') jobs stats signal = do
       tid <- myThreadId
-      if null ts'
-        then do modifyMVar_ jobs $ \st -> do
-                  let (path', _) = computePath (path st) cand
-                      tids = filter (\tid' -> tid /= tid') $ Map.keys (book st) -- ids of all other workers
-                  gracefullyKill tids
-                  return $ st { row            = r' + 1
-                              , col            = 0
-                              , book           = Map.empty
-                              , path           = path'
-                              , currentResult  = res'
-                              , candidates     = ts'
-                              , selfTerminated = 0}
-                putMVar signal ()
-        else modifyMVar_ jobs $ \st -> do
-               let (path', b)  = computePath (path st) cand
-                   (tids, wm') = toRestart tid (book st) path'
-               interruptShrinkers tids
-               let n = selfTerminated st
-               if n > 0
-                 then {-printAppendTid ("about to launch: " ++ show n) >>-} sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
-                 else return ()
-               return $ st { row            = r' + 1
-                           , col            = 0
-                           , book           = wm'
-                           , path           = path'
-                           , currentResult  = res'
-                           , candidates     = ts'
-                           , selfTerminated = 0}
+      modifyMVar_ jobs $ \st -> do
+        let (path', b)  = computePath (path st) cand
+            (tids, wm') = toRestart tid (book st) path'
+        interruptShrinkers tids
+        let n = selfTerminated st
+        if n > 0
+          then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
+          else return ()
+        return $ st { row            = r' + 1
+                    , col            = 0
+                    , book           = wm'
+                    , path           = path'
+                    , currentResult  = res'
+                    , candidates     = ts'
+                    , selfTerminated = 0}
       where
         toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
         toRestart tid wm path
