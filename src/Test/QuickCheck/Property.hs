@@ -1115,6 +1115,8 @@ data State
     -- ^ How many discards I can perform, my 'budget'
   , stealDiscards               :: IO (Maybe Int)
     -- ^ Steal discards from concurrent testers, if any
+  , numStarted                  :: !Int
+    -- ^ How many tests were started
   }
 
 -- | The statistical parameters used by 'checkCoverage'.

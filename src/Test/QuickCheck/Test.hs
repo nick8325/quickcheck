@@ -128,6 +128,8 @@ data Result
       -- ^ Number of tests performed
     , numDiscarded :: Int
       -- ^ Number of tests skipped
+    , numInitiated    :: Int
+      -- ^ How many tests begun evaluating (might be less than numTests, because testers were interrupted)
     , labels       :: !(Map [String] Int)
       -- ^ The number of test cases having each combination of labels (see 'label')
     , classes      :: !(Map String Int)
@@ -142,6 +144,8 @@ data Result
     { numTests     :: Int
     , numDiscarded :: Int
       -- ^ Number of tests skipped
+    , numInitiated    :: Int
+      -- ^ How many tests begun evaluating (might be less than numTests, because testers were interrupted)
     , labels       :: !(Map [String] Int)
     , classes      :: !(Map String Int)
     , tables       :: !(Map String (Map String Int))
@@ -151,6 +155,8 @@ data Result
     { numTests     :: Int
     , numDiscarded :: Int
       -- ^ Number of tests skipped
+    , numInitiated    :: Int
+      -- ^ How many tests begun evaluating (might be less than numTests, because testers were interrupted)
     , labels       :: !(Map [String] Int)
     , classes      :: !(Map String Int)
     , tables       :: !(Map String (Map String Int))
@@ -161,6 +167,8 @@ data Result
     { numTests        :: Int
     , numDiscarded    :: Int
       -- ^ Number of tests skipped
+    , numInitiated    :: Int
+      -- ^ How many tests begun evaluating (might be less than numTests, because testers were interrupted)
     , numShrinks      :: Int
       -- ^ Number of successful shrinking steps performed
     , numShrinkTries  :: Int
@@ -188,6 +196,8 @@ data Result
     { numTests     :: Int
     , numDiscarded :: Int
       -- ^ Number of tests skipped
+    , numInitiated    :: Int
+      -- ^ How many tests begun evaluating (might be less than numTests, because testers were interrupted)
     , labels       :: !(Map [String] Int)
     , classes      :: !(Map String Int)
     , tables       :: !(Map String (Map String Int))
@@ -467,6 +477,7 @@ quickCheckInternal a p = do
                                                                                       return ()
                                     , shouldUpdateAfterWithMaxSuccess = True
                                     , stsizeStrategy                  = sizeStrategy a
+                                    , numStarted = 0
                                     })
 
       -- continuously print current state
@@ -593,6 +604,7 @@ mergeReports rs
     createGeneric :: [Result]
                   -> (  Int
                      -> Int
+                     -> Int
                      -> Map [String] Int
                      -> Map String Int
                      -> Map String (Map String Int)
@@ -601,6 +613,7 @@ mergeReports rs
                   -> Result
     createGeneric rs f = f (sum $ map numTests rs)
                            (sum $ map numDiscarded rs)
+                           (sum $ map numInitiated rs)
                            (Map.unionsWith (+) $ map labels rs)
                            (Map.unionsWith (+) $ map classes rs)
                            (Map.unionsWith (Map.unionWith (+)) $ map tables rs)
@@ -611,6 +624,7 @@ mergeReports rs
     createFailed :: [Result] -> Result -> Result
     createFailed rs f = f { numTests     = sum $ map numTests (f:rs)
                           , numDiscarded = sum $ map numDiscarded (f:rs)
+                          , numInitiated = sum $ map numInitiated (f:rs)
                           , output       = intercalate "\n" $ map output rs
                           }
 
@@ -664,7 +678,7 @@ testLoop vst False f = do
   st <- readMVar vst
   b <- runOneMore st
   if b
-    then testLoop vst True f
+    then modifyMVar vst (\st -> return (st { numStarted = numStarted st + 1 }, ())) >> testLoop vst True f
     else signalTerminating st
 testLoop vst True f = do
   st <- readMVar vst
@@ -800,6 +814,7 @@ shrinkResult chatty detshrinking st numsucc rs n res ts size = do
                     tables       = sttables st,
                     numTests     = numSuccessTests st+1,
                     numDiscarded = numDiscardedTests st,
+                    numInitiated = numStarted st,
                     output       = theOutput }
    else do
     testCase <- mapM showCounterexample (P.testCase res)
@@ -807,6 +822,7 @@ shrinkResult chatty detshrinking st numsucc rs n res ts size = do
                   , usedSize        = size
                   , numTests        = numSuccessTests st+1
                   , numDiscarded    = numDiscardedTests st
+                  , numInitiated    = numStarted st
                   , numShrinks      = numShrinks
                   , numShrinkTries  = totFailed
                   , numShrinkFinal  = lastFailed
@@ -983,7 +999,7 @@ doneTesting st _f
   where
     finished k = do
       theOutput <- terminalOutput (terminal st)
-      return (k (numSuccessTests st) (numDiscardedTests st) (stlabels st) (stclasses st) (sttables st) theOutput)
+      return (k (numSuccessTests st) (numDiscardedTests st) (numStarted st) (stlabels st) (stclasses st) (sttables st) theOutput)
 
 {- | If a tester terminates because it discarded too many test cases, this function
 converts the testers @State@ to a @Result@ -}
@@ -992,6 +1008,7 @@ giveUp st _f = do -- CALLBACK gave_up?
      theOutput <- terminalOutput (terminal st)
      return GaveUp{ numTests     = numSuccessTests st
                   , numDiscarded = numDiscardedTests st
+                  , numInitiated = numStarted st
                   , labels       = stlabels st
                   , classes      = stclasses st
                   , tables       = sttables st
@@ -1005,6 +1022,7 @@ abortConcurrent st = do
      theOutput <- terminalOutput (terminal st)
      return Aborted{ numTests     = numSuccessTests st
                    , numDiscarded = numDiscardedTests st
+                   , numInitiated = numStarted st
                    , labels       = stlabels st
                    , classes      = stclasses st
                    , tables       = sttables st
