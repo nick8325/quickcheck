@@ -518,6 +518,7 @@ quickCheckInternal a p = do
           let  numsucc = numSuccessTests st + sum (map numSuccessTests abortedsts)
           failed <- withBuffering $ shrinkResult (chatty a) (deterministicShrinking a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
           aborted <- mapM abortConcurrent abortedsts -- reports from aborted testers
+          putStrLn $ show $ failed : aborted
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
         FinishedTesting                  -> mapM (\vst -> readMVar vst >>= flip doneTesting (property p)) states
