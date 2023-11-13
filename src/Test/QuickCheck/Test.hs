@@ -530,7 +530,7 @@ quickCheckInternal a p = do
       putStrLn $ show finalReport
 
       -- output the final outcome to the terminal, clearing the line before a new print is emitted
-      putPart (terminal (head sts)) ""
+--      putPart (terminal (head sts)) ""
       printFinal (terminal (head sts)) finalReport sts (coverageConfidence (head sts)) completeRequiredCoverage
 
       -- finally, return the report!
@@ -679,7 +679,7 @@ testLoop vst False f = do
   st <- readMVar vst
   b <- runOneMore st
   if b
-    then modifyMVar vst (\st -> return (st { numStarted = numStarted st + 1 }, ())) >> printAppendTid "entering" >> testLoop vst True f
+    then modifyMVar vst (\st -> return (st { numStarted = numStarted st + 1 }, ())) >> testLoop vst True f
     else signalTerminating st
 testLoop vst True f = do
   st <- readMVar vst
@@ -698,7 +698,6 @@ testLoop vst True f = do
     OK | abort r -> updateState vst finst >> signalTerminating finst
     OK -> do
       updateState vst finst
-      printAppendTid "exiting"
       testLoop vst False f
     -- test was discarded, and we're out of discarded budget
     Discarded | abort r -> updateState vst finst >> signalTerminating finst
