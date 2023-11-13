@@ -678,7 +678,7 @@ testLoop vst False f = do
   st <- readMVar vst
   b <- runOneMore st
   if b
-    then modifyMVar vst (\st -> return (st { numStarted = numStarted st + 1 }, ())) >> printAppendTid "entering" testLoop vst True f
+    then modifyMVar vst (\st -> return (st { numStarted = numStarted st + 1 }, ())) >> printAppendTid "entering" >> testLoop vst True f
     else signalTerminating st
 testLoop vst True f = do
   st <- readMVar vst
