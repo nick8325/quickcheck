@@ -477,7 +477,7 @@ quickCheckInternal a p = do
                                                                                       return ()
                                     , shouldUpdateAfterWithMaxSuccess = True
                                     , stsizeStrategy                  = sizeStrategy a
-                                    , numStarted = 0
+                                    , numStarted = 1
                                     })
 
       -- continuously print current state
@@ -527,6 +527,7 @@ quickCheckInternal a p = do
       sts <- mapM readMVar states
       let completeRequiredCoverage = Map.unionsWith max (map strequiredCoverage sts)
           finalReport              = mergeReports reports
+      putStrLn $ show finalReport
 
       -- output the final outcome to the terminal, clearing the line before a new print is emitted
       putPart (terminal (head sts)) ""
