@@ -527,10 +527,10 @@ quickCheckInternal a p = do
       sts <- mapM readMVar states
       let completeRequiredCoverage = Map.unionsWith max (map strequiredCoverage sts)
           finalReport              = mergeReports reports
-      putStrLn $ show finalReport
+--      putStrLn $ show finalReport
 
       -- output the final outcome to the terminal, clearing the line before a new print is emitted
---      putPart (terminal (head sts)) ""
+      putPart (terminal (head sts)) ""
       printFinal (terminal (head sts)) finalReport sts (coverageConfidence (head sts)) completeRequiredCoverage
 
       -- finally, return the report!
