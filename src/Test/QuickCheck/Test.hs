@@ -1210,7 +1210,6 @@ shrinker chatty detshrinking st numsucc n res ts = do
                  else return Nothing
 
   -- start shrinking
-  putStrLn $ "SPAWNING WORKERS: " ++ show n
   tids <- spawnWorkers n jobs stats signal
   
   -- need to block here until completely done
@@ -1261,7 +1260,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
       tid <- myThreadId
       block <- modifyMVar jobs $ \st -> do
         let newst = selfTerminated st + 1
-        if newst == n then putMVar signal () else return ()
+        if newst == n then putStrLn "HERE" >> putMVar signal () else return ()
         return ( st { book           = Map.delete tid (book st)
                     , selfTerminated = newst}
                , blockUntilAwoken st
