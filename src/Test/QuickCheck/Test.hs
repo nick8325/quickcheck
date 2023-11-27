@@ -1292,6 +1292,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
             (tids, wm') = toRestart tid (book st) path'
         interruptShrinkers tids
         let n = selfTerminated st
+        putStrLn $ "LENGTH OF NEW CANDIDATES: " ++ show (length ts')
         if n > 0
           then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
           else return ()
