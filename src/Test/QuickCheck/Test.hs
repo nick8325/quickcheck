@@ -1248,6 +1248,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
     getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
+      putStrLn $ show tid
       modifyMVar jobs $ \st ->
         case candidates st of
           []     -> return (st, Nothing)
