@@ -372,7 +372,6 @@ quickCheckInternal a p = do
 
       let numtesters = if parallelTesting a then numTesters a else 1
       let numShrinkers = if parallelShrinking a then numTesters a else 1
-      putStrLn $ "NUMBER OF SHRINKERS: " ++ show numShrinkers
 
       {- initial seeds for each tester. The seed will be split like this:
       
@@ -1211,6 +1210,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
                  else return Nothing
 
   -- start shrinking
+  putStrLn $ "SPAWNING WORKERS: " ++ show n
   tids <- spawnWorkers n jobs stats signal
   
   -- need to block here until completely done
