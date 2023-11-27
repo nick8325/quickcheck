@@ -510,6 +510,7 @@ quickCheckInternal a p = do
       -- get report depending on what happened
       reports <- case s of
         KillTesters tid st seed res ts size -> do
+          putStrLn $ "THE USED SIZE WAS: " ++ show size
           -- mvar states of all testers that are are aborted
           let abortedvsts = map snd $ filter (\(tid', _) -> tid /= tid') (zip tids states)
           -- read the states from those mvars
@@ -1247,8 +1248,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
     getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
-      modifyMVar jobs $ \st -> do
-        putStrLn $ "LENGTH OF CANDIDATES: " ++ (show $ length $ candidates st)
+      modifyMVar jobs $ \st ->
         case candidates st of
           []     -> return (st, Nothing)
           (t:ts) -> return (st { col        = col st + 1
