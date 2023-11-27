@@ -1248,7 +1248,6 @@ shrinker chatty detshrinking st numsucc n res ts = do
     getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
-      putStrLn $ "get job: " ++ show tid
       modifyMVar jobs $ \st ->
         case candidates st of
           []     -> return (st, Nothing)
@@ -1260,7 +1259,6 @@ shrinker chatty detshrinking st numsucc n res ts = do
     removeFromMap :: MVar ShrinkSt -> MVar () -> IO ()
     removeFromMap jobs signal = do
       tid <- myThreadId
-      putStrLn $ "remove from map: " ++ show tid
       block <- modifyMVar jobs $ \st -> do
         let newst = selfTerminated st + 1
         if newst == n then putMVar signal () else return ()
@@ -1288,7 +1286,6 @@ shrinker chatty detshrinking st numsucc n res ts = do
                -> MVar () -> IO ()
     updateWork res' ts' cand@(r',c') jobs stats signal = do
       tid <- myThreadId
-      putStrLn $ "update work with new work of length (" ++ show (length ts') ++ "): " ++ show tid
       modifyMVar_ jobs $ \st -> do
         let (path', b)  = computePath (path st) cand
             (tids, wm') = toRestart tid (book st) path'
