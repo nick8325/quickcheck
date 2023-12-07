@@ -1355,6 +1355,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
           in if b
                then (xs', b)
                else ((ox,oy) : xs, b)
+      | otherwise = error $ "path = " ++ show ((ox,oy):xs) ++ " and candidate is " ++ show (x,y)
 
 printAppendTid :: String -> IO ()
 printAppendTid str = do
