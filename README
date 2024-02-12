@@ -17,7 +17,7 @@ source-repository-package
 
 2: You need to add some flags when you compile your code. Specifically, `-threaded -feager-blackholing -rtsopts`.
 
-3: Finally, all that is left is to change the call to `quickCheck` with a call to `quickCheckPar`. If you don't want parallel shrinking, you should call `quickCheckParWith (stdArgs { parallelShrinking = False}) property`.
+3: Finally, all that is left is to change the call to `quickCheck` with a call to `quickCheckPar`. When you run the executable, you need to pass in the runtime option `-N`, or e.g. `-N<number>` to indicate a specific amount of workers. If you don't want parallel shrinking, you should call `quickCheckParWith (stdArgs { parallelShrinking = False}) property`.
 
 As a sanity check of whether you are using my fork or not, if you run `quickCheckPar` with just 1 HEC available, the word `donkey` will be printed.
 
