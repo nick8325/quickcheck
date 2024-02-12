@@ -1,6 +1,32 @@
 Roberts fork: this fork contains experimental support for running tests in parallel, and shrinking in parallel.
-Add GHC compiler flags `-threaded -feager-blackholing -rtsopts` and then pass in `+RTS -N` at runtime.
-Change your `quickCheck p` to `quickCheckPar p
+Only the internal evaluation of a property is changed, so the API of QC remains unchanged. There is a module
+`Test.QuickCheck.Features` which I've completely commented out for now, so that will obviously not work.
+
+In order to try this out yourself, you must follow three steps:
+
+1: You need to make sure cabal knows where my fork of QC exists. You do this by either cloning this repository onto your local machine and pointing your `cabal.project` to it.
+You do this e.g. by adding the line `packages: *.cabal <path-to-qc>/QuickCheck.cabal`. You can also optionally point your cabal to this remote repository. You do this by
+editing your `project.cabal` to say
+```
+source-repository-package
+    type: git
+    location: https://github.com/Rewbert/quickcheck.git
+    -- optionally also add this to point to a particular commit, otherwise you will always get the freshest master commit
+    -- tag: 605c7468efe02f584dabf6029c4204ab395183d3
+```
+
+2: You need to add some flags when you compile your code. Specifically, `-threaded -feager-blackholing -rtsopts`.
+
+3: Finally, all that is left is to change the call to `quickCheck` with a call to `quickCheckPar`. If you don't want parallel shrinking, you should call `quickCheckParWith (stdArgs { parallelShrinking = False}) property`.
+
+As a sanity check of whether you are using my fork or not, if you run `quickCheckPar` with just 1 HEC available, the word `donkey` will be printed.
+
+
+
+
+
+
+
 
 
 This is QuickCheck 2, a library for random testing of program properties.
