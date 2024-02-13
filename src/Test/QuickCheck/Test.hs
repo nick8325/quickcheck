@@ -1233,7 +1233,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
       j <- getJob jobs
       case j of
         Nothing      -> removeFromMap jobs signal >> worker jobs stats signal 
-        Just (r,c,t) -> do
+        Just (r,c,parent,t) -> do
           mec <- evaluateCandidate t
           case mec of
             Nothing          -> do
@@ -1241,10 +1241,10 @@ shrinker chatty detshrinking st numsucc n res ts = do
               worker jobs stats signal
             Just (res', ts') -> do
               successShrink stats
-              updateWork res' ts' (r,c) jobs stats signal
+              updateWork res' ts' (r,c) parent jobs stats signal
               worker jobs stats signal
 
-    getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, Rose P.Result))
+    getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, (Int, Int), Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
       modifyMVar jobs $ \st ->
@@ -1253,7 +1253,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
           (t:ts) -> return (st { col        = col st + 1
                                , book       = Map.insert tid (row st, col st) (book st)
                                , candidates = ts
-                               }, Just (row st, col st, t))
+                               }, Just (row st, col st, head (path st), t))
 
     removeFromMap :: MVar ShrinkSt -> MVar () -> IO ()
     removeFromMap jobs signal = do
@@ -1281,25 +1281,28 @@ shrinker chatty detshrinking st numsucc n res ts = do
     successShrink :: IORef (Int, Int, Int) -> IO ()
     successShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns + 1, 0, ntot), ())
 
-    updateWork :: P.Result -> [Rose P.Result] -> (Int, Int) -> MVar ShrinkSt -> IORef (Int, Int, Int)
+    updateWork :: P.Result -> [Rose P.Result] -> (Int, Int) -> (Int, Int) -> MVar ShrinkSt -> IORef (Int, Int, Int)
                -> MVar () -> IO ()
-    updateWork res' ts' cand@(r',c') jobs stats signal = do
+    updateWork res' ts' cand@(r',c') parent jobs stats signal = do
       tid <- myThreadId
-      modifyMVar_ jobs $ \st -> do
-        let (path', b)  = computePath (path st) cand
-            (tids, wm') = toRestart tid (book st) path'
-        interruptShrinkers tids
-        let n = selfTerminated st
-        if n > 0
-          then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
-          else return ()
-        return $ st { row            = r' + 1
-                    , col            = 0
-                    , book           = wm'
-                    , path           = path'
-                    , currentResult  = res'
-                    , candidates     = ts'
-                    , selfTerminated = 0}
+      modifyMVar_ jobs $ \st ->
+        if parent `elem` path st
+          then return st
+          else do
+            let (path', b)  = computePath (path st) cand
+                (tids, wm') = toRestart tid (book st) path'
+            interruptShrinkers tids
+            let n = selfTerminated st
+            if n > 0
+              then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
+              else return ()
+            return $ st { row            = r' + 1
+                        , col            = 0
+                        , book           = wm'
+                        , path           = path'
+                        , currentResult  = res'
+                        , candidates     = ts'
+                        , selfTerminated = 0}
       where
         toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
         toRestart tid wm path
