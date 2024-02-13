@@ -1200,7 +1200,7 @@ shrinker :: Bool -> Bool -> State -> Int ->  Int -> P.Result -> [Rose P.Result] 
 shrinker chatty detshrinking st numsucc n res ts = do
 
   blocker    <- newEmptyMVar
-  jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [] 0 blocker res ts
+  jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [(-1,-1)] 0 blocker res ts
   stats      <- newIORef (0,0,0)
   signal     <- newEmptyMVar
 
