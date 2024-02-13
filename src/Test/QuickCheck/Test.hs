@@ -1286,7 +1286,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
     updateWork res' ts' cand@(r',c') parent jobs stats signal = do
       tid <- myThreadId
       modifyMVar_ jobs $ \st ->
-        if True -- not $ parent `elem` path st
+        if not $ parent `elem` path st
           then return st
           else do
             let (path', b)  = computePath (path st) cand
