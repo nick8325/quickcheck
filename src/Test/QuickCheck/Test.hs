@@ -1289,20 +1289,24 @@ shrinker chatty detshrinking st numsucc n res ts = do
         if not $ parent `elem` path st
           then return st
           else do
-            let (path', b)  = computePath (path st) cand
-                (tids, wm') = toRestart tid (book st) path'
-            interruptShrinkers tids
-            let n = selfTerminated st
-            if n > 0
-              then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
-              else return ()
-            return $ st { row            = r' + 1
-                        , col            = 0
-                        , book           = wm'
-                        , path           = path'
-                        , currentResult  = res'
-                        , candidates     = ts'
-                        , selfTerminated = 0}
+            case computePath (path st) cand of
+              Nothing -> return st
+              Just (path', b) -> do
+                let (tids, wm') = toRestart tid (book st) path'    
+                -- let (path', b)  = computePath (path st) cand
+                --     (tids, wm') = toRestart tid (book st) path'
+                interruptShrinkers tids
+                let n = selfTerminated st
+                if n > 0
+                  then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
+                  else return ()
+                return $ st { row            = r' + 1
+                            , col            = 0
+                            , book           = wm'
+                            , path           = path'
+                            , currentResult  = res'
+                            , candidates     = ts'
+                            , selfTerminated = 0}
       where
         toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
         toRestart tid wm path
@@ -1345,20 +1349,33 @@ shrinker chatty detshrinking st numsucc n res ts = do
     {- | Given the current path and a new candidate location, check if the new location
     should be part of the path, or if the path should remain unchanged.
     Returns the path to use, and a bool to indicate if it is a different path than the
-    one fed into the function.  
+    one fed into the function.
+
+    edit: in extremely rare cases, there is a bug I can not figure out where the same
+    candidate is presented twice. It seems OK to just drop the second occurence, but 
+    I would like to know exactly what happens. I wrapped this in Maybe to use Nothing
+    as an indication that the same candidate was presented twice.
     -}
-    computePath :: [(Int, Int)] -> (Int, Int) -> ([(Int, Int)], Bool)
-    computePath [] (x,y) = ([(x,y)], True)
+    computePath :: [(Int, Int)] -> (Int, Int) -> Maybe ([(Int, Int)], Bool)
+    computePath [] (x,y) = Just ([(x,y)], True)
     computePath ((ox,oy):xs) (x,y)
-      | x > ox            = ((x,y)   : (ox,oy) : xs, True)
-      | x == ox && y < oy = ((x,y)   :           xs, True)
-      | x == ox && y > oy = ((ox,oy) :           xs, False)
+      | x > ox            = Just ((x,y)   : (ox,oy) : xs, True)
+      | x == ox && y < oy = Just ((x,y)   :           xs, True)
+      | x == ox && y > oy = Just ((ox,oy) :           xs, False)
       | x < ox            =
-          let (xs',b) = computePath xs (x,y)
-          in if b
-               then (xs', b)
-               else ((ox,oy) : xs, b)
-      | otherwise = error $ "path = " ++ show ((ox,oy):xs) ++ " and candidate is " ++ show (x,y)
+        let r = computePath xs (x,y)
+        in case r of
+          Just (xs', b) -> if b then Just (xs', b) else Just ((ox,oy):xs, b)
+          Nothing -> Nothing
+      | otherwise = Nothing
+
+
+
+      --     let (xs',b) = computePath xs (x,y)
+      --     in if b
+      --          then (xs', b)
+      --          else ((ox,oy) : xs, b)
+      -- | otherwise = error $ "path = " ++ show ((ox,oy):xs) ++ " and candidate is " ++ show (x,y)
 
 printAppendTid :: String -> IO ()
 printAppendTid str = do
