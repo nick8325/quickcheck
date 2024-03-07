@@ -85,11 +85,6 @@ newtype Property = MkProperty { unProperty :: Gen Prop }
 
 -- | The class of properties, i.e., types which QuickCheck knows how to test.
 -- Typically a property will be a function returning 'Bool' or 'Property'.
---
--- If a property does no quantification, i.e. has no
--- parameters and doesn't use 'forAll', it will only be tested once.
--- This may not be what you want if your property is an @IO Bool@.
--- You can change this behaviour using the 'again' combinator.
 class Testable prop where
   -- | Convert the thing to a property.
   property :: prop -> Property
@@ -142,7 +137,7 @@ instance Testable Prop where
   property p = MkProperty . return . protectProp $ p
 
 instance Testable prop => Testable (Gen prop) where
-  property mp = MkProperty $ do p <- mp; unProperty (again p)
+  property mp = MkProperty $ do p <- mp; unProperty (property p)
 
 instance Testable Property where
   property (MkProperty mp) = MkProperty (fmap protectProp mp)
@@ -157,9 +152,6 @@ morallyDubiousIOProperty = ioProperty
 -- Warning: any random values generated inside of the argument to @ioProperty@
 -- will not currently be shrunk. For best results, generate all random values
 -- before calling @ioProperty@, or use 'idempotentIOProperty' if that is safe.
---
--- Note: if your property does no quantification, it will only be tested once.
--- To test it repeatedly, use 'again'.
 ioProperty :: Testable prop => IO prop -> Property
 ioProperty prop = idempotentIOProperty (fmap noShrinking prop)
 
@@ -319,7 +311,7 @@ succeeded, failed, rejected :: Result
       , expect             = True
       , reason             = ""
       , theException       = Nothing
-      , abort              = True
+      , abort              = False
       , maybeNumTests      = Nothing
       , maybeCheckCoverage = Nothing
       , labels             = []
@@ -839,7 +831,6 @@ forAllShrinkBlind
   :: Testable prop
   => Gen a -> (a -> [a]) -> (a -> prop) -> Property
 forAllShrinkBlind gen shrinker pf =
-  again $
   MkProperty $
   gen >>= \x ->
     unProperty $
@@ -850,7 +841,6 @@ forAllShrinkBlind gen shrinker pf =
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
-  again $
   MkProperty $
   arbitrary >>= \b ->
     unProperty $
@@ -864,7 +854,6 @@ p1 .&&. p2 = conjoin [property p1, property p2]
 -- | Take the conjunction of several properties.
 conjoin :: Testable prop => [prop] -> Property
 conjoin ps =
-  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (conj id roses))
@@ -903,7 +892,6 @@ p1 .||. p2 = disjoin [property p1, property p2]
 -- | Take the disjunction of several properties.
 disjoin :: Testable prop => [prop] -> Property
 disjoin ps =
-  again $
   MkProperty $
   do roses <- mapM (fmap unProp . unProperty . property) ps
      return (MkProp (foldr disj (MkRose failed []) roses))
