@@ -19,8 +19,11 @@ die() {
 
 dotest() {
   echo "$2" | hugs -98 -Pquickcheck-hugs: -p'> ' "$1" | tee hugs.output
-  grep "$3" hugs.output || die
+  grep -q "$3" hugs.output || die
 }
 
 # Simple tests
 dotest Test.QuickCheck 'quickCheck $ \xs -> reverse (reverse xs) === (xs :: [Int])' "OK, passed 100 tests."
+dotest Test.QuickCheck 'quickCheck $ \xs -> reverse xs === (xs :: [Int])' "\[0,1\]"
+echo
+echo 'All tests passed!'
