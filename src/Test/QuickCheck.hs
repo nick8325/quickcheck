@@ -19,9 +19,9 @@ You can then use QuickCheck to test @prop_reverse@ on 100 random lists:
 >>> quickCheck prop_reverse
 +++ OK, passed 100 tests.
 
-To run more tests you can use the 'withMaxSuccess' combinator:
+To run more tests you can use the 'withNumTests' combinator:
 
->>> quickCheck (withMaxSuccess 10000 prop_reverse)
+>>> quickCheck (withNumTests 10000 prop_reverse)
 +++ OK, passed 10000 tests.
 
 To use QuickCheck on your own data types you will need to write 'Arbitrary'
@@ -268,6 +268,7 @@ module Test.QuickCheck
   , verbose
   , verboseShrinking
   , noShrinking
+  , withNumTests
   , withMaxSuccess
   , within
   , discardAfter

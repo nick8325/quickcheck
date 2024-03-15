@@ -1,3 +1,6 @@
+UNRELEASED
+	* Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
+
 QuickCheck 2.14.3 (released 2023-05-31)
 	* Add shrinkBoundedEnum (thanks to Jonathan Knowles)
 	* Add discardAfter for discarding tests on timeout (thanks to Justus Sagemüller)
