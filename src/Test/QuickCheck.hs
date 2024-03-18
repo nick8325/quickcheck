@@ -271,6 +271,7 @@ module Test.QuickCheck
   , withMaxSuccess
   , within
   , discardAfter
+  , withDiscardRatio
   , once
   , again
   , mapSize

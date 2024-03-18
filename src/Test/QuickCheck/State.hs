@@ -69,7 +69,7 @@ data Confidence =
     -- If the coverage requirement is met, and the certainty parameter is @n@,
     -- then you should get a false positive at most one in @n@ runs of QuickCheck.
     -- The default value is @10^9@.
-    -- 
+    --
     -- Lower values will speed up 'checkCoverage' at the cost of false
     -- positives.
     --
