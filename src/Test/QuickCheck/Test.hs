@@ -378,7 +378,8 @@ runATest st f =
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st' + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
-                , randomSeed = rnd2
+                , maxDiscardedRatio         = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
+                , randomSeed                = rnd2
                 } f
 
        MkResult{ok = Just False} -> -- failed test
