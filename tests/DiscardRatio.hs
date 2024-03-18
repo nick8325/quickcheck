@@ -1,4 +1,3 @@
-{-# LANGUAGE TypeApplications #-}
 module Main where
 
 import Test.QuickCheck
