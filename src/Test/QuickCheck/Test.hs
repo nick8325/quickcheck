@@ -354,6 +354,7 @@ runATest st f =
 
      let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
                  , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
+                 , maxDiscardedRatio = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
                  , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
                  , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (P.classes res) (repeat 1)))
                  , S.tables =
@@ -372,7 +373,7 @@ runATest st f =
                  , randomSeed = rnd2
                  } f
 
-       MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- discarded test
+       MkResult{ok = Nothing} -> -- discarded test
          do continue giveUp
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st' + 1
