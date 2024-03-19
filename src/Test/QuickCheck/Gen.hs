@@ -57,7 +57,7 @@ import Control.Applicative
 -- <http://hackage.haskell.org/package/quickcheck-transformer quickcheck-transformer>
 -- provide monad transformer versions of @Gen@.
 newtype Gen a = MkGen{
-  unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed.
+  unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed and size.
                              -- If you just want to get a random value out, consider using 'generate'.
   }
 
