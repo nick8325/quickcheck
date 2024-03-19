@@ -160,7 +160,7 @@ library
     -- send a message to the QuickCheck mailing list!
     cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
       -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL -DNO_TYPEABLE -DNO_GADTS
-      -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM
+      -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM -DNO_CALLSTACK
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 
