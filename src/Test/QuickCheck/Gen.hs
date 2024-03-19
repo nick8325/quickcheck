@@ -47,6 +47,9 @@ import Data.Bits
 import Control.Applicative
 #ifndef NO_CALLSTACK
 import GHC.Stack
+#define WITHCALLSTACK(ty) HasCallStack => ty
+#else
+#define WITHCALLSTACK(ty) ty
 #endif
 
 --------------------------------------------------------------------------
@@ -137,11 +140,7 @@ getSize = sized pure
 
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
-#ifdef NO_CALLSTACK
-resize :: Int -> Gen a -> Gen a
-#else
-resize :: HasCallStack => Int -> Gen a -> Gen a
-#endif
+resize :: WITHCALLSTACK(Int -> Gen a -> Gen a)
 resize n _ | n < 0 = error "Test.QuickCheck.resize: negative size"
 resize n (MkGen g) = MkGen (\r _ -> g r n)
 
@@ -296,21 +295,13 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.
-#ifdef NO_CALLSTACK
-oneof :: [Gen a] -> Gen a
-#else
-oneof :: HasCallStack => [Gen a] -> Gen a
-#endif
+oneof :: WITHCALLSTACK([Gen a] -> Gen a)
 oneof [] = error "QuickCheck.oneof used with empty list"
 oneof gs = chooseInt (0,length gs - 1) >>= (gs !!)
 
 -- | Chooses one of the given generators, with a weighted random distribution.
 -- The input list must be non-empty.
-#ifdef NO_CALLSTACK
-frequency :: [(Int, Gen a)] -> Gen a
-#else
-frequency :: HasCallStack => [(Int, Gen a)] -> Gen a
-#endif
+frequency :: WITHCALLSTACK([(Int, Gen a)] -> Gen a)
 frequency [] = error "QuickCheck.frequency used with empty list"
 frequency xs
   | any (< 0) (map fst xs) =
@@ -327,11 +318,7 @@ frequency xs0 = chooseInt (1, tot) >>= (`pick` xs0)
   pick _ _  = error "QuickCheck.pick used with empty list"
 
 -- | Generates one of the given values. The input list must be non-empty.
-#ifdef NO_CALLSTACK
-elements :: [a] -> Gen a
-#else
-elements :: HasCallStack => [a] -> Gen a
-#endif
+elements :: WITHCALLSTACK([a] -> Gen a)
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` chooseInt (0, length xs - 1)
 
@@ -349,11 +336,7 @@ shuffle xs = do
 -- among an initial segment of the list. The size of this initial
 -- segment increases with the size parameter.
 -- The input list must be non-empty.
-#ifdef NO_CALLSTACK
-growingElements :: [a] -> Gen a
-#else
-growingElements :: HasCallStack => [a] -> Gen a
-#endif
+growingElements :: WITHCALLSTACK([a] -> Gen a)
 growingElements [] = error "QuickCheck.growingElements used with empty list"
 growingElements xs = sized $ \n -> elements (take (1 `max` size n) xs)
   where
