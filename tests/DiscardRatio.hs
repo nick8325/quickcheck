@@ -1,7 +1,8 @@
 module Main where
 
-import Test.QuickCheck
+import Control.Monad
 import System.Exit
+import Test.QuickCheck
 
 assert :: String -> Bool -> IO  ()
 assert s False = do
@@ -12,14 +13,10 @@ assert _ _     = pure ()
 quickCheckYes, quickCheckNo :: Property -> IO ()
 quickCheckYes p = do
   res <- quickCheckResult p
-  if isSuccess res
-  then pure ()
-  else exitFailure
+  unless (isSuccess res) exitFailure
 quickCheckNo p = do
   res <- quickCheckResult p
-  if isSuccess res
-  then exitFailure
-  else pure ()
+  when (isSuccess res) exitFailure
 
 check :: Result -> Int -> Int -> IO ()
 check res n d = do
