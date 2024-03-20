@@ -237,7 +237,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
         dDenom
           | maxDiscardRatio a > 0 = (maxSuccess a * maxDiscardRatio a `div` 3) `clamp` (1, 10)
           | otherwise = 1 -- Doesn't matter because there will be no discards allowed
-        clamp x (l, h) = min l (max x h)
+        clamp x (l, h) = max l (min x h)
         n `roundTo` m = (n `div` m) * m
         at0 f s 0 0 = s
         at0 f s n d = f n d
