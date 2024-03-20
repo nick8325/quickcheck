@@ -228,9 +228,16 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
           -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
           | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
             n >= maxSuccess a ||
-            maxSuccess a `mod` maxSize a == 0 = (n `mod` maxSize a + d `div` 10) `min` maxSize a
+            maxSuccess a `mod` maxSize a == 0 = (n `mod` maxSize a + d `div` dDenom) `min` maxSize a
           | otherwise =
-            ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10) `min` maxSize a
+            ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` dDenom) `min` maxSize a
+        -- The inverse of the rate at which we increase size as a function of discarded tests
+        -- if the discard ratio is high we can afford this to be slow, but if the discard ratio
+        -- is low we risk bowing out too early
+        dDenom
+          | maxDiscardRatio a > 0 = (maxSuccess a * maxDiscardRatio a `div` 3) `clamp` (1, 10)
+          | otherwise = 1 -- Doesn't matter because there will be no discards allowed
+        clamp x (l, h) = min l (max x h)
         n `roundTo` m = (n `div` m) * m
         at0 f s 0 0 = s
         at0 f s n d = f n d
@@ -378,6 +385,7 @@ runATest st f =
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st' + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
+                , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
                 , maxDiscardedRatio         = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
                 , randomSeed                = rnd2
                 } f

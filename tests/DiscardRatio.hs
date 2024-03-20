@@ -40,3 +40,6 @@ main = do
   quickCheckNo $ withDiscardRatio 1 p50
   putStrLn "Expecting success (discard ratio 40): x < 50 ==> True"
   quickCheckYes $ withDiscardRatio 40 p50
+
+  let p k k' = k /= k' ==> (k :: Int) /= k'
+  quickCheckYes $ withMaxSuccess 1 p
