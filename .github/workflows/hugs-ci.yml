@@ -12,6 +12,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y hugs libhugs-time-bundled cpphs
       - name: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: build and test
         run: ./test-hugs
