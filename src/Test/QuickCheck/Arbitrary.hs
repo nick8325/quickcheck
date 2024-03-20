@@ -409,7 +409,7 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
 instance OVERLAPPING_ GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
-instance OVERLAPPING_ GSubtermsIncl (K1 i a) b where
+instance GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
 #endif
