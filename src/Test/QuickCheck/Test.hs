@@ -388,7 +388,7 @@ runATest st f =
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st' + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
-                , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
+                , maxSuccessTests           = fromMaybe (maxSuccessTests st) (maybeNumTests res)
                 , maxDiscardedRatio         = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
                 , randomSeed                = rnd2
                 } f
