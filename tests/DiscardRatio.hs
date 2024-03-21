@@ -8,7 +8,7 @@ assert :: String -> Bool -> IO  ()
 assert s False = do
   putStrLn $ s ++ " failed!"
   exitFailure
-assert _ _     = pure ()
+assert _ _     = return ()
 
 quickCheckYesWith, quickCheckNoWith :: Testable p => Args -> p -> IO ()
 quickCheckYesWith args p = do
