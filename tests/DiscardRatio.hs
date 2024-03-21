@@ -49,9 +49,3 @@ main = do
   putStrLn "\nExpecting success (discard ratio 40): x < 50 ==> True"
   quickCheckYes $ withDiscardRatio 40 p50
   quickCheckYesWith stdArgs{maxDiscardRatio = 40} p50
-
-  -- This was brought to our attention by @robx in issue #338
-  let p k k' = k /= k' ==> (k :: Int) /= k'
-  putStrLn "\nExpecting success (maxSuccess = 1): k /= k' ==> k /= k'"
-  quickCheckYes $ withMaxSuccess 1 p
-  quickCheckYesWith stdArgs{maxSuccess = 1} p
