@@ -12,6 +12,7 @@ module Test.QuickCheck.Test where
 --------------------------------------------------------------------------
 -- imports
 
+import Control.Applicative
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
@@ -206,9 +207,8 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , maxSuccessTests           = maxSuccess a
                  , coverageConfidence        = Nothing
                  , maxDiscardedRatio         = maxDiscardRatio a
-                 , computeSize               = case replay a of
-                                                 Nothing    -> computeSize'
-                                                 Just (_,s) -> computeSize' `at0` s
+                 , replayStartSize           = snd <$> replay a
+                 , maxTestSize               = maxSize a
                  , numTotMaxShrinks          = maxShrinks a
                  , numSuccessTests           = 0
                  , numDiscardedTests         = 0
@@ -223,17 +223,28 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
                  }
-  where computeSize' n d
-          -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
-          -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
-          | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
-            n >= maxSuccess a ||
-            maxSuccess a `mod` maxSize a == 0 = (n `mod` maxSize a + d `div` 10) `min` maxSize a
-          | otherwise =
-            ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10) `min` maxSize a
-        n `roundTo` m = (n `div` m) * m
-        at0 f s 0 0 = s
-        at0 f s n d = f n d
+
+computeSize :: State -> Int
+computeSize MkState{replayStartSize = Just s,numSuccessTests = 0,numRecentlyDiscardedTests=0} = s
+computeSize MkState{maxSuccessTests = ms, maxTestSize = mts, maxDiscardedRatio = md,numSuccessTests=n,numRecentlyDiscardedTests=d}
+    -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
+    -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
+    | n `roundTo` mts + mts <= ms ||
+      n >= ms ||
+      ms `mod` mts == 0 = (n `mod` mts + d `div` dDenom) `min` mts
+    | otherwise =
+      ((n `mod` mts) * mts `div` (ms `mod` mts) + d `div` dDenom) `min` mts
+  where
+    -- The inverse of the rate at which we increase size as a function of discarded tests
+    -- if the discard ratio is high we can afford this to be slow, but if the discard ratio
+    -- is low we risk bowing out too early
+    dDenom
+      | md > 0 = (ms * md `div` 3) `clamp` (1, 10)
+      | otherwise = 1 -- Doesn't matter because there will be no discards allowed
+    n `roundTo` m = (n `div` m) * m
+
+clamp :: Ord a => a -> (a, a) -> a
+clamp x (l, h) = max l (min x h)
 
 -- | Tests a property and prints the results and all test cases generated to 'stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
@@ -345,7 +356,7 @@ runATest st f =
              Just confidence | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
                addCoverageCheck confidence st f
              _ -> f
-     let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
+     let size = computeSize st
      MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
      res <- callbackPostTest st res
 
@@ -378,6 +389,7 @@ runATest st f =
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st' + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
+                , maxSuccessTests           = fromMaybe (maxSuccessTests st) (maybeNumTests res)
                 , maxDiscardedRatio         = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
                 , randomSeed                = rnd2
                 } f
