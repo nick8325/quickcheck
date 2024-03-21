@@ -49,7 +49,7 @@ prop_noNewFeatures feats prop =
 -- >   where count x xs = length (filter (== x) xs)
 --
 -- 'labelledExamples' generates three example test cases, one for each label:
--- 
+--
 -- >>> labelledExamples prop_delete
 -- *** Found example of count x xs == 0
 -- 0
@@ -100,7 +100,7 @@ labelledExamplesWithResult args prop =
             mapM_ (putLine (terminal state)) (failingTestCase res)
             putStrLn ""
             loop (Set.union feats feats')
-              state{randomSeed = usedSeed res, computeSize = computeSize state `at0` usedSize res}
+              state{randomSeed = usedSeed res, replayStartSize = Just $ usedSize res}
           _ -> do
             out <- terminalOutput nullterm
             putStr out
