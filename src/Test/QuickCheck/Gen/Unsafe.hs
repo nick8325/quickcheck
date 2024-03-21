@@ -22,12 +22,11 @@ module Test.QuickCheck.Gen.Unsafe where
 
 import Test.QuickCheck.Gen
 import Control.Monad
+import Control.Applicative
 
 -- | Promotes a monadic generator to a generator of monadic values.
 promote :: Monad m => m (Gen a) -> Gen (m a)
-promote m = do
-  eval <- delay
-  return (liftM eval m)
+promote m = flip liftM m <$> delay
 
 -- | Randomly generates a function of type @'Gen' a -> a@, which
 -- you can then use to evaluate generators. Mostly useful in
