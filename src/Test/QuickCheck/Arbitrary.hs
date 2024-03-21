@@ -157,6 +157,7 @@ import Control.Monad
 
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
+import Data.Ord
 import System.Exit (ExitCode(..))
 import Foreign.C.Types
 
@@ -1058,6 +1059,17 @@ instance Arbitrary NewlineMode where
   arbitrary = NewlineMode <$> arbitrary <*> arbitrary
 
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,6,0)
+instance Arbitrary1 Down where
+  liftArbitrary = fmap Down
+  liftShrink shr = fmap Down . shr . getDown
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 #endif
 #endif
 
