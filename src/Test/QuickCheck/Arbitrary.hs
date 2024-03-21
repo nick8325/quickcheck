@@ -1073,6 +1073,7 @@ instance Arbitrary NewlineMode where
 instance Arbitrary1 Down where
   liftArbitrary = fmap Down
   liftShrink shr (Down a) = Down <$> shr a
+
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = arbitrary1
   shrink = shrink1
@@ -1423,6 +1424,21 @@ instance CoArbitrary a => CoArbitrary [a] where
 
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,6,0)
+instance CoArbitrary a => CoArbitrary (Down a) where
+  coarbitrary (Down x) = coarbitrary x
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (a :| as) = coarbitrary (a, as)
+#endif
+#endif
+
 
 #ifndef NO_FIXED
 instance HasResolution a => CoArbitrary (Fixed a) where
