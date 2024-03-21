@@ -147,6 +147,12 @@ import System.IO
 #endif
 #endif
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+import Data.List.NonEmpty (NonEmpty(..))
+#endif
+#endif
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -1070,6 +1076,17 @@ instance Arbitrary1 Down where
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = arbitrary1
   shrink = shrink1
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = (:|) <$> arbitrary <*> arbitrary
+  shrink (a :| bs) =
+    [ a' :| bs | a' <- shrink a ] ++
+    [ b :| bs' | b : bs' <- [bs] ] ++
+    [ a :| bs' | bs' <- shrink bs ]
 #endif
 #endif
 
