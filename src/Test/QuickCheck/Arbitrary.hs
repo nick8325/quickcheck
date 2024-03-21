@@ -150,6 +150,7 @@ import System.IO
 #if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,9,0)
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Semigroup as Semigroup
 #endif
 #endif
 
@@ -1014,6 +1015,18 @@ instance Arbitrary a => Arbitrary (Monoid.Last a) where
   shrink = map Monoid.Last . shrink . Monoid.getLast
 #endif
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (Semigroup.Min a) where
+  arbitrary = fmap Semigroup.Min arbitrary
+  shrink = map Semigroup.Min . shrink . Semigroup.getMin
+
+instance Arbitrary a => Arbitrary (Semigroup.Max a) where
+  arbitrary = fmap Semigroup.Max arbitrary
+  shrink = map Semigroup.Max . shrink . Semigroup.getMax
+#endif
+#endif
+
 #if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
@@ -1583,6 +1596,15 @@ instance CoArbitrary a => CoArbitrary (Monoid.First a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
 #endif
+
+#if MIN_VERSION_base(4,9,0)
+instance CoArbitrary a => CoArbitrary (Semigroup.Min a) where
+  coarbitrary = coarbitrary . Semigroup.getMin
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Max a) where
+  coarbitrary = coarbitrary . Semigroup.getMax
+#endif
+
 
 #if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where

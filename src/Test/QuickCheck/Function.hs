@@ -105,6 +105,7 @@ import GHC.Generics hiding (C)
 #if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,9,0)
 import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Semigroup as Semigroup
 #endif
 #endif
 
@@ -442,11 +443,19 @@ instance Function a => Function (Monoid.Last a) where
 instance Function a => Function (Down a) where
   function = functionMap (\(Down a) -> a) Down
 #endif
-#endif
 
 #if MIN_VERSION_base(4,8,0)
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+instance Function a => Function (Semigroup.Min a) where
+  function = functionMap Semigroup.getMin Semigroup.Min
+
+instance Function a => Function (Semigroup.Max a) where
+  function = functionMap Semigroup.getMax Semigroup.Max
+#endif
 #endif
 
 -- poly instances
