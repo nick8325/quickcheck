@@ -143,6 +143,10 @@ data Result
       -- ^ The test case's labels (see 'label')
     , failingClasses  :: Set String
       -- ^ The test case's classes (see 'classify')
+#ifndef NO_TYPEABLE
+    , counterexamples :: [Counterexample]
+      -- ^ The existentially quantified counterexamples provided by 'withCounterexample'
+#endif
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
@@ -197,6 +201,11 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
+
+-- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
+recheck :: Testable prop => Result -> prop -> IO ()
+recheck res@Failure{} = quickCheckWith stdArgs{ replay = Just (usedSeed res, usedSize res)} . once
+recheck _ = error "Can only recheck tests that failed with a counterexample."
 
 withState :: Args -> (State -> IO a) -> IO a
 withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
@@ -419,6 +428,9 @@ runATest st f =
                             , failingTestCase = testCase
                             , failingLabels   = P.labels res
                             , failingClasses  = Set.fromList (P.classes res)
+#ifndef NO_TYPEABLE
+                            , counterexamples = theCounterexamples res
+#endif
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
