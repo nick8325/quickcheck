@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 #ifndef NO_TYPEABLE
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE ExistentialQuantification #-}
 #endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
@@ -33,7 +34,7 @@ import Data.Set(Set)
 import Control.DeepSeq
 #endif
 #ifndef NO_TYPEABLE
-import Data.Typeable (Typeable)
+import Data.Typeable (Typeable, cast)
 #endif
 import Data.Maybe
 
@@ -254,6 +255,32 @@ data Callback
 data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
                   | NotCounterexample -- ^ Not affected by the 'verbose' combinator
 
+#ifndef NO_TYPEABLE
+data Counterexample = forall a. (Typeable a, Show a) => Cex a
+
+instance Show Counterexample where
+  show (Cex a) = show a
+
+coerceCounterexample :: Typeable a => Counterexample -> a
+coerceCounterexample (Cex a) = case cast a of
+  Nothing -> error $ "Can't coerceCounterexample " ++ show a
+  Just a -> a
+
+castCounterexample :: Typeable a => Counterexample -> Maybe a
+castCounterexample (Cex a) = cast a
+
+data Counterexamples = NoCounterexamples
+                     | forall a. (Typeable a, Show a) => a :! Counterexamples
+
+toCounterexamples :: [Counterexample] -> Counterexamples
+toCounterexamples [] = NoCounterexamples
+toCounterexamples (Cex a : ces) = a :! toCounterexamples ces
+
+#define COUNTEREXAMPLES(a) , theCounterexamples a
+#else
+#define COUNTEREXAMPLES(a)
+#endif
+
 -- | The result of a single test.
 data Result
   = MkResult
@@ -289,6 +316,7 @@ data Result
     -- ^ the callbacks for this test case
   , testCase            :: [String]
     -- ^ the generated test case
+  COUNTEREXAMPLES(:: [Counterexample])
   }
 
 exception :: String -> AnException -> Result
@@ -329,6 +357,7 @@ succeeded, failed, rejected :: Result
       , requiredCoverage    = []
       , callbacks           = []
       , testCase            = []
+      COUNTEREXAMPLES(= [])
       }
 
 --------------------------------------------------------------------------
@@ -501,6 +530,13 @@ withMaxShrinks n = n `seq` mapTotalResult (\res -> res{ maybeMaxShrinks = Just n
 -- | Configure the maximum size a property will be tested at.
 withMaxSize :: Testable prop => Int -> prop -> Property
 withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
+
+#ifndef NO_TYPEABLE
+-- | Return a value in the 'counterexamples' field of the 'Result' returned by 'quickCheckResult'. Counterexamples
+-- are returned outer-most first.
+withCounterexample :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
+withCounterexample a = a `seq` mapTotalResult (\res -> res{ theCounterexamples = Cex a : theCounterexamples res })
+#endif
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
 -- are met, using a statistically sound test, and fail if they are not met.
@@ -964,7 +1000,9 @@ disjoin ps =
                      callbacks result2,
                    testCase =
                      testCase result1 ++
-                     testCase result2 }
+                     testCase result2
+                   COUNTEREXAMPLES(= theCounterexamples result1 ++ theCounterexamples result2)
+                   }
                Nothing -> result2
          -- The "obvious" semantics of .||. has:
          --   discard .||. true = true

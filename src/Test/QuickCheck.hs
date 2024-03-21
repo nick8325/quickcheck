@@ -78,6 +78,11 @@ module Test.QuickCheck
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
+#ifndef NO_TYPEABLE
+  , quickCheckCounterexample
+  , quickCheckWithCounterexample
+#endif
+  , recheck
   , isSuccess
     -- ** Running tests verbosely
   , verboseCheck
@@ -317,6 +322,12 @@ module Test.QuickCheck
   , (.||.)
   , disjoin
     -- ** What to do on failure
+#ifndef NO_TYPEABLE
+  , Counterexample(..)
+  , withCounterexample
+  , coerceCounterexample
+  , castCounterexample
+#endif
   , counterexample
   , printTestCase
   , whenFail
