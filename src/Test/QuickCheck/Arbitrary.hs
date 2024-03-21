@@ -1066,7 +1066,7 @@ instance Arbitrary NewlineMode where
 #if MIN_VERSION_base(4,6,0)
 instance Arbitrary1 Down where
   liftArbitrary = fmap Down
-  liftShrink shr = fmap Down . shr . getDown
+  liftShrink shr (Down a) = Down <$> shr a
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = arbitrary1
   shrink = shrink1
