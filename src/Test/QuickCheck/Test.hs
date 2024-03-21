@@ -12,6 +12,7 @@ module Test.QuickCheck.Test where
 --------------------------------------------------------------------------
 -- imports
 
+import Control.Applicative
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
