@@ -264,5 +264,3 @@ Test-Suite test-quickcheck-discard
     hs-source-dirs: tests
     main-is: DiscardRatio.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
-        buildable: False
