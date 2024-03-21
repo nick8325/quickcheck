@@ -66,6 +66,7 @@ module Test.QuickCheck.Function
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
+import Test.QuickCheck.Modifiers (Small(..))
 
 import Control.Applicative
 import Data.Char
@@ -477,6 +478,11 @@ instance Function OrdB where
 
 instance Function OrdC where
   function = functionMap unOrdC OrdC
+
+-- Instances for modifiers
+
+instance Function a => Function (Small a) where
+  function = functionMap getSmall Small
 
 -- instance Arbitrary
 

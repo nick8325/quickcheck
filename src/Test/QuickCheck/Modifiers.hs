@@ -78,7 +78,6 @@ module Test.QuickCheck.Modifiers
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Exception
-import Test.QuickCheck.Function
 
 import Data.List
   ( sort
@@ -387,9 +386,6 @@ instance Integral a => Arbitrary (Small a) where
 
 instance CoArbitrary a => CoArbitrary (Small a) where
   coarbitrary (Small a) = coarbitrary a
-
-instance Function a => Function (Small a) where
-  function = functionMap getSmall Small
 
 --------------------------------------------------------------------------
 -- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
