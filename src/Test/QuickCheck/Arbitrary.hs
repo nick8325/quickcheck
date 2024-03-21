@@ -1439,7 +1439,6 @@ instance CoArbitrary a => CoArbitrary (NonEmpty a) where
 #endif
 #endif
 
-
 #ifndef NO_FIXED
 instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
