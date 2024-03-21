@@ -28,6 +28,39 @@ To use QuickCheck on your own data types you will need to write 'Arbitrary'
 instances for those types. See the
 <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual> for
 details about how to do that.
+
+When testing fails @quickCheck@ will try to give you a minimal counterexample to
+your property:
+@
+import Test.QuickCheck
+
+prop_reverse_bad :: [Int] -> Bool
+prop_reverse_bad xs = reverse xs == xs
+
+>>> quickCheck prop_reverse_bad
+*** Failed! Falsified (after 3 tests and 3 shrinks):
+[0,1]
+@
+
+However, beware because not all properties that ought to fail will fail when you expect
+them to:
+
+@
+>>> quickCheck $ \ x y -> x == y
++++ Ok, passed 100 tests.
+@
+
+That's because GHCi will default any type variables in your property to '()', so in the example
+above @quickCheck@ was really testing that '()' is equal to itself. To avoid this behaviour it
+is best practise to monomorphise your polymorphic properties when testing:
+
+@
+>>> quickCheck $ \ x y -> (x :: Int) == y
+*** Failed! Falsified (after 4 tests and 3 shrinks):
+0
+1
+@
+
 -}
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
