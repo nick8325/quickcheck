@@ -283,7 +283,7 @@ instance Functor Negative where
   fmap f (Negative x) = Negative (f x)
 
 instance (Num a, Ord a, Arbitrary a) => Arbitrary (Negative a) where
-  arbitrary = fmap Negative (arbitrary `suchThat` (< 0))
+  arbitrary = fmap Negative (fmap (negate . abs) arbitrary `suchThat` (< 0))
   shrink (Negative x) = [ Negative x' | x' <- shrink x , x' < 0 ]
 
 --------------------------------------------------------------------------
