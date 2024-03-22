@@ -145,6 +145,7 @@ module Test.QuickCheck
   , suchThat
   , suchThatMap
   , suchThatMaybe
+  , suchThatDiscard
   , applyArbitrary2
   , applyArbitrary3
   , applyArbitrary4
