@@ -269,6 +269,13 @@ coerceCounterexample (Cex a) = case cast a of
 castCounterexample :: Typeable a => Counterexample -> Maybe a
 castCounterexample (Cex a) = cast a
 
+data Counterexamples = NoCounterexamples
+                     | forall a. (Typeable a, Show a) => a :! Counterexamples
+
+toCounterexamples :: [Counterexample] -> Counterexamples
+toCounterexamples [] = NoCounterexamples
+toCounterexamples (Cex a : ces) = a :! toCounterexamples ces
+
 #define COUNTEREXAMPLES(a) , theCounterexamples a
 #else
 #define COUNTEREXAMPLES(a)

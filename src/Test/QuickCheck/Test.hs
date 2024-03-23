@@ -202,6 +202,23 @@ quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
 
+#ifndef NO_TYPEABLE
+-- | Test a property and get counterexamples as a result. Can be used like:
+--
+-- @
+-- $> x :! _ <- quickCheckCounterexample $ \ x -> withCounterexample (x :: Int) (x > 0)
+-- *** Failed! Falsified (after 1 test):
+-- 0
+-- $> x
+-- 0
+quickCheckCounterexample :: Testable prop => prop -> IO Counterexamples
+quickCheckCounterexample = quickCheckWithCounterexample stdArgs
+
+-- | Test a property, using test arguments, and get counterexamples as a result.
+quickCheckWithCounterexample :: Testable prop => Args -> prop -> IO Counterexamples
+quickCheckWithCounterexample args p = toCounterexamples . counterexamples <$> quickCheckWithResult args p
+#endif
+
 -- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
 recheck :: Testable prop => Result -> prop -> IO ()
 recheck res@Failure{} = quickCheckWith stdArgs{ replay = Just (usedSeed res, usedSize res)} . once

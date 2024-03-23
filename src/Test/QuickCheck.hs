@@ -45,6 +45,10 @@ module Test.QuickCheck
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
+#ifndef NO_TYPEABLE
+  , quickCheckCounterexample
+  , quickCheckWithCounterexample
+#endif
   , recheck
   , isSuccess
     -- ** Running tests verbosely
