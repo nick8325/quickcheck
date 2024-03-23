@@ -142,8 +142,6 @@ instance (Ord a, Arbitrary a) => Arbitrary (Set a) where
   shrink t@(Node x s1 s2) = [ s1, s2 ]
                          ++ [ t' | x' <- shrink x, let t' = Node x' s1 s2, invariant t' ]
 
--- instance (Ord a, ShrinkSub a) => ShrinkSub (Set a)
-
 --------------------------------------------------------------------------
 -- properties
 
