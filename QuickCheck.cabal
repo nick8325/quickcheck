@@ -96,7 +96,7 @@ library
   if impl(hugs)
     cpp-options: -DNO_SPLITMIX
   else
-    Build-depends: splitmix >= 0.1 && <0.2
+    Build-depends: splitmix >= 0.1.0.2 && <0.2
 
   -- Modules that are always built.
   Exposed-Modules:
