@@ -857,39 +857,35 @@ instance Arbitrary CDouble where
   shrink = shrinkDecimal
 
 -- Arbitrary instances for container types
--- | WARNING: This instance aims to give a good representation of `Set a`
--- _as sets_ but _does not_ aim to provide a varied distribution over the
--- underlying representation of the `Set`. That is, there is _no guarantee_
--- that the same abstract set will be generated with two different
--- representations. Users who rely on the internal representation of `Set` in
--- their code should consult the relevant documentation in `containers` for
--- tips on testing with varied representations.
+-- | WARNING: This instance aims to give a good representation of @Set a@
+-- as sets but does not aim to provide a varied distribution over the
+-- underlying representation.
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
   arbitrary = fmap Set.fromList arbitrary
   shrink = map Set.fromList . shrink . Set.toList
 instance (Ord k, Arbitrary k) => Arbitrary1 (Map.Map k) where
   liftArbitrary = fmap Map.fromList . liftArbitrary . liftArbitrary
   liftShrink shr = map Map.fromList . liftShrink (liftShrink shr) . Map.toList
--- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance (Ord k, Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
   arbitrary = arbitrary1
   shrink = shrink1
--- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary IntSet.IntSet where
   arbitrary = fmap IntSet.fromList arbitrary
   shrink = map IntSet.fromList . shrink . IntSet.toList
--- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary1 IntMap.IntMap where
   liftArbitrary = fmap IntMap.fromList . liftArbitrary . liftArbitrary
   liftShrink shr = map IntMap.fromList . liftShrink (liftShrink shr) . IntMap.toList
--- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
   arbitrary = arbitrary1
   shrink = shrink1
 instance Arbitrary1 Sequence.Seq where
   liftArbitrary = fmap Sequence.fromList . liftArbitrary
   liftShrink shr = map Sequence.fromList . liftShrink shr . toList
--- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary a => Arbitrary (Sequence.Seq a) where
   arbitrary = arbitrary1
   shrink = shrink1
