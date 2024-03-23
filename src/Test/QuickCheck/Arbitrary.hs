@@ -889,7 +889,6 @@ instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
 instance Arbitrary1 Sequence.Seq where
   liftArbitrary = fmap Sequence.fromList . liftArbitrary
   liftShrink shr = map Sequence.fromList . liftShrink shr . toList
-instance Arbitrary1 Sequence.Seq where
 -- | WARNING: The same warning as for @Arbitrary (Set.Set a)@ applies here.
 instance Arbitrary a => Arbitrary (Sequence.Seq a) where
   arbitrary = arbitrary1
