@@ -165,9 +165,14 @@ import GHC.Generics
 #endif
 
 import qualified Data.Set as Set
-import qualified Data.Map as Map
 import qualified Data.IntSet as IntSet
+#if MIN_VERSION_containers(0,5,0)
+import qualified Data.Map.Strict as Map
+import qualified Data.IntMap.Strict as IntMap
+#else
+import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
+#endif
 import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 import Data.Bits
