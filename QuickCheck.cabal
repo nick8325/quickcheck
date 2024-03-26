@@ -249,6 +249,15 @@ Test-Suite test-quickcheck-split
     main-is: Split.hs
     build-depends: base, QuickCheck
 
+Test-Suite test-quickcheck-strictness
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: Strictness.hs
+    build-depends: base, QuickCheck, containers
+    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
+        buildable: False
+
 Test-Suite test-quickcheck-misc
     type: exitcode-stdio-1.0
     Default-language: Haskell2010
