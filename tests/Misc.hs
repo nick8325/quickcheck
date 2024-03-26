@@ -20,6 +20,9 @@ prop_failingTestCase (Blind p) = ioProperty $ do
   let [x, y, z] = failingTestCase res
   return (not (p (read x) (read y) (read z)))
 
+prop_maxSize :: Property
+prop_maxSize = withMaxSize 10 (forAll (arbitrary :: Gen Int) $ \ x -> abs x < 10)
+
 return []
 main = do
   True <- $quickCheckAll

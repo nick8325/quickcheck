@@ -360,56 +360,62 @@ runATest st f =
      MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
      res <- callbackPostTest st res
 
-     let continue break st' | abort res = break st'
-                            | otherwise = test st'
+     let continue break st' | abort res = break (addNewOptions st')
+                            | otherwise = test (addNewOptions st')
 
-     let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
-                 , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
-                 , maxDiscardedRatio = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
-                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                 , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (P.classes res) (repeat 1)))
-                 , S.tables =
-                   foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
-                     (S.tables st) (P.tables res)
-                 , S.requiredCoverage =
-                   foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
-                     (S.requiredCoverage st) (P.requiredCoverage res)
-                 , expected = expect res }
+         addNewOptions st0 = st0{ maxSuccessTests = fromMaybe (maxSuccessTests st0) (maybeNumTests res)
+                                , maxDiscardedRatio = fromMaybe (maxDiscardedRatio st0) (maybeDiscardedRatio res)
+                                , numTotMaxShrinks = fromMaybe (numTotMaxShrinks st0) (maybeMaxShrinks res)
+                                , maxTestSize = fromMaybe (maxTestSize st0) (maybeMaxTestSize res)
+                                }
+
+         addCoverageInfo st0 =
+           st0{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st0
+              , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st0)
+              , S.classes = Map.unionWith (+) (S.classes st0) (Map.fromList (zip (P.classes res) (repeat 1)))
+              , S.tables =
+                foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
+                  (S.tables st0) (P.tables res)
+              , S.requiredCoverage =
+                foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
+                  (S.requiredCoverage st0) (P.requiredCoverage res)
+              }
+
+         stC = addCoverageInfo st
 
      case res of
        MkResult{ok = Just True} -> -- successful test
          do continue doneTesting
-              st'{ numSuccessTests           = numSuccessTests st' + 1
+              stC{ numSuccessTests           = numSuccessTests st + 1
                  , numRecentlyDiscardedTests = 0
-                 , randomSeed = rnd2
+                 , randomSeed                = rnd2
+                 , expected                  = expect res
                  } f
 
        MkResult{ok = Nothing} -> -- discarded test
          do continue giveUp
               -- Don't add coverage info from this test
-              st{ numDiscardedTests         = numDiscardedTests st' + 1
-                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
-                , maxSuccessTests           = fromMaybe (maxSuccessTests st) (maybeNumTests res)
-                , maxDiscardedRatio         = fromMaybe (maxDiscardedRatio st) (maybeDiscardedRatio res)
+              st{ numDiscardedTests         = numDiscardedTests st + 1
+                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
                 , randomSeed                = rnd2
                 } f
 
        MkResult{ok = Just False} -> -- failed test
-         do (numShrinks, totFailed, lastFailed, res) <- foundFailure st' res ts
-            theOutput <- terminalOutput (terminal st')
+         do (numShrinks, totFailed, lastFailed, res) <- foundFailure stC res ts
+            theOutput <- terminalOutput (terminal stC)
             if not (expect res) then
-              return Success{ labels = S.labels st',
-                              classes = S.classes st',
-                              tables = S.tables st',
-                              numTests = numSuccessTests st'+1,
-                              numDiscarded = numDiscardedTests st',
+              return Success{ labels = S.labels stC,
+                              classes = S.classes stC,
+                              tables = S.tables stC,
+                              numTests = numSuccessTests stC+1,
+                              numDiscarded = numDiscardedTests stC,
                               output = theOutput }
              else do
               testCase <- mapM showCounterexample (P.testCase res)
-              return Failure{ usedSeed        = randomSeed st' -- correct! (this will be split first)
+              return Failure{ usedSeed        = randomSeed stC -- correct! (this will be split first)
                             , usedSize        = size
-                            , numTests        = numSuccessTests st'+1
-                            , numDiscarded    = numDiscardedTests st'
+                            , numTests        = numSuccessTests stC + 1
+                            , numDiscarded    = numDiscardedTests stC
                             , numShrinks      = numShrinks
                             , numShrinkTries  = totFailed
                             , numShrinkFinal  = lastFailed

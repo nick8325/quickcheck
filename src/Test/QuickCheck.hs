@@ -305,6 +305,8 @@ module Test.QuickCheck
   , within
   , discardAfter
   , withDiscardRatio
+  , withMaxSize
+  , withMaxShrinks
   , once
   , again
   , mapSize
