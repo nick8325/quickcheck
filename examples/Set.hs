@@ -21,8 +21,6 @@ import Control.Monad
 
 import Data.Maybe
 
---import Text.Show.Functions
-
 --------------------------------------------------------------------------
 -- binary search trees
 
@@ -196,8 +194,6 @@ prop_ToSortedList (s :: Set Int) =
   s ==? xs && xs == sort xs
  where
   xs = toSortedList s
-
---  whenFail (putStrLn ("Result: " ++ show (fromList xs))) $
 
 prop_FromList' (xs :: [Int]) =
   shrinking shrink xs $ \xs' ->
