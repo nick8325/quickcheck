@@ -81,7 +81,7 @@ data Args
   , chatty          :: Bool
     -- ^ Whether to print anything
   , maxShrinks      :: Int
-    -- ^ Maximum number of shrinks to before giving up. Setting this to zero
+    -- ^ Maximum number of shrinks to do before giving up. Setting this to zero
     --   turns shrinking off.
   }
  deriving ( Show, Read
