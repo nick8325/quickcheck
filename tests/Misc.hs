@@ -24,9 +24,20 @@ prop_failingTestCase (Blind p) = ioProperty $ do
 prop_maxSize :: Property
 prop_maxSize = withMaxSize 10 (forAll (arbitrary :: Gen Int) $ \ x -> abs x < 10)
 
+prop_cover :: Property
+prop_cover = withMaxSuccess 1000
+           $ checkCoverage
+           $ forAll (arbitrary :: Gen Int)
+           $ \ x -> cover 5 (x > 0) "positive" True
+
+-- Issue #382
+prop_discardCoverage :: Property
+prop_discardCoverage = checkCoverage $ forAll (sized $ \ n -> pure n) $ \ x -> cover 10 True "label" $ x /= 99 ==> True
+
 return []
 main = do
   True <- $quickCheckAll
   Success{classes=cls} <- quickCheckResult $ classify False "A" $ classify True "B" True
   [("A",0),("B",100)] <- return $ toList cls
+  Success{numTests=1000} <- quickCheckResult prop_cover
   return ()
