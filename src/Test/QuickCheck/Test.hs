@@ -168,7 +168,7 @@ stdArgs = Args
   , maxDiscardRatio = 10
   , maxSize         = 100
   , chatty          = True
-  , maxShrinks      = maxBound
+  , maxShrinks      = 100 * 100
   }
 
 -- | Tests a property and prints the results to 'stdout'.
