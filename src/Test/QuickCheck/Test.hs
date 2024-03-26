@@ -286,13 +286,43 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 -- main test loop
 
 test :: State -> Property -> IO Result
-test st f
-  | numSuccessTests st   >= maxSuccessTests st && isNothing (coverageConfidence st) =
-    doneTesting st f
-  | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) =
-    giveUp st f
-  | otherwise =
-    runATest st f
+test st prop = case coverageConfidence st of
+  Nothing
+    | numSuccessTests st >= maxSuccessTests st -> doneTesting st prop
+
+  Just confidence
+    | timeToCheckCoverage ->
+        checkCoverageAndContinue confidence st prop
+
+  _ | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) -> giveUp st prop
+    | otherwise -> runATest st prop
+
+  where
+    timeToCheckCoverage
+      | numSuccessTests st == maxSuccessTests st = True
+      | otherwise =
+          and [ numSuccessTests st > 0
+              , numSuccessTests st `mod` 100 == 0
+              , powerOfTwo (numSuccessTests st `div` 100)
+              ]
+    powerOfTwo n = n .&. (n - 1) == 0
+
+checkCoverageAndContinue :: Confidence -> State -> Property -> IO Result
+checkCoverageAndContinue confidence st prop
+  | and [ sufficientlyCovered confidence tot n p
+        | (_, _, tot, n, p) <- allCoverage st ]
+  && noMoreTests = doneTesting st prop
+  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
+       | (_, _, tot, n, p) <- allCoverage st ] =
+    let (theLabels, theTables) = labelsAndTables st in
+             -- The last test wasn't actually successful, as the coverage failed
+             -- also this prevents an off-by-one error in the printing
+    runATest st{numSuccessTests = numSuccessTests st - 1}
+             $ foldr counterexample (property failed{P.reason = "Insufficient coverage"})
+                                    (paragraphs [theLabels, theTables])
+  | otherwise = runATest st prop
+  where
+    noMoreTests = numSuccessTests st >= maxSuccessTests st
 
 doneTesting :: State -> Property -> IO Result
 doneTesting st _f
@@ -343,30 +373,30 @@ showTestCount st =
             ]
 
 runATest :: State -> Property -> IO Result
-runATest st f =
+runATest st prop =
   do -- CALLBACK before_test
      putTemp (terminal st)
         ( "("
        ++ showTestCount st
        ++ ")"
         )
-     let powerOfTwo n = n .&. (n - 1) == 0
-     let f_or_cov =
-           case coverageConfidence st of
-             Just confidence | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
-               addCoverageCheck confidence st f
-             _ -> f
+
      let size = computeSize st
-     MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
+
+     MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty prop) rnd1 size)))
      res <- callbackPostTest st res
 
-     let continue break st' | abort res = break (addNewOptions st')
-                            | otherwise = test (addNewOptions st')
+     let continue break st'
+           | abort res = break $ updateState st'
+           | otherwise = test $ updateState st'
 
-         addNewOptions st0 = st0{ maxSuccessTests = fromMaybe (maxSuccessTests st0) (maybeNumTests res)
+         updateState st0 = addNewOptions $ st0{ randomSeed = rnd2 }
+
+         addNewOptions st0 = st0{ maxSuccessTests   = fromMaybe (maxSuccessTests st0) (maybeNumTests res)
                                 , maxDiscardedRatio = fromMaybe (maxDiscardedRatio st0) (maybeDiscardedRatio res)
-                                , numTotMaxShrinks = fromMaybe (numTotMaxShrinks st0) (maybeMaxShrinks res)
-                                , maxTestSize = fromMaybe (maxTestSize st0) (maybeMaxTestSize res)
+                                , numTotMaxShrinks  = fromMaybe (numTotMaxShrinks st0) (maybeMaxShrinks res)
+                                , maxTestSize       = fromMaybe (maxTestSize st0) (maybeMaxTestSize res)
+                                , expected          = expect res
                                 }
 
          addCoverageInfo st0 =
@@ -389,20 +419,17 @@ runATest st f =
          do continue doneTesting
               stC{ numSuccessTests           = numSuccessTests st + 1
                  , numRecentlyDiscardedTests = 0
-                 , randomSeed                = rnd2
-                 , expected                  = expect res
-                 } f
+                 } prop
 
        MkResult{ok = Nothing} -> -- discarded test
          do continue giveUp
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
-                , randomSeed                = rnd2
-                } f
+                } prop
 
        MkResult{ok = Just False} -> -- failed test
-         do (numShrinks, totFailed, lastFailed, res) <- foundFailure stC res ts
+         do (numShrinks, totFailed, lastFailed, res) <- foundFailure (addNewOptions stC) res ts
             theOutput <- terminalOutput (terminal stC)
             if not (expect res) then
               return Success{ labels = S.labels stC,
@@ -685,18 +712,6 @@ invnormcdf p
     p_low  = 0.02425
     p_high = 1 - p_low
 
-addCoverageCheck :: Confidence -> State -> Property -> Property
-addCoverageCheck confidence st prop
-  | and [ sufficientlyCovered confidence tot n p
-        | (_, _, tot, n, p) <- allCoverage st ] =
-    -- Note: run prop once more so that we get labels for this test case run
-    once prop
-  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
-       | (_, _, tot, n, p) <- allCoverage st ] =
-    let (theLabels, theTables) = labelsAndTables st in
-    foldr counterexample (property failed{P.reason = "Insufficient coverage"})
-      (paragraphs [theLabels, theTables])
-  | otherwise = prop
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
 allCoverage st =
