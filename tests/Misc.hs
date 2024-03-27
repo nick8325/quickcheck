@@ -3,6 +3,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 import Test.QuickCheck
 import Test.QuickCheck.Random
+import Data.Map
 
 prop_verbose :: Blind (Int -> Int -> Bool) -> Property
 prop_verbose (Blind p) =
@@ -26,4 +27,6 @@ prop_maxSize = withMaxSize 10 (forAll (arbitrary :: Gen Int) $ \ x -> abs x < 10
 return []
 main = do
   True <- $quickCheckAll
+  Success{classes=cls} <- quickCheckResult $ classify False "A" $ classify True "B" True
+  [("A",0),("B",100)] <- return $ toList cls
   return ()
