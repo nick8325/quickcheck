@@ -162,6 +162,9 @@ library
   if !impl(ghc >= 8.0)
     cpp-options: -DNO_MONADFAIL
 
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-x-partial
+
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
@@ -248,6 +251,8 @@ Test-Suite test-quickcheck-split
     hs-source-dirs: tests
     main-is: Split.hs
     build-depends: base, QuickCheck
+    if impl(ghc >= 9.8)
+      ghc-options: -Wno-x-partial
 
 Test-Suite test-quickcheck-misc
     type: exitcode-stdio-1.0
