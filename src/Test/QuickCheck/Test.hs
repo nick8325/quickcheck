@@ -503,10 +503,21 @@ labelsAndTables st = (theLabels, theTables)
       paragraphs $
         [ showTable (sum (Map.elems m)) (Just table) m
         | (table, m) <- Map.toList (S.tables st) ] ++
-        [[ (case mtable of Nothing -> "Only "; Just table -> "Table '" ++ table ++ "' had only ")
-         ++ lpercent n tot ++ " " ++ label ++ ", but expected " ++ lpercentage p tot
-         | (mtable, label, tot, n, p) <- allCoverage st,
-           insufficientlyCovered (fmap certainty (coverageConfidence st)) tot n p ]]
+        [[ message
+         | (mtable, label, tot, n, p) <- allCoverage st
+         , insufficientlyCovered (fmap certainty (coverageConfidence st)) tot n p
+         , let message
+                | tot == 0 = case mtable of
+                                Nothing -> concat ["No ", label, ", but expected ", lpercentage p tot]
+                                Just table -> concat ["Table '", table, "' did not appear, but expected "
+                                                     , lpercentage p tot, " ", label]
+                | otherwise = case mtable of
+                                Nothing -> concat ["Only ", lpercent n tot, " ", label, ", but expected ", lpercentage p tot]
+                                Just table -> concat [ "Table '", table, "' had only ", lpercent n tot, " ", label
+                                                     , ", but expected ", lpercentage p tot ]
+         ]
+        ]
+
 
 showTable :: Int -> Maybe String -> Map String Int -> [String]
 showTable k mtable m =
@@ -600,6 +611,7 @@ sufficientlyCovered confidence n k p =
     tol = tolerance confidence
 
 insufficientlyCovered :: Maybe Integer -> Int -> Int -> Double -> Bool
+insufficientlyCovered _ 0 _ p | p > 0 = True
 insufficientlyCovered Nothing n k p =
   fromIntegral k < p * fromIntegral n
 insufficientlyCovered (Just err) n k p =
