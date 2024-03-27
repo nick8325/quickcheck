@@ -254,7 +254,7 @@ Test-Suite test-quickcheck-misc
     Default-language: Haskell2010
     hs-source-dirs: tests
     main-is: Misc.hs
-    build-depends: base, QuickCheck
+    build-depends: base, QuickCheck, containers
     if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
         buildable: False
 

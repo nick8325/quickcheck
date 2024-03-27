@@ -279,7 +279,7 @@ data Result
     -- ^ maximum test size
   , labels              :: [String]
     -- ^ test case labels
-  , classes             :: [String]
+  , classes             :: [(String, Bool)]
     -- ^ test case classes
   , tables              :: [(String, String)]
     -- ^ test case tables
@@ -616,13 +616,12 @@ classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
-classify False _ = property
-classify True s =
+classify b s =
 #ifndef NO_DEEPSEQ
   s `deepseq`
 #endif
   mapTotalResult $
-    \res -> res { classes = s:classes res }
+    \res -> res { classes = (s, b):classes res }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones

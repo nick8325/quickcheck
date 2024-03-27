@@ -372,7 +372,8 @@ runATest st f =
          addCoverageInfo st0 =
            st0{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st0
               , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st0)
-              , S.classes = Map.unionWith (+) (S.classes st0) (Map.fromList (zip (P.classes res) (repeat 1)))
+              , S.classes = Map.unionWith (+) (S.classes st0)
+                                              (Map.fromList [ (s, if b then 1 else 0) | (s, b) <- P.classes res ])
               , S.tables =
                 foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
                   (S.tables st0) (P.tables res)
@@ -424,7 +425,7 @@ runATest st f =
                             , theException    = P.theException res
                             , failingTestCase = testCase
                             , failingLabels   = P.labels res
-                            , failingClasses  = Set.fromList (P.classes res)
+                            , failingClasses  = Set.fromList (map fst $ filter snd $ P.classes res)
                             }
  where
   (rnd1,rnd2) = split (randomSeed st)
