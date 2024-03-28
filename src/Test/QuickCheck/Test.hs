@@ -227,6 +227,8 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
 
 computeSize :: State -> Int
 computeSize MkState{replayStartSize = Just s,numSuccessTests = 0,numRecentlyDiscardedTests=0} = s
+-- NOTE: Beware that changing this means you also have to change `prop_discardCoverage` as that currently relies
+-- on the sequence produced by this function.
 computeSize MkState{maxSuccessTests = ms, maxTestSize = mts, maxDiscardedRatio = md,numSuccessTests=n,numRecentlyDiscardedTests=d}
     -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
     -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
