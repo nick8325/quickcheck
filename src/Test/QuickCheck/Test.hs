@@ -51,6 +51,7 @@ import Data.Ord(comparing)
 import Text.Printf(printf)
 import Control.Monad
 import Data.Bits
+import Data.Maybe
 
 #ifndef NO_TYPEABLE
 import Data.Typeable (Typeable)
@@ -286,43 +287,66 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 -- main test loop
 
 test :: State -> Property -> IO Result
-test st prop = case coverageConfidence st of
-  Nothing
-    | numSuccessTests st >= maxSuccessTests st -> doneTesting st prop
+test st prop
+  | finishedSuccessfully st         = doneTesting st prop
+  | finishedInsufficientCoverage st = failCoverage st prop
+  | tooManyDiscards st              = giveUp st prop
+  | otherwise                       = runATest st prop
 
-  Just confidence
-    | timeToCheckCoverage ->
-        checkCoverageAndContinue confidence st prop
+finishedSuccessfully :: State -> Bool
+finishedSuccessfully st
+  | checkingCoverage st =
+      and [ timeToCheckCoverage st
+          , coverageKnownSufficient st
+          , numSuccessTests st >= maxSuccessTests st
+          ]
+  | otherwise = numSuccessTests st >= maxSuccessTests st
 
-  _ | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) -> giveUp st prop
-    | otherwise -> runATest st prop
+finishedInsufficientCoverage :: State -> Bool
+finishedInsufficientCoverage st =
+  and [ checkingCoverage st
+      , timeToCheckCoverage st
+      , coverageKnownInsufficient st
+      ]
 
-  where
-    timeToCheckCoverage
-      | numSuccessTests st == maxSuccessTests st = True
-      | otherwise =
-          and [ numSuccessTests st > 0
-              , numSuccessTests st `mod` 100 == 0
-              , powerOfTwo (numSuccessTests st `div` 100)
-              ]
-    powerOfTwo n = n .&. (n - 1) == 0
+tooManyDiscards :: State -> Bool
+tooManyDiscards st = numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st)
 
-checkCoverageAndContinue :: Confidence -> State -> Property -> IO Result
-checkCoverageAndContinue confidence st prop
-  | and [ sufficientlyCovered confidence tot n p
-        | (_, _, tot, n, p) <- allCoverage st ]
-  && noMoreTests = doneTesting st prop
-  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
-       | (_, _, tot, n, p) <- allCoverage st ] =
-    let (theLabels, theTables) = labelsAndTables st in
+checkingCoverage :: State -> Bool
+checkingCoverage st = isJust (coverageConfidence st)
+
+timeToCheckCoverage :: State -> Bool
+timeToCheckCoverage st
+ -- This is the time when we would normally finish testing, so lets check
+ -- it now to see if we can finish testing already
+ | numSuccessTests st == maxSuccessTests st && numRecentlyDiscardedTests st == 0 = True
+ -- We are on test 100 * 2^k for k > 0
+ | otherwise =
+    and [ numSuccessTests st > 0
+        , numSuccessTests st `mod` 100 == 0
+        , powerOfTwo (numSuccessTests st `div` 100)
+        ]
+  where powerOfTwo n = n .&. (n - 1) == 0
+
+coverageKnownSufficient :: State -> Bool
+coverageKnownSufficient st@MkState{coverageConfidence=Just confidence} =
+  and [ sufficientlyCovered confidence tot n p | (_, _, tot, n, p) <- allCoverage st ]
+coverageKnownSufficient _ = True
+
+coverageKnownInsufficient :: State -> Bool
+coverageKnownInsufficient st@MkState{coverageConfidence=Just confidence} =
+  or [ insufficientlyCovered (Just (certainty confidence)) tot n p
+     | (_, _, tot, n, p) <- allCoverage st ]
+coverageKnownInsufficient _ = False
+
+failCoverage :: State -> Property -> IO Result
+failCoverage st prop =
              -- The last test wasn't actually successful, as the coverage failed
              -- also this prevents an off-by-one error in the printing
     runATest st{numSuccessTests = numSuccessTests st - 1}
              $ foldr counterexample (property failed{P.reason = "Insufficient coverage"})
                                     (paragraphs [theLabels, theTables])
-  | otherwise = runATest st prop
-  where
-    noMoreTests = numSuccessTests st >= maxSuccessTests st
+    where (theLabels, theTables) = labelsAndTables st
 
 doneTesting :: State -> Property -> IO Result
 doneTesting st _f
