@@ -598,7 +598,9 @@ localMin st res ts = do
     Right () -> do
       r <- tryEvaluate ts
       case r of
-        Left err ->
+        Left err
+          | isDiscard err -> localMinFound st res
+          | otherwise ->
           localMinFound st
             (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
         Right ts' -> localMin' st res ts'

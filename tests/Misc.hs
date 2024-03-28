@@ -4,6 +4,7 @@
 import Test.QuickCheck
 import Test.QuickCheck.Random
 import Data.Map
+import Control.Monad
 
 prop_verbose :: Blind (Int -> Int -> Bool) -> Property
 prop_verbose (Blind p) =
@@ -40,4 +41,7 @@ main = do
   Success{classes=cls} <- quickCheckResult $ classify False "A" $ classify True "B" True
   [("A",0),("B",100)] <- return $ toList cls
   Success{numTests=1000} <- quickCheckResult prop_cover
+  forM_ [const discard, const [discard], \ x -> discard : shrink x] $ \ shr -> do
+    Failure{reason="Falsified"} <- quickCheckResult $ forAllShrink arbitrary shr (odd :: Int -> Bool)
+    return ()
   return ()
