@@ -147,6 +147,13 @@ import System.IO
 #endif
 #endif
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Semigroup as Semigroup
+#endif
+#endif
+
 import Control.Monad
   ( liftM
   , liftM2
@@ -157,6 +164,7 @@ import Control.Monad
 
 import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Word(Word, Word8, Word16, Word32, Word64)
+import Data.Ord
 import System.Exit (ExitCode(..))
 import Foreign.C.Types
 
@@ -1012,6 +1020,18 @@ instance Arbitrary a => Arbitrary (Monoid.Last a) where
   shrink = map Monoid.Last . shrink . Monoid.getLast
 #endif
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (Semigroup.Min a) where
+  arbitrary = fmap Semigroup.Min arbitrary
+  shrink = map Semigroup.Min . shrink . Semigroup.getMin
+
+instance Arbitrary a => Arbitrary (Semigroup.Max a) where
+  arbitrary = fmap Semigroup.Max arbitrary
+  shrink = map Semigroup.Max . shrink . Semigroup.getMax
+#endif
+#endif
+
 #if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
@@ -1063,6 +1083,29 @@ instance Arbitrary NewlineMode where
   arbitrary = NewlineMode <$> arbitrary <*> arbitrary
 
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,6,0)
+instance Arbitrary1 Down where
+  liftArbitrary = fmap Down
+  liftShrink shr (Down a) = Down <$> shr a
+
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = (:|) <$> arbitrary <*> arbitrary
+  shrink (a :| bs) =
+    [ a' :| bs | a' <- shrink a ] ++
+    [ b :| bs' | b : bs' <- [bs] ] ++
+    [ a :| bs' | bs' <- shrink bs ]
 #endif
 #endif
 
@@ -1400,6 +1443,20 @@ instance CoArbitrary a => CoArbitrary [a] where
 instance (Integral a, CoArbitrary a) => CoArbitrary (Ratio a) where
   coarbitrary r = coarbitrary (numerator r,denominator r)
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,6,0)
+instance CoArbitrary a => CoArbitrary (Down a) where
+  coarbitrary (Down x) = coarbitrary x
+#endif
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (a :| as) = coarbitrary (a, as)
+#endif
+#endif
+
 #ifndef NO_FIXED
 instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
@@ -1544,6 +1601,15 @@ instance CoArbitrary a => CoArbitrary (Monoid.First a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
 #endif
+
+#if MIN_VERSION_base(4,9,0)
+instance CoArbitrary a => CoArbitrary (Semigroup.Min a) where
+  coarbitrary = coarbitrary . Semigroup.getMin
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Max a) where
+  coarbitrary = coarbitrary . Semigroup.getMax
+#endif
+
 
 #if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
