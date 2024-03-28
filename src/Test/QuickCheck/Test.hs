@@ -312,7 +312,9 @@ finishedInsufficientCoverage st =
       ]
 
 tooManyDiscards :: State -> Bool
-tooManyDiscards st = numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st)
+tooManyDiscards st
+  | maxDiscardedRatio st > 0 = numDiscardedTests st `div` maxDiscardedRatio st >= max (numSuccessTests st) (maxSuccessTests st)
+  | otherwise = numDiscardedTests st > 0
 
 checkingCoverage :: State -> Bool
 checkingCoverage st = isJust (coverageConfidence st)
