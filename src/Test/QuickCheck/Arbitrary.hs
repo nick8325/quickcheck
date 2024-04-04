@@ -1096,9 +1096,17 @@ applyArbitrary4 f = applyArbitrary3 (uncurry f)
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
 arbitrarySizedIntegral :: Integral a => Gen a
-arbitrarySizedIntegral =
-  sized $ \n ->
-  inBounds fromIntegral (chooseInt (-n, n))
+arbitrarySizedIntegral
+  | isNonNegative = arbitrarySizedNatural
+  | otherwise = sized $ \n -> inBounds fromI (chooseInt (-n, n))
+  where
+    -- NOTE: this is a trick to make sure we get around lack of scoped type
+    -- variables by pinning the result-type of fromIntegral.
+    fromI = fromIntegral
+    isNonNegative =
+      case enumFromThen 1 (fromI 0) of
+        [_, _] -> True
+        _ -> False
 
 -- | Generates a natural number. The number's maximum value depends on
 -- the size parameter.
