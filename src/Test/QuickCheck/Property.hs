@@ -256,29 +256,29 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
                   | NotCounterexample -- ^ Not affected by the 'verbose' combinator
 
 #ifndef NO_TYPEABLE
-data Counterexample = forall a. (Typeable a, Show a) => Cex a
+data Witness = forall a. (Typeable a, Show a) => Cex a
 
-instance Show Counterexample where
+instance Show Witness where
   show (Cex a) = show a
 
-coerceCounterexample :: Typeable a => Counterexample -> a
-coerceCounterexample (Cex a) = case cast a of
-  Nothing -> error $ "Can't coerceCounterexample " ++ show a
+coerceWitness :: Typeable a => Witness -> a
+coerceWitness (Cex a) = case cast a of
+  Nothing -> error $ "Can't coerceWitness " ++ show a
   Just a -> a
 
-castCounterexample :: Typeable a => Counterexample -> Maybe a
-castCounterexample (Cex a) = cast a
+castWitness :: Typeable a => Witness -> Maybe a
+castWitness (Cex a) = cast a
 
-data Counterexamples = NoCounterexamples
-                     | forall a. (Typeable a, Show a) => a :! Counterexamples
+data Witnesses = NoWitnesses
+                     | forall a. (Typeable a, Show a) => a :! Witnesses
 
-toCounterexamples :: [Counterexample] -> Counterexamples
-toCounterexamples [] = NoCounterexamples
-toCounterexamples (Cex a : ces) = a :! toCounterexamples ces
+toWitnesses :: [Witness] -> Witnesses
+toWitnesses [] = NoWitnesses
+toWitnesses (Cex a : ces) = a :! toWitnesses ces
 
-#define COUNTEREXAMPLES(a) , theCounterexamples a
+#define WITNESSES(a) , theWitnesses a
 #else
-#define COUNTEREXAMPLES(a)
+#define WITNESSES(a)
 #endif
 
 -- | The result of a single test.
@@ -316,7 +316,7 @@ data Result
     -- ^ the callbacks for this test case
   , testCase            :: [String]
     -- ^ the generated test case
-  COUNTEREXAMPLES(:: [Counterexample])
+  WITNESSES(:: [Witness])
   }
 
 exception :: String -> AnException -> Result
@@ -357,7 +357,7 @@ succeeded, failed, rejected :: Result
       , requiredCoverage    = []
       , callbacks           = []
       , testCase            = []
-      COUNTEREXAMPLES(= [])
+      WITNESSES(= [])
       }
 
 --------------------------------------------------------------------------
@@ -532,10 +532,10 @@ withMaxSize :: Testable prop => Int -> prop -> Property
 withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
 
 #ifndef NO_TYPEABLE
--- | Return a value in the 'counterexamples' field of the 'Result' returned by 'quickCheckResult'. Counterexamples
+-- | Return a value in the 'counterexamples' field of the 'Result' returned by 'quickCheckResult'. Witnesses
 -- are returned outer-most first.
-withCounterexample :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
-withCounterexample a = a `seq` mapTotalResult (\res -> res{ theCounterexamples = Cex a : theCounterexamples res })
+withWitness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
+withWitness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Cex a : theWitnesses res })
 #endif
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
@@ -1000,7 +1000,7 @@ disjoin ps =
                    testCase =
                      testCase result1 ++
                      testCase result2
-                   COUNTEREXAMPLES(= theCounterexamples result1 ++ theCounterexamples result2)
+                   WITNESSES(= theWitnesses result1 ++ theWitnesses result2)
                    }
                Nothing -> result2
          -- The "obvious" semantics of .||. has:

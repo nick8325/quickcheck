@@ -79,8 +79,8 @@ module Test.QuickCheck
   , quickCheckWithResult
   , quickCheckResult
 #ifndef NO_TYPEABLE
-  , quickCheckCounterexample
-  , quickCheckWithCounterexample
+  , quickCheckWitness
+  , quickCheckWithWitness
 #endif
   , recheck
   , isSuccess
@@ -323,10 +323,10 @@ module Test.QuickCheck
   , disjoin
     -- ** What to do on failure
 #ifndef NO_TYPEABLE
-  , Counterexample(..)
-  , withCounterexample
-  , coerceCounterexample
-  , castCounterexample
+  , Witness(..)
+  , withWitness
+  , coerceWitness
+  , castWitness
 #endif
   , counterexample
   , printTestCase
