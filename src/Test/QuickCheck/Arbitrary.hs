@@ -501,8 +501,21 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 -}
 
 instance Integral a => Arbitrary (Ratio a) where
-  arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFrac
+  arbitrary = sized $ \ n -> do
+    denom <- chooseInt (1, max 1 n)
+    let lb | isNonNegative = 0
+           | otherwise = (-n*denom)
+    numer <- chooseInt (lb, n*denom)
+    pure $ fromI numer % fromI denom
+    where
+      -- NOTE: this is a trick to make sure we get around lack of scoped type
+      -- variables by pinning the result-type of fromIntegral.
+      fromI = fromIntegral
+      isNonNegative =
+        case enumFromThen 1 (fromI 0) of
+          [_, _] -> True
+          _ -> False
+  shrink = shrinkRealFrac
 
 #if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
 instance Arbitrary a => Arbitrary (Complex a) where
