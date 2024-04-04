@@ -145,8 +145,8 @@ data Result
     , failingClasses  :: Set String
       -- ^ The test case's classes (see 'classify')
 #ifndef NO_TYPEABLE
-    , counterexamples :: [Witness]
-      -- ^ The existentially quantified counterexamples provided by 'withWitness'
+    , witnesses :: [Witness]
+      -- ^ The existentially quantified witnesses provided by 'withWitness'
 #endif
     }
   -- | A property that should have failed did not
@@ -204,20 +204,20 @@ quickCheckWithResult a p =
   withState a (\s -> test s (property p))
 
 #ifndef NO_TYPEABLE
--- | Test a property and get counterexamples as a result. Can be used like:
+-- | Test a property and get witnesses as a result. Can be used like:
 --
 -- @
--- $> x :! _ <- quickCheckWitness $ \ x -> withWitness (x :: Int) (x > 0)
+-- $> x :! _ <- quickCheckWitnesses $ \ x -> withWitness (x :: Int) (x > 0)
 -- *** Failed! Falsified (after 1 test):
 -- 0
 -- $> x
 -- 0
-quickCheckWitness :: Testable prop => prop -> IO Witnesses
-quickCheckWitness = quickCheckWithWitness stdArgs
+quickCheckWitnesses :: Testable prop => prop -> IO Witnesses
+quickCheckWitnesses = quickCheckWithWitnesses stdArgs
 
--- | Test a property, using test arguments, and get counterexamples as a result.
-quickCheckWithWitness :: Testable prop => Args -> prop -> IO Witnesses
-quickCheckWithWitness args p = toWitnesses . counterexamples <$> quickCheckWithResult args p
+-- | Test a property, using test arguments, and get witnesses as a result.
+quickCheckWithWitnesses :: Testable prop => Args -> prop -> IO Witnesses
+quickCheckWithWitnesses args p = toWitnesses . witnesses <$> quickCheckWithResult args p
 #endif
 
 -- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
@@ -508,7 +508,7 @@ runATest st prop =
                             , failingLabels   = P.labels res
                             , failingClasses  = Set.fromList (map fst $ filter snd $ P.classes res)
 #ifndef NO_TYPEABLE
-                            , counterexamples = theWitnesses res
+                            , witnesses = theWitnesses res
 #endif
                             }
  where
