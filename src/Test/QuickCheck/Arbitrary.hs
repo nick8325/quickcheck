@@ -852,8 +852,9 @@ instance Arbitrary CDouble where
   shrink = shrinkDecimal
 
 -- Arbitrary instances for container types
--- | WARNING: This instance aims to give a good representation of @Set a@
--- as sets but does not aim to provide a varied distribution over the
+-- | WARNING: Users working on the internals of the @Set@ type via e.g. @Data.Set.Internal@
+-- should be aware that this instance aims to give a good representation of @Set a@
+-- as mathematical sets but *does not* aim to provide a varied distribution over the
 -- underlying representation.
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
   arbitrary = fmap Set.fromList arbitrary
