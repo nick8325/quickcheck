@@ -503,7 +503,7 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
     denom <- chooseInt (1, max 1 n)
-    let lb | isNonNegative = 0
+    let lb | isNonNegativeType fromI = 0
            | otherwise = (-n*denom)
     numer <- chooseInt (lb, n*denom)
     pure $ fromI numer % fromI denom
@@ -511,10 +511,6 @@ instance Integral a => Arbitrary (Ratio a) where
       -- NOTE: this is a trick to make sure we get around lack of scoped type
       -- variables by pinning the result-type of fromIntegral.
       fromI = fromIntegral
-      isNonNegative =
-        case enumFromThen 1 (fromI 0) of
-          [_, _] -> True
-          _ -> False
   shrink = shrinkRealFrac
 
 #if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
@@ -1110,16 +1106,18 @@ applyArbitrary4 f = applyArbitrary3 (uncurry f)
 -- and its maximum absolute value depends on the size parameter.
 arbitrarySizedIntegral :: Integral a => Gen a
 arbitrarySizedIntegral
-  | isNonNegative = arbitrarySizedNatural
+  | isNonNegativeType fromI = arbitrarySizedNatural
   | otherwise = sized $ \n -> inBounds fromI (chooseInt (-n, n))
   where
     -- NOTE: this is a trick to make sure we get around lack of scoped type
     -- variables by pinning the result-type of fromIntegral.
     fromI = fromIntegral
-    isNonNegative =
-      case enumFromThen 1 (fromI 0) of
-        [_, _] -> True
-        _ -> False
+
+isNonNegativeType :: Enum a => (Int -> a) -> Bool
+isNonNegativeType fromI =
+  case enumFromThen (fromI 1) (fromI 0) of
+    [_, _] -> True
+    _ -> False
 
 -- | Generates a natural number. The number's maximum value depends on
 -- the size parameter.
