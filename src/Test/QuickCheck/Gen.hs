@@ -298,11 +298,7 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
 -- If it fails to do so it discards the test case if the result
 -- is used in the test.
 discardUnless :: Gen a -> (a -> Bool) -> Gen a
-discardUnless g p = do
-  a <- g
-  if p a
-  then pure a
-  else discard
+discardUnless g p = (\ a -> if p a then a else discard) <$> g
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.
