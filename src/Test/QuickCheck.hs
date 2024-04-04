@@ -79,8 +79,8 @@ module Test.QuickCheck
   , quickCheckWithResult
   , quickCheckResult
 #ifndef NO_TYPEABLE
-  , quickCheckWitness
-  , quickCheckWithWitness
+  , quickCheckWitnesses
+  , quickCheckWithWitnesses
 #endif
   , recheck
   , isSuccess

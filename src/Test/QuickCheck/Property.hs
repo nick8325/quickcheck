@@ -532,7 +532,7 @@ withMaxSize :: Testable prop => Int -> prop -> Property
 withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
 
 #ifndef NO_TYPEABLE
--- | Return a value in the 'counterexamples' field of the 'Result' returned by 'quickCheckResult'. Witnesses
+-- | Return a value in the 'witnesses' field of the 'Result' returned by 'quickCheckResult'. Witnesses
 -- are returned outer-most first.
 withWitness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
 withWitness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Cex a : theWitnesses res })
