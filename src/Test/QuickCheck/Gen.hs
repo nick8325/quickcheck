@@ -297,8 +297,8 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
 -- | Tries to generate a value that satisfies a predicate.
 -- If it fails to do so it discards the test case if the result
 -- is used in the test.
-suchThatDiscard :: Gen a -> (a -> Bool) -> Gen a
-suchThatDiscard g p = do
+discardUnless :: Gen a -> (a -> Bool) -> Gen a
+discardUnless g p = do
   a <- g
   if p a
   then pure a

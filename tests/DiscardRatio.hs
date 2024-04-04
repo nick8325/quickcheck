@@ -50,6 +50,6 @@ main = do
   quickCheckYes $ withDiscardRatio 40 p50
   quickCheckYesWith stdArgs{maxDiscardRatio = 40} p50
 
-  quickCheckNo $ forAll  (choose (1 :: Int, 10) `suchThatDiscard` const False) $ \ x -> x == x
-  quickCheckYes $ forAll (choose (1 :: Int, 10) `suchThatDiscard` const False) $ \ _ -> True
-  quickCheckYes $ forAll (choose (1 :: Int, 10) `suchThatDiscard` (> 3))       $ \ x -> x == x
+  quickCheckNo $ forAll  (choose (1 :: Int, 10) `discardUnless` const False) $ \ x -> x == x
+  quickCheckYes $ forAll (choose (1 :: Int, 10) `discardUnless` const False) $ \ _ -> True
+  quickCheckYes $ forAll (choose (1 :: Int, 10) `discardUnless` (> 3))       $ \ x -> x == x
