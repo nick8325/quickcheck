@@ -145,8 +145,8 @@ data Result
     , failingClasses  :: Set String
       -- ^ The test case's classes (see 'classify')
 #ifndef NO_TYPEABLE
-    , counterexamples :: [Counterexample]
-      -- ^ The existentially quantified counterexamples provided by 'withCounterexample'
+    , counterexamples :: [Witness]
+      -- ^ The existentially quantified counterexamples provided by 'withWitness'
 #endif
     }
   -- | A property that should have failed did not
@@ -207,17 +207,17 @@ quickCheckWithResult a p =
 -- | Test a property and get counterexamples as a result. Can be used like:
 --
 -- @
--- $> x :! _ <- quickCheckCounterexample $ \ x -> withCounterexample (x :: Int) (x > 0)
+-- $> x :! _ <- quickCheckWitness $ \ x -> withWitness (x :: Int) (x > 0)
 -- *** Failed! Falsified (after 1 test):
 -- 0
 -- $> x
 -- 0
-quickCheckCounterexample :: Testable prop => prop -> IO Counterexamples
-quickCheckCounterexample = quickCheckWithCounterexample stdArgs
+quickCheckWitness :: Testable prop => prop -> IO Witnesses
+quickCheckWitness = quickCheckWithWitness stdArgs
 
 -- | Test a property, using test arguments, and get counterexamples as a result.
-quickCheckWithCounterexample :: Testable prop => Args -> prop -> IO Counterexamples
-quickCheckWithCounterexample args p = toCounterexamples . counterexamples <$> quickCheckWithResult args p
+quickCheckWithWitness :: Testable prop => Args -> prop -> IO Witnesses
+quickCheckWithWitness args p = toWitnesses . counterexamples <$> quickCheckWithResult args p
 #endif
 
 -- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
@@ -508,7 +508,7 @@ runATest st prop =
                             , failingLabels   = P.labels res
                             , failingClasses  = Set.fromList (map fst $ filter snd $ P.classes res)
 #ifndef NO_TYPEABLE
-                            , counterexamples = theCounterexamples res
+                            , counterexamples = theWitnesses res
 #endif
                             }
  where
