@@ -505,12 +505,11 @@ instance Integral a => Arbitrary (Ratio a) where
     denom <- chooseInt (1, max 1 n)
     let lb | isNonNegativeType fromI = 0
            | otherwise = (-n*denom)
+        -- NOTE: this is a trick to make sure we get around lack of scoped type
+        -- variables by pinning the result-type of fromIntegral.
+        fromI = fromIntegral
     numer <- chooseInt (lb, n*denom)
     pure $ fromI numer % fromI denom
-    where
-      -- NOTE: this is a trick to make sure we get around lack of scoped type
-      -- variables by pinning the result-type of fromIntegral.
-      fromI = fromIntegral
   shrink = shrinkRealFrac
 
 #if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
