@@ -15,6 +15,8 @@ module Test.QuickCheck.Gen where
 --------------------------------------------------------------------------
 -- imports
 
+import Test.QuickCheck.Exception
+
 import System.Random
   ( Random
   , random
@@ -245,8 +247,13 @@ sample' g =
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g =
-  do cases <- sample' g
-     mapM_ print cases
+  sequence_ [ do mr <- tryEvaluateIO (generate $ resize n g)
+                 case mr of
+                  Left e
+                    | isDiscard e -> putStrLn "<DISCARDED>"
+                    | otherwise -> error $ unlines $ "Uncaught exception in sample: " : map ("  " ++) (lines $ show e)
+                  Right a -> print a
+            | n <- [0,2..20] ]
 
 --------------------------------------------------------------------------
 -- ** Floating point
