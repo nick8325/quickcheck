@@ -247,12 +247,13 @@ sample' g =
 -- | Generates some example values and prints them to 'stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g =
-  sequence_ [ do mr <- tryEvaluateIO (generate $ resize n g)
-                 case mr of
+  sequence_ [ do r <- newQCGen
+                 munit <- tryEvaluateIO (print $ unGen g r n)
+                 case munit of
                   Left e
                     | isDiscard e -> putStrLn "<DISCARDED>"
                     | otherwise -> error $ unlines $ "Uncaught exception in sample: " : map ("  " ++) (lines $ show e)
-                  Right a -> print a
+                  Right () -> return ()
             | n <- [0,2..20] ]
 
 --------------------------------------------------------------------------
