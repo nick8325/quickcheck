@@ -44,4 +44,7 @@ main = do
   forM_ [const discard, const [discard], \ x -> discard : shrink x] $ \ shr -> do
     Failure{reason="Falsified"} <- quickCheckResult $ forAllShrink arbitrary shr (odd :: Int -> Bool)
     return ()
-  return ()
+  -- These shouldn't crash
+  sample (discard :: Gen Int)
+  sample (oneof [discard, return 1] :: Gen Int)
+  sample (oneof [return (1, discard), return (1, 1)] :: Gen (Int, Int))
