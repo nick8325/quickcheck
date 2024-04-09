@@ -729,7 +729,8 @@ tabulate key values =
 -- | Checks that the values in a given 'table' appear a certain proportion of
 -- the time. A call to 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ asserts
 -- that of the values in @table@, @x1@ should appear at least @p1@ percent of
--- the time, @x2@ at least @p2@ percent of the time, and so on.
+-- the time that @table@ appears, @x2@ at least @p2@ percent of the time that
+-- @table@ appears, and so on.
 --
 -- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
 -- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
