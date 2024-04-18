@@ -146,7 +146,7 @@ data Result
       -- ^ The test case's classes (see 'classify')
 #ifndef NO_TYPEABLE
     , witnesses :: [Witness]
-      -- ^ The existentially quantified witnesses provided by 'withWitness'
+      -- ^ The existentially quantified witnesses provided by 'witness'
 #endif
     }
   -- | A property that should have failed did not
@@ -207,7 +207,7 @@ quickCheckWithResult a p =
 -- | Test a property and get witnesses as a result. Can be used like:
 --
 -- @
--- $> x :! _ <- quickCheckWitnesses $ \ x -> withWitness (x :: Int) (x > 0)
+-- $> x :! _ <- quickCheckWitnesses $ \ x -> witness (x :: Int) (x > 0)
 -- *** Failed! Falsified (after 1 test):
 -- 0
 -- $> x
