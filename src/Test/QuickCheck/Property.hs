@@ -256,25 +256,25 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
                   | NotCounterexample -- ^ Not affected by the 'verbose' combinator
 
 #ifndef NO_TYPEABLE
-data Witness = forall a. (Typeable a, Show a) => Cex a
+data Witness = forall a. (Typeable a, Show a) => Wit a
 
 instance Show Witness where
-  show (Cex a) = show a
+  show (Wit a) = show a
 
 coerceWitness :: Typeable a => Witness -> a
-coerceWitness (Cex a) = case cast a of
+coerceWitness (Wit a) = case cast a of
   Nothing -> error $ "Can't coerceWitness " ++ show a
   Just a -> a
 
 castWitness :: Typeable a => Witness -> Maybe a
-castWitness (Cex a) = cast a
+castWitness (Wit a) = cast a
 
 data Witnesses = NoWitnesses
                      | forall a. (Typeable a, Show a) => a :! Witnesses
 
 toWitnesses :: [Witness] -> Witnesses
 toWitnesses [] = NoWitnesses
-toWitnesses (Cex a : ces) = a :! toWitnesses ces
+toWitnesses (Wit a : ces) = a :! toWitnesses ces
 
 #define WITNESSES(a) , theWitnesses a
 #else
@@ -534,8 +534,8 @@ withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n }
 #ifndef NO_TYPEABLE
 -- | Return a value in the 'witnesses' field of the 'Result' returned by 'quickCheckResult'. Witnesses
 -- are returned outer-most first.
-withWitness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
-withWitness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Cex a : theWitnesses res })
+witness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
+witness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Wit a : theWitnesses res })
 #endif
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'

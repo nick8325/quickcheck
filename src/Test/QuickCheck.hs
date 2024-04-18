@@ -324,7 +324,7 @@ module Test.QuickCheck
     -- ** What to do on failure
 #ifndef NO_TYPEABLE
   , Witness(..)
-  , withWitness
+  , witness
   , coerceWitness
   , castWitness
 #endif
