@@ -269,13 +269,6 @@ coerceWitness (Wit a) = case cast a of
 castWitness :: Typeable a => Witness -> Maybe a
 castWitness (Wit a) = cast a
 
-data Witnesses = NoWitnesses
-                     | forall a. (Typeable a, Show a) => a :! Witnesses
-
-toWitnesses :: [Witness] -> Witnesses
-toWitnesses [] = NoWitnesses
-toWitnesses (Wit a : ces) = a :! toWitnesses ces
-
 #define WITNESSES(a) , theWitnesses a
 #else
 #define WITNESSES(a)
@@ -534,6 +527,16 @@ withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n }
 #ifndef NO_TYPEABLE
 -- | Return a value in the 'witnesses' field of the 'Result' returned by 'quickCheckResult'. Witnesses
 -- are returned outer-most first.
+--
+-- In ghci, for example:
+--
+-- >>> [Wit x] <- fmap witnesses . quickCheckResult $ \ x -> witness x $ x == (0 :: Int)
+-- *** Failed! Falsified (after 2 tests):
+-- 1
+-- >>> x
+-- 1
+-- >>> :t x
+-- x :: Int
 witness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
 witness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Wit a : theWitnesses res })
 #endif

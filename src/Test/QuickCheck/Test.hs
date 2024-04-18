@@ -203,23 +203,6 @@ quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
 
-#ifndef NO_TYPEABLE
--- | Test a property and get witnesses as a result. Can be used like:
---
--- @
--- $> x :! _ <- quickCheckWitnesses $ \ x -> witness (x :: Int) (x > 0)
--- *** Failed! Falsified (after 1 test):
--- 0
--- $> x
--- 0
-quickCheckWitnesses :: Testable prop => prop -> IO Witnesses
-quickCheckWitnesses = quickCheckWithWitnesses stdArgs
-
--- | Test a property, using test arguments, and get witnesses as a result.
-quickCheckWithWitnesses :: Testable prop => Args -> prop -> IO Witnesses
-quickCheckWithWitnesses args p = toWitnesses . witnesses <$> quickCheckWithResult args p
-#endif
-
 -- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
 recheck :: Testable prop => Result -> prop -> IO ()
 recheck res@Failure{} = quickCheckWith stdArgs{ replay = Just (usedSeed res, usedSize res)} . once

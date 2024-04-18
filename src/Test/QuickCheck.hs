@@ -78,10 +78,6 @@ module Test.QuickCheck
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
-#ifndef NO_TYPEABLE
-  , quickCheckWitnesses
-  , quickCheckWithWitnesses
-#endif
   , recheck
   , isSuccess
     -- ** Running tests verbosely
