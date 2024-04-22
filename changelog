@@ -1,3 +1,33 @@
+QuickCheck 2.15
+	* BREAKING: properties without quantification are no longer implicitly
+	  wrapped in once
+	* Add witness property modifier and witnesses field in result on
+	compilers that support Typeable to allow conveniently exposing
+	counterexamples
+	* Add assertException, assertExceptionIO, assertDeepException, and
+	assertDeepExceptionIO (thanks to Alexey Kuleshevich)
+	* Add withMaxSize, withMaxShrinks, and withMaxDiscardRatio combinators
+	* Add recheck
+	* Add HasCallStack to partial top-level functions
+	* Updated some documentation
+	* Fix overflow bug when calculating discard ratio
+	* Fix error printing bug when shrinks are discarded
+	* Fix withMaxSuccess not working when checkCoverage is turned on
+	* Fix a bug whereby an unfortunately timed discard could unduly fail a
+	property running with checkCoverage
+	* Fix Arbitrary intance for Map breaking invariants from
+	Data.Map.Strict (thanks to Neil Mayhew)
+	* Fix non-covered classes not showing up in output as 0% covered
+	* Fix Negative's Arbitrary instance discarding an unnecessary number
+	of generated values.
+	* Fix promote doing an unnecessary seed split
+	* Fix a bug whereby maxSuccess and discardRatio would interact poorly
+	to produce too few size increases.
+	* Fix a couple of underflow bugs in generators for Small Natural and
+	Ratio Natural
+	* Fix a bug whereby the internal DISCARDED exception would show up
+	user-side in sample
+
 QuickCheck 2.14.3 (released 2023-05-31)
 	* Add shrinkBoundedEnum (thanks to Jonathan Knowles)
 	* Add discardAfter for discarding tests on timeout (thanks to Justus Sagemüller)
