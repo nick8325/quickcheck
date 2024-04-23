@@ -321,6 +321,8 @@ ghc-options:
   , within
   , discardAfter
   , withDiscardRatio
+  , withMaxSize
+  , withMaxShrinks
   , once
   , again
   , mapSize
