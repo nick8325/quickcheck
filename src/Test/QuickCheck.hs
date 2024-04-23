@@ -320,6 +320,7 @@ ghc-options:
   , withMaxSuccess
   , within
   , discardAfter
+  , withDiscardRatio
   , once
   , again
   , mapSize

@@ -269,31 +269,33 @@ data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok                 :: Maybe Bool
+  { ok                  :: Maybe Bool
     -- ^ result of the test case; Nothing = discard
-  , expect             :: Bool
+  , expect              :: Bool
     -- ^ indicates what the expected result of the property is
-  , reason             :: String
+  , reason              :: String
     -- ^ a message indicating what went wrong
-  , theException       :: Maybe AnException
+  , theException        :: Maybe AnException
     -- ^ the exception thrown, if any
-  , abort              :: Bool
+  , abort               :: Bool
     -- ^ if True, the test should not be repeated
-  , maybeNumTests      :: Maybe Int
+  , maybeNumTests       :: Maybe Int
     -- ^ stop after this many tests
-  , maybeCheckCoverage :: Maybe Confidence
+  , maybeCheckCoverage  :: Maybe Confidence
     -- ^ required coverage confidence
-  , labels             :: [String]
+  , maybeDiscardedRatio :: Maybe Int
+    -- ^ maximum number of discarded tests per succesful test
+  , labels              :: [String]
     -- ^ test case labels
-  , classes            :: [String]
+  , classes             :: [String]
     -- ^ test case classes
-  , tables             :: [(String, String)]
+  , tables              :: [(String, String)]
     -- ^ test case tables
-  , requiredCoverage   :: [(Maybe String, String, Double)]
+  , requiredCoverage    :: [(Maybe String, String, Double)]
     -- ^ required coverage
-  , callbacks          :: [Callback]
+  , callbacks           :: [Callback]
     -- ^ the callbacks for this test case
-  , testCase           :: [String]
+  , testCase            :: [String]
     -- ^ the generated test case
   }
 
@@ -319,19 +321,20 @@ succeeded, failed, rejected :: Result
   where
     result =
       MkResult
-      { ok                 = undefined
-      , expect             = True
-      , reason             = ""
-      , theException       = Nothing
-      , abort              = True
-      , maybeNumTests      = Nothing
-      , maybeCheckCoverage = Nothing
-      , labels             = []
-      , classes            = []
-      , tables             = []
-      , requiredCoverage   = []
-      , callbacks          = []
-      , testCase           = []
+      { ok                  = undefined
+      , expect              = True
+      , reason              = ""
+      , theException        = Nothing
+      , abort               = True
+      , maybeNumTests       = Nothing
+      , maybeCheckCoverage  = Nothing
+      , maybeDiscardedRatio = Nothing
+      , labels              = []
+      , classes             = []
+      , tables              = []
+      , requiredCoverage    = []
+      , callbacks           = []
+      , testCase            = []
       }
 
 --------------------------------------------------------------------------
@@ -480,6 +483,16 @@ again = mapTotalResult (\res -> res{ abort = False })
 -- will test @p@ up to 1000 times.
 withMaxSuccess :: Testable prop => Int -> prop -> Property
 withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+
+-- | Configures how many times a property is allowed to be discarded before failing.
+--
+-- For example,
+--
+-- > quickCheck (withDiscardRatio 10 p)
+--
+-- will allow @p@ to fail up to 10 times per successful test.
+withDiscardRatio :: Testable prop => Int -> prop -> Property
+withDiscardRatio n = n `seq` mapTotalResult (\res -> res{ maybeDiscardedRatio = Just n })
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
 -- are met, using a statistically sound test, and fail if they are not met.
@@ -934,6 +947,7 @@ disjoin ps =
                    abort = False,
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
+                   maybeDiscardedRatio = Nothing,
                    labels = [],
                    classes = [],
                    tables = [],
@@ -1102,8 +1116,8 @@ data State
     -- ^ Signal to the parent that you're terminating gracefully (not because of an exceptional event)
   , signalFailureFound          :: State -> QCGen -> Result -> [Rose Result] -> Int -> IO ()
 
-  , shouldUpdateAfterWithMaxSuccess :: Bool
-    -- ^ Should the budgets be adjusted after seeing withMaxSuccess number?
+  , shouldUpdateAfterWithStar   :: Bool
+    -- ^ Should the budgets be adjusted after seeing withMaxSuccess/withDiscardRatio?
   , stsizeStrategy              :: SizeStrategy
 
   , testBudget                  :: IORef Int

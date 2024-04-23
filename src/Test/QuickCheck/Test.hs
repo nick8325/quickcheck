@@ -483,8 +483,8 @@ quickCheckInternal a p = do
                                     , signalFailureFound = \st seed res ts size -> do tid <- myThreadId
                                                                                       tryPutMVar signal (KillTesters tid st seed res ts size)
                                                                                       return ()
-                                    , shouldUpdateAfterWithMaxSuccess = True
-                                    , stsizeStrategy                  = sizeStrategy a
+                                    , shouldUpdateAfterWithStar = True
+                                    , stsizeStrategy            = sizeStrategy a
                                     , numStarted = 1
                                     })
 
@@ -905,39 +905,44 @@ updateStateAfterResult (MkRose res ts) st =
      , expected = expect res
      }
 
-{- | Attached to a property might be desire to run more tests (@withMaxSuccess@). If
-this is the case, this function will detect that and recompute the testing/discard
-budget and update them accordingly. It will also set a flag in the state that makes it
-so that this stuff is not recomputed again. -}
+{- | A property might specify that a specific number of tests should be run (@withMaxSuccess@
+ and/or that we should use a custom discard ratio when (@withDiscardRatio@). This function
+will detect that and recompute the testing/discard budget and update them accordingly.
+It will also set a flag in the state that makes it so that this stuff computed only once. -}
 maybeUpdateAfterWithMaxSuccess :: Rose P.Result -> State -> IO State
 maybeUpdateAfterWithMaxSuccess (MkRose res ts) st = do
-  case maybeNumTests res of
-    Nothing -> return st
-    Just num -> case shouldUpdateAfterWithMaxSuccess st of
-      False -> return st
-      True  -> do
-        let numTestsPerTester    =
-              if myId st == 0
-                then num `div` numConcurrent st + (num `rem` numConcurrent st)
-                else num `div` numConcurrent st
+  case (maybeNumTests res, maybeDiscardedRatio res) of
+    (Nothing, Nothing) -> return st
+    (mnt, mdr) ->
+      if shouldUpdateAfterWithStar st
+        then updateState (fromMaybe (maxSuccessTests st) mnt) (fromMaybe (maxDiscardedRatio st) mdr) st
+        else return st
+  where
+    updateState :: Int -> Int -> State -> IO State
+    updateState numTests' maxDiscarded' st = do
+      let numTestsPerTester    =
+            if myId st == 0
+              then numTests' `div` numConcurrent st + (numTests' `rem` numConcurrent st)
+              else numTests' `div` numConcurrent st
 
-            newSuccessOffset     =
-              if myId st == 0
-                then 0
-                else numTestsPerTester * myId st + (num `rem` numConcurrent st)
+          newSuccessOffset     =
+            if myId st == 0
+              then 0
+              else numTestsPerTester * myId st + (numTests' `rem` numConcurrent st)
 
-            numDiscardsPerTester = numTestsPerTester * maxDiscardedRatio st
+          numDiscardsPerTester = numTestsPerTester * maxDiscarded'
 
-        atomicModifyIORef' (testBudget st) $ \remainingbudget ->
-          let newbudget = numTestsPerTester - 1 in (newbudget, ())
+      atomicModifyIORef' (testBudget st) $ \remainingbudget ->
+        let newbudget = numTestsPerTester - 1 in (newbudget, ())
         
-        atomicModifyIORef' (discardBudget st) $ \remainingbudget ->
-          let newbudget = numDiscardsPerTester - 1 in (newbudget, ())
+      atomicModifyIORef' (discardBudget st) $ \remainingbudget ->
+        let newbudget = numDiscardsPerTester - 1 in (newbudget, ())
 
-        return $ st { maxSuccessTests                 = num
-                    , numSuccessOffset                = newSuccessOffset
-                    , shouldUpdateAfterWithMaxSuccess = False
-                    }
+      return $ st { maxSuccessTests           = numTests'
+                  , numSuccessOffset          = newSuccessOffset
+                  , maxDiscardedRatio         = maxDiscarded'
+                  , shouldUpdateAfterWithStar = False
+                  }
 
 -- | Run a test
 {- | This function will generate and run a test case! The parameters are:
