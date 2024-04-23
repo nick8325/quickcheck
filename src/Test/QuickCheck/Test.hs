@@ -743,7 +743,7 @@ printer delay vsts = do
       where
         summary states =
           number (sum (map numSuccessTests states)) "test" ++
-          concat [ ";" ++ show (sum (map numDiscardedTests states)) ++ " discarded"
+          concat [ "; " ++ show (sum (map numDiscardedTests states)) ++ " discarded"
                  | sum (map numDiscardedTests states) > 0
                  ]
 
