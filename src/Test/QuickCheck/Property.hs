@@ -1069,9 +1069,10 @@ data State
     -- ^ maximum number of discarded tests per successful test
   , coverageConfidence        :: Maybe Confidence
     -- ^ required coverage confidence
-  , computeSize               :: Int -> Int -> Int
-    -- ^ how to compute the size of test cases from
-    --   #tests and #discarded tests
+  , replayStartSize           :: Maybe Int
+    -- ^ Size to start at when replaying
+  , maxTestSize               :: !Int
+    -- ^ Maximum size of test
   , numTotMaxShrinks          :: !Int
     -- ^ How many shrinks to try before giving up
 

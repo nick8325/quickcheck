@@ -446,9 +446,8 @@ quickCheckInternal a p = do
                                     , maxSuccessTests    = maxSuccess a
                                     , coverageConfidence = Nothing
                                     , maxDiscardedRatio  = maxDiscardRatio a
-                                    , computeSize = case replay a of
-                                                      Nothing -> computeSize'
-                                                      Just (_,s) -> computeSize' `at0` s
+                                    , replayStartSize           = snd <$> replay a
+                                    , maxTestSize               = maxSize a
                                     , numTotMaxShrinks          = maxShrinks a
                                     , numSuccessTests           = 0
                                     , numDiscardedTests         = 0
@@ -543,60 +542,37 @@ quickCheckInternal a p = do
 
       -- finally, return the report!
       return $ mergeReports reports
-  where
-    -- {- | Function that computes the size to use with every test. It looks a bit
-    -- scary but I think we can clear it up with some documentation!
-    -- 
-    -- Input parameters:
-      -- - Number of total successful tests executed to far,
-      -- - Number of recently discarded tests
-    -- 
-    -- The function behaves in two different ways. The first branch is taken if:
-      -- - Enough more tests will be run such that we can exhaustively try all sizes
-        -- from zero to maxsize
-      -- - Number of successful tests is larger than or equal to the maximum number of
-        -- tests to run. This is the case if we use e.g withMaxSuccess.
-      -- - The maximum number of successful tests to execute is a multiple of the size
-    -- 
-    -- In this case the size is the minimum of:
-      -- - The addition of the remainder of dividing the number of successful tests
-        -- with the maxsize, and the number of recently discarded tests divided by 10.
-      -- - maximum size
-    -- 
-    -- Otherwise the size of computed as the minimum of:
-      -- - some other unintuitive formula
-      -- - maximum size
-    -- 
-    -- The result of this is that the size will be enumerated from 0 to maxsize-1, and
-    -- then repeated until there is less than maxsize tests left to run. In that case
-    -- it will skip some values in order to go from 0 to 99. E.g with maxSuccess 250 and
-    -- maxSize 100, it enumerates [0..99] ++ [0..99] ++ [0,2..98]
-    -- -}
-    computeSize' :: Int -> Int -> Int
-    computeSize' n d
-      | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
-        n >= maxSuccess a                                 ||
-        maxSuccess a `mod` maxSize a == 0
-        = (n `mod` maxSize a + d `div` 10) `min` maxSize a
-      | otherwise =
-        ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10) `min` maxSize a
+--  where
 
-    {- | @roundTo n m@ rounds down @n@ to the closest multiple of @m@. E.g
-    @@@
-    roundTo 10 5 = 10
-    roundTo 12 5 = 10
-    roundTo 9  5 = 5
-    roundTo 16 5 = 15
-    @@@
-    -}
-    roundTo :: Integral a => a -> a -> a
+{-
+See the function testLoop to see how we take replaying into account
+
+          maxSuccessTests
+                | maxTestSize
+                |     maxDiscardedRation
+                |      |      |numSuccessTests
+                |      |      |      | numRecentlyDiscarded
+                v      v      v      v      v                   -}
+computeSize :: Int -> Int -> Int -> Int -> Int -> Int
+computeSize ms mts md n d
+    -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
+    -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
+    | n `roundTo` mts + mts <= ms ||
+      n >= ms ||
+      ms `mod` mts == 0 = (n `mod` mts + d `div` dDenom) `min` mts
+    | otherwise =
+      ((n `mod` mts) * mts `div` (ms `mod` mts) + d `div` dDenom) `min` mts
+  where
+    -- The inverse of the rate at which we increase size as a function of discarded tests
+    -- if the discard ratio is high we can afford this to be slow, but if the discard ratio
+    -- is low we risk bowing out too early
+    dDenom
+      | md > 0 = (ms * md `div` 3) `clamp` (1, 10)
+      | otherwise = 1 -- Doesn't matter because there will be no discards allowed
     n `roundTo` m = (n `div` m) * m
 
-    {- | If the last two parameters are both zero, the second argument is returned.
-    Otherwise the first argument is applied to the last two parameters. -}
-    at0 :: (Num a, Num b, Eq a, Eq b) => (a -> b -> c) -> c -> a -> b -> c
-    at0 f s 0 0 = s
-    at0 f s n d = f n d
+clamp :: Ord a => a -> (a, a) -> a
+clamp x (l, h) = max l (min x h)
 
 -- | Merge every individual testers report into one report containing the composite information.
 mergeReports :: [Result] -> Result
@@ -691,12 +667,15 @@ testLoop vst False f = do
     else signalTerminating st
 testLoop vst True f = do
   st <- readMVar vst
-
   let (_,s2) = split (randomSeed st)
       (s1,_) = split s2
       numSuccSize = testSizeInput st
   -- generate and run a test, plus postprocessing of the result (TODO turn this into a function)
-  res@(MkRose r ts) <- runTest st f s1 (computeSize st numSuccSize (numRecentlyDiscardedTests st))
+  res@(MkRose r ts) <- runTest st f s1 (computeSize (maxSuccessTests st)
+                                                    (maxTestSize st)
+                                                    (maxDiscardedRatio st)
+                                                    numSuccSize
+                                                    (numRecentlyDiscardedTests st))
   let st'                    = updateStateAfterResult res st
       (classification, st'') = resultOf res st'
       st'''                  = st'' { randomSeed = s2 }
@@ -717,13 +696,21 @@ testLoop vst True f = do
     
     -- test failed, and we should abort concurrent testers and start shrinking the result
     Failed ->
-      signalFailureFound st'' st'' (randomSeed st) r ts (computeSize st numSuccSize (numRecentlyDiscardedTests st))
+      signalFailureFound st'' st'' (randomSeed st) r ts (computeSize (maxSuccessTests st)
+                                                                     (maxTestSize st)
+                                                                     (maxDiscardedRatio st)
+                                                                     numSuccSize
+                                                                     (numRecentlyDiscardedTests st))
   where
     -- | Compute the numSuccess-parameter to feed to the @computeSize@ function
+    -- NOTE: if there is a size to replay, the computed size is offset by that much to make sure
+    -- that we explore it first. In the parallel case we will explore the sizes [replay, replay+1, ...] etc,
+    -- so we might actually end up with another counterexample. We are, however, guaranteed that one thread
+    -- is going to explore the replayed size and seed.
     testSizeInput :: State -> Int
     testSizeInput st = case stsizeStrategy st of
-      Offset -> numSuccessOffset st + numSuccessTests st
-      Stride -> numSuccessTests st * numConcurrent st + myId st
+      Offset -> (fromMaybe 0 (replayStartSize st)) + numSuccessOffset st + numSuccessTests st
+      Stride -> (fromMaybe 0 (replayStartSize st)) + numSuccessTests st * numConcurrent st + myId st
 
 {- | Printing loop. It will read the current test state from the list of @MVar State@,
 and print a summary to the terminal. It will do this every @delay@ microseconds.
@@ -895,7 +882,7 @@ information about such settings. Settings affected are
 updateStateAfterResult :: Rose P.Result -> State -> State
 updateStateAfterResult (MkRose res ts) st =
   st { coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
-     , maxSuccessTests    = maybe (maxSuccessTests st) id (maybeNumTests res)
+     , maxSuccessTests    = fromMaybe (maxSuccessTests st) (maybeNumTests res)
      , stlabels = Map.insertWith (+) (P.labels res) 1 (stlabels st)
      , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList (zip (P.classes res) (repeat 1)))
      , sttables = foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
