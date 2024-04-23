@@ -670,23 +670,22 @@ testLoop vst True f = do
   let (_,s2) = split (randomSeed st)
       (s1,_) = split s2
       numSuccSize = testSizeInput st
-  -- generate and run a test, plus postprocessing of the result (TODO turn this into a function)
   res@(MkRose r ts) <- runTest st f s1 (computeSize (maxSuccessTests st)
                                                     (maxTestSize st)
                                                     (maxDiscardedRatio st)
                                                     numSuccSize
                                                     (numRecentlyDiscardedTests st))
-  let st'                    = updateStateAfterResult res st
-      (classification, st'') = resultOf res st'
-      st'''                  = st'' { randomSeed = s2 }
-  finst <- maybeUpdateAfterWithMaxSuccess res st'''
+  let (classification, st') = resultOf res st
+      st''                  = st' { randomSeed = s2 }
+  finst <- maybeUpdateAfterWithMaxSuccess res st''
   case classification of
     -- test was successful!
-    OK | abort r -> updateState vst finst >> signalTerminating finst
+    OK | abort r -> updateState vst (updateStateAfterResult res finst) >> signalTerminating finst
     OK -> do
-      updateState vst finst
+      updateState vst (updateStateAfterResult res finst)
       testLoop vst False f
     -- test was discarded, and we're out of discarded budget
+    -- do not keep coverage information for discarded tests
     Discarded | abort r -> updateState vst finst >> signalTerminating finst
     Discarded -> do
       b <- continueAfterDiscard st
@@ -696,11 +695,11 @@ testLoop vst True f = do
     
     -- test failed, and we should abort concurrent testers and start shrinking the result
     Failed ->
-      signalFailureFound st'' st'' (randomSeed st) r ts (computeSize (maxSuccessTests st)
-                                                                     (maxTestSize st)
-                                                                     (maxDiscardedRatio st)
-                                                                     numSuccSize
-                                                                     (numRecentlyDiscardedTests st))
+      signalFailureFound st' st' (randomSeed st) r ts (computeSize (maxSuccessTests st)
+                                                                   (maxTestSize st)
+                                                                   (maxDiscardedRatio st)
+                                                                   numSuccSize
+                                                                   (numRecentlyDiscardedTests st))
   where
     -- | Compute the numSuccess-parameter to feed to the @computeSize@ function
     -- NOTE: if there is a size to replay, the computed size is offset by that much to make sure
@@ -882,7 +881,6 @@ information about such settings. Settings affected are
 updateStateAfterResult :: Rose P.Result -> State -> State
 updateStateAfterResult (MkRose res ts) st =
   st { coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
-     , maxSuccessTests    = fromMaybe (maxSuccessTests st) (maybeNumTests res)
      , stlabels = Map.insertWith (+) (P.labels res) 1 (stlabels st)
      , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList (zip (P.classes res) (repeat 1)))
      , sttables = foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))

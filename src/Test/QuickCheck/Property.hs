@@ -285,6 +285,10 @@ data Result
     -- ^ required coverage confidence
   , maybeDiscardedRatio :: Maybe Int
     -- ^ maximum number of discarded tests per succesful test
+  , maybeMaxShrinks     :: Maybe Int
+    -- ^ maximum number of shrinks
+  , maybeMaxTestSize    :: Maybe Int
+    -- ^ maximum test size
   , labels              :: [String]
     -- ^ test case labels
   , classes             :: [String]
@@ -329,6 +333,8 @@ succeeded, failed, rejected :: Result
       , maybeNumTests       = Nothing
       , maybeCheckCoverage  = Nothing
       , maybeDiscardedRatio = Nothing
+      , maybeMaxShrinks     = Nothing
+      , maybeMaxTestSize    = Nothing
       , labels              = []
       , classes             = []
       , tables              = []
@@ -493,6 +499,20 @@ withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n }
 -- will allow @p@ to fail up to 10 times per successful test.
 withDiscardRatio :: Testable prop => Int -> prop -> Property
 withDiscardRatio n = n `seq` mapTotalResult (\res -> res{ maybeDiscardedRatio = Just n })
+
+-- | Configure the maximum number of times a property will be shrunk.
+--
+-- For example,
+--
+-- > quickCheck (withMaxShrinks 100 p)
+--
+-- will cause @p@ to only attempt 100 shrinks on failure.
+withMaxShrinks :: Testable prop => Int -> prop -> Property
+withMaxShrinks n = n `seq` mapTotalResult (\res -> res{ maybeMaxShrinks = Just n })
+
+-- | Configure the maximum size a property will be tested at.
+withMaxSize :: Testable prop => Int -> prop -> Property
+withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
 -- are met, using a statistically sound test, and fail if they are not met.
@@ -948,6 +968,8 @@ disjoin ps =
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
                    maybeDiscardedRatio = Nothing,
+                   maybeMaxShrinks = Nothing,
+                   maybeMaxTestSize = Nothing,
                    labels = [],
                    classes = [],
                    tables = [],
