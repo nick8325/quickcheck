@@ -826,7 +826,7 @@ shrinkResult chatty detshrinking st numsucc rs n res ts size = do
                   , theException    = P.theException res
                   , failingTestCase = testCase
                   , failingLabels   = P.labels res
-                  , failingClasses  = Set.fromList (P.classes res)
+                  , failingClasses  = Set.fromList (map fst $ filter snd $ P.classes res)
                   }
 
 {- | Inspect the result of running a test, and return the next action to take as well as
@@ -882,7 +882,8 @@ updateStateAfterResult :: Rose P.Result -> State -> State
 updateStateAfterResult (MkRose res ts) st =
   st { coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
      , stlabels = Map.insertWith (+) (P.labels res) 1 (stlabels st)
-     , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList (zip (P.classes res) (repeat 1)))
+--     , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList (zip (P.classes res) (repeat 1)))
+     , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList [ (s, if b then 1 else 0) | (s, b) <- P.classes res ])
      , sttables = foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
                      (sttables st) (P.tables res)
      , strequiredCoverage = foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
