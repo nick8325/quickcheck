@@ -403,10 +403,13 @@ giveUp st _f =
                   }
 
 showTestCount :: State -> String
-showTestCount st =
-     number (numSuccessTests st) "test"
-  ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
-            | numDiscardedTests st > 0
+showTestCount st = formatTestCount (numSuccessTests st) (numDiscardedTests st)
+
+formatTestCount :: Int -> Int -> String
+formatTestCount succeeded discarded =
+     number succeeded "test"
+  ++ concat [ "; " ++ show discarded ++ " discarded"
+            | discarded > 0
             ]
 
 runATest :: State -> Property -> IO Result
