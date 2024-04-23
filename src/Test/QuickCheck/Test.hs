@@ -248,9 +248,17 @@ quickCheckPar' :: (Int -> IO a) -> IO a
 quickCheckPar' test = do
   numHECs <- getNumCapabilities
   if numHECs == 1
-    then do putStrLn "donkey"
+    then do putStr warning
             test numHECs
     else test numHECs
+  where
+    warning :: String
+    warning = unlines [ "[WARNING] You have invoked quickCheckPar, but there appears to only be one HEC available"
+                      , "  please recompile with these ghc options"
+                      , "      -threaded -feager-blackholing -rtsopts"
+                      , "  and run your program with this runtime flag"
+                      , "      -N[x]"
+                      , "  where x indicates the number of workers you want"]
 
 {- | Run a property in parallel. This is done by distributing the total number of tests
 over all available HECs. If only one HEC is available, it reverts to the sequential
