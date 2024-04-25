@@ -1157,8 +1157,8 @@ foundFailure chatty detshrinking st numsucc n res ts = do
   callbackPostFinalFailure st r
   return re
 
--- | State kept during shrinking, will live in an MVar to make all shrinkers able
--- to modify it
+-- | State kept during shrinking, will live in an MVar to make all shrinkers able to modify it
+-- NOTE: Having one shared resource like this can lead to contention -- don't use too many workers
 data ShrinkSt = ShrinkSt
   { row :: Int
   -- ^ current row
@@ -1212,20 +1212,23 @@ shrinker chatty detshrinking st numsucc n res ts = do
   where
     worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
     worker jobs stats signal = do
+      -- try to get a candidate to evaluate
       j <- getJob jobs
       case j of
-        Nothing      -> removeFromMap jobs signal >> worker jobs stats signal 
+        -- no new candidate, removeFromMap will block this worker until new work exists
+        Nothing -> removeFromMap jobs signal >> worker jobs stats signal 
         Just (r,c,parent,t) -> do
           mec <- evaluateCandidate t
           case mec of
             Nothing          -> do
-              failedShrink stats
+              failedShrink stats -- shrinking failed, update counters and recurse
               worker jobs stats signal
             Just (res', ts') -> do
-              successShrink stats
-              updateWork res' ts' (r,c) parent jobs stats signal
+              successShrink stats -- shrinking succeeded, update counters and shared pool of work, and recurse
+              updateWork res' ts' (r,c) parent jobs
               worker jobs stats signal
 
+    -- | get a new candidate to evaluate
     getJob :: MVar ShrinkSt -> IO (Maybe (Int, Int, (Int, Int), Rose P.Result))
     getJob jobs = do
       tid <- myThreadId
@@ -1237,6 +1240,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
                                , candidates = ts
                                }, Just (row st, col st, head (path st), t))
 
+    -- | this worker is idle. Indicate in the shared book that it is not working on anything, and block
     removeFromMap :: MVar ShrinkSt -> MVar () -> IO ()
     removeFromMap jobs signal = do
       tid <- myThreadId
@@ -1263,9 +1267,14 @@ shrinker chatty detshrinking st numsucc n res ts = do
     successShrink :: IORef (Int, Int, Int) -> IO ()
     successShrink stats = atomicModifyIORef' stats $ \(ns, nt, ntot) -> ((ns + 1, 0, ntot), ())
 
-    updateWork :: P.Result -> [Rose P.Result] -> (Int, Int) -> (Int, Int) -> MVar ShrinkSt -> IORef (Int, Int, Int)
-               -> MVar () -> IO ()
-    updateWork res' ts' cand@(r',c') parent jobs stats signal = do
+    -- | A new counterexample is found. Maybe update the shared resource
+    updateWork :: P.Result              -- result of new counterexample
+               -> [Rose P.Result]       -- new candidates
+               -> (Int, Int)            -- 'coordinates' of the new counterexample
+               -> (Int, Int)            -- 'coordinates' of the parent of the counterexample
+               -> MVar ShrinkSt         -- shared resource
+               -> IO ()
+    updateWork res' ts' cand@(r',c') parent jobs = do
       tid <- myThreadId
       modifyMVar_ jobs $ \st ->
         if not $ parent `elem` path st
@@ -1274,9 +1283,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
             case computePath (path st) cand of
               Nothing -> return st
               Just (path', b) -> do
-                let (tids, wm') = toRestart tid (book st) path'    
-                -- let (path', b)  = computePath (path st) cand
-                --     (tids, wm') = toRestart tid (book st) path'
+                let (tids, wm') = toRestart tid (book st) path' 
                 interruptShrinkers tids
                 let n = selfTerminated st
                 if n > 0
