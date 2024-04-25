@@ -37,6 +37,7 @@ import Control.Applicative
   ( Applicative(..) )
 
 import Test.QuickCheck.Random
+import Test.QuickCheck.Exception
 import Data.List (sortBy)
 import Data.Ord
 import Data.Maybe
@@ -300,6 +301,12 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
     | otherwise = do
         x <- resize m gen
         if p x then return (Just x) else try (m+1) n
+
+-- | Tries to generate a value that satisfies a predicate.
+-- If it fails to do so it discards the test case if the result
+-- is used in the test.
+discardUnless :: Gen a -> (a -> Bool) -> Gen a
+discardUnless g p = (\ a -> if p a then a else discard) <$> g
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.
