@@ -111,8 +111,6 @@ data Args
     -- but you want the same counterexample evry time, setting this to False guarantee that
   , boundWorkers :: Bool
     -- ^ Use forkIO or forkOS? True = forkOS, False = forkIO
-  , deterministicShrinking :: Bool
-    -- ^ Should shrinking be deterministic? Only matters if more than one core is used to shrink
   }
  deriving ( Show, Read
 #ifndef NO_TYPEABLE
@@ -241,7 +239,6 @@ stdArgs = Args
   , parallelShrinking = False
   , parallelTesting   = True
   , boundWorkers      = False
-  , deterministicShrinking = True
   }
 
 quickCheckPar' :: (Int -> IO a) -> IO a
@@ -534,7 +531,7 @@ quickCheckInternal a p = do
           abortedsts <- mapM readMVar abortedvsts
           -- complete number of tests that were run over all testers
           let  numsucc = numSuccessTests st + sum (map numSuccessTests abortedsts)
-          failed <- withBuffering $ shrinkResult (chatty a) (deterministicShrinking a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
+          failed <- withBuffering $ shrinkResult (chatty a) st numsucc seed numShrinkers res ts size -- shrink and return report from failed
           aborted <- mapM abortConcurrent abortedsts -- reports from aborted testers
           return (failed : aborted)
         NoMoreDiscardBudget tid          -> mapM (\vst -> readMVar vst >>= flip giveUp (property p)) states
@@ -810,9 +807,9 @@ return a final report. The parameters are
   5. The size fed to the test case
 
 -}
-shrinkResult :: Bool -> Bool -> State -> Int -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
-shrinkResult chatty detshrinking st numsucc rs n res ts size = do
-  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty detshrinking st numsucc n res ts
+shrinkResult :: Bool -> State -> Int -> QCGen -> Int -> P.Result -> [Rose P.Result] -> Int -> IO Result
+shrinkResult chatty st numsucc rs n res ts size = do
+  (numShrinks, totFailed, lastFailed, res) <- foundFailure chatty st numsucc n res ts
   theOutput <- terminalOutput (terminal st)
   if not (expect res) then
     return Success{ labels       = stlabels st,
@@ -1150,9 +1147,9 @@ localMinFound st res =
 --------------------------------------------------------------------------
 -- new shrinking loop
 
-foundFailure :: Bool -> Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-foundFailure chatty detshrinking st numsucc n res ts = do
-  re@(n1,n2,n3,r) <- shrinker chatty detshrinking st numsucc n res ts
+foundFailure :: Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+foundFailure chatty st numsucc n res ts = do
+  re@(n1,n2,n3,r) <- shrinker chatty st numsucc n res ts
   sequence_ [ putLine (terminal st) msg | msg <- snd $ failureSummaryAndReason2 (n1, n2, n3) numsucc r ]
   callbackPostFinalFailure st r
   return re
@@ -1178,8 +1175,8 @@ data ShrinkSt = ShrinkSt
   -- ^ candidates yet to evaluate
   }
 
-shrinker :: Bool -> Bool -> State -> Int ->  Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-shrinker chatty detshrinking st numsucc n res ts = do
+shrinker :: Bool -> State -> Int ->  Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
+shrinker chatty st numsucc n res ts = do
 
   blocker    <- newEmptyMVar
   jobs       <- newMVar $ ShrinkSt 0 0 Map.empty [(-1,-1)] 0 blocker res ts
@@ -1283,7 +1280,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
             case computePath (path st) cand of
               Nothing -> return st
               Just (path', b) -> do
-                let (tids, wm') = toRestart tid (book st) path' 
+                let (tids, wm') = toRestart tid (book st) 
                 interruptShrinkers tids
                 let n = selfTerminated st
                 if n > 0
@@ -1297,13 +1294,8 @@ shrinker chatty detshrinking st numsucc n res ts = do
                             , candidates     = ts'
                             , selfTerminated = 0}
       where
-        toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> [(Int, Int)] -> ([ThreadId], Map.Map ThreadId (Int, Int))
-        toRestart tid wm path
-          | detshrinking = let asList          = Map.toList wm
-                               jobsToTerminate = shouldDie (map snd asList) path
-                               (tokill, keep)  = partition (\worker -> snd worker `elem` jobsToTerminate) asList
-                           in (filter ((/=) tid) (map fst tokill), Map.fromList keep)
-          | otherwise    = (filter ((/=) tid) $ Map.keys wm, Map.empty) -- kill everyone
+        toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> ([ThreadId], Map.Map ThreadId (Int, Int))
+        toRestart tid wm = (filter ((/=) tid) $ Map.keys wm, Map.empty) -- kill everyone
 
     gracefullyKill :: [ThreadId] -> IO ()
     gracefullyKill tids = mapM_ (\tid -> throwTo tid UserInterrupt >> killThread tid) tids
