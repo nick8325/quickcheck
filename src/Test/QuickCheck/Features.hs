@@ -16,16 +16,16 @@ features :: [String] -> Set String -> Set String
 features labels classes =
   Set.fromList labels `Set.union` classes
 
-prop_noNewFeatures :: Testable prop => Set String -> prop -> Property
-prop_noNewFeatures feats prop =
-  mapResult f prop
-  where
-    f res =
-      case ok res of
-        Just True
-          | not (features (P.labels res) (Set.fromList (P.classes res)) `Set.isSubsetOf` feats) ->
-            res{ok = Just False, P.reason = "New feature found"}
-        _ -> res
+-- prop_noNewFeatures :: Testable prop => Set String -> prop -> Property
+-- prop_noNewFeatures feats prop =
+--   mapResult f prop
+--   where
+--     f res =
+--       case ok res of
+--         Just True
+--           | not (features (P.labels res) (Set.fromList (P.classes res)) `Set.isSubsetOf` feats) ->
+--             res{ok = Just False, P.reason = "New feature found"}
+--         _ -> res
 
 -- | Given a property, which must use 'label', 'collect', 'classify' or 'cover'
 -- to associate labels with test cases, find an example test case for each possible label.

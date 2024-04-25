@@ -353,22 +353,19 @@ verboseCheckResult p = quickCheckResult (verbose p)
 verboseCheckWithResult :: Testable prop => Args -> prop -> IO Result
 verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 
--- new testloop v2
+-- new testloop
 
---State -> QCGen -> Rose P.Result -> Int
+-- | A 'message' of type TesterSignal will be communicated to the main thread by the concurrent
+-- testers when testing is terminated
 data TesterSignal
   = KillTesters ThreadId State QCGen P.Result [Rose P.Result] Int
-  {- ^ Send a kill-signal to all testers, except for the threadID here (this is the id
-  of the tester who made the request). -}
+  -- | A counterexample was found, and a killsignal should be sent to all concurrent testers
   | FinishedTesting
-  {- ^ Testing went well, and the main loop should try to fetch all reports without
-  sending any kill signal. -}
+  -- | All tests were successfully executed
   | NoMoreDiscardBudget ThreadId
-  {- ^ One tester detected that all discard budget was out, and the concurrent testers
-  should be force killed. -}
+  -- | There is no more allowance to discard tests, so we should give up
   | Interrupted
-  {- ^ This is only returned if the user presses CTRL-C. The UserInterrupt signal is intercepted, and
-  this constructor is given to the main thread, at which point it will abort everything. -}
+  -- | User pressed CTRL-C (TODO: probably remove this)
 
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckInternal :: Testable prop => Args -> prop -> IO Result
@@ -381,8 +378,7 @@ quickCheckInternal a p = do
       let numtesters = if parallelTesting a then numTesters a else 1
       let numShrinkers = if parallelShrinking a then numTesters a else 1
 
-      {- initial seeds for each tester. The seed will be split like this:
-      
+      {- initial seeds for each tester. The original seed will be split like this:
                      rnd
                     /   \
                    r1    _
@@ -393,8 +389,21 @@ quickCheckInternal a p = do
               /
             ...
       The initial seeds for each tester will be [rnd,r1,r2,r3,...].
+
+      This may look bad, as there is a clear relationship between them. However, during testing,
+      the seed to use for each test case is acquired by splitting the seed like this
+
+                rnd
+               /   \
+              _    s1
+                  /  \
+                 s2   _
+      
+      s1 will be used for the current test-case, and s2 will be fed into the next iteration of the loop
+      i.e. it will take the role of rnd above
+      Hopefully this yields good enough distribution of seeds
             -}
-      let initialSeeds = snd $ foldr (\_ (rnd, a) -> let (r1,r2) = split rnd
+      let initialSeeds = snd $ foldr (\_ (rnd, a) -> let (r1,_) = split rnd
                                                      in (r1, a ++ [rnd]))
                                      (rnd, [])
                                      [0..numtesters - 1]
@@ -402,7 +411,8 @@ quickCheckInternal a p = do
       -- how big to make each testers buffer
       let numTestsPerTester = maxSuccess a `div` numtesters
 
-      -- number of tests and numsuccessoffset for each tester to use
+      -- returns a list indicating how many tests each tester can run, what their offset for size computation is, and how many
+      -- tests they can discard
       let testsoffsetsanddiscards = snd $
             foldr (\_ ((numtests, offset, numdiscards), acc) ->
                       ((numTestsPerTester, offset+numtests, numTestsPerTester * maxDiscardRatio a), acc ++ [(numtests, offset, numdiscards)]))
@@ -422,6 +432,7 @@ quickCheckInternal a p = do
       states <- sequence $ replicate numtesters newEmptyMVar
 
       -- the components making up a tester
+      -- lol zip6
       let testerinfo = zip6 states initialSeeds [0..numtesters - 1] testbudgets budgets testsoffsetsanddiscards
         
           -- this function tries to steal budget from an MVar Int, if any budget remains.
@@ -534,7 +545,6 @@ quickCheckInternal a p = do
       sts <- mapM readMVar states
       let completeRequiredCoverage = Map.unionsWith max (map strequiredCoverage sts)
           finalReport              = mergeReports reports
---      putStrLn $ show finalReport
 
       -- output the final outcome to the terminal, clearing the line before a new print is emitted
       putPart (terminal (head sts)) ""
@@ -542,7 +552,6 @@ quickCheckInternal a p = do
 
       -- finally, return the report!
       return $ mergeReports reports
---  where
 
 {-
 See the function testLoop to see how we take replaying into account
@@ -630,6 +639,9 @@ updateState :: MVar State -> State -> IO ()
 updateState vst st = do
   modifyMVar_ vst $ \_ -> return st
 
+-- TODO merge runOneMore and continueAfterDiscard into one function, they are identical with the
+-- exception of the actual MVar and the stealing function
+
 {- | Given a state, returns @True@ if another test should be executed, and @False@ if not.
 If a specific tester thread has run out of testing 'budget', it will try to steal the
 right to run more tests from other testers. -}
@@ -670,11 +682,7 @@ testLoop vst True f = do
   let (_,s2) = split (randomSeed st)
       (s1,_) = split s2
       numSuccSize = testSizeInput st
-  res@(MkRose r ts) <- runTest st f s1 (computeSize (maxSuccessTests st)
-                                                    (maxTestSize st)
-                                                    (maxDiscardedRatio st)
-                                                    numSuccSize
-                                                    (numRecentlyDiscardedTests st))
+  res@(MkRose r ts) <- runTest st f s1 (size st)
   let (classification, st') = resultOf res st
       st''                  = st' { randomSeed = s2 }
   finst <- maybeUpdateAfterWithMaxSuccess res st''
@@ -688,18 +696,14 @@ testLoop vst True f = do
     -- do not keep coverage information for discarded tests
     Discarded | abort r -> updateState vst finst >> signalTerminating finst
     Discarded -> do
-      b <- continueAfterDiscard st
+      b <- continueAfterDiscard st -- should we keep going?
       if b
         then updateState vst finst >> testLoop vst True f
         else updateState vst finst >> signalGaveUp finst
     
     -- test failed, and we should abort concurrent testers and start shrinking the result
     Failed ->
-      signalFailureFound st' st' (randomSeed st) r ts (computeSize (maxSuccessTests st)
-                                                                   (maxTestSize st)
-                                                                   (maxDiscardedRatio st)
-                                                                   numSuccSize
-                                                                   (numRecentlyDiscardedTests st))
+      signalFailureFound st' st' (randomSeed st) r ts (size st)
   where
     -- | Compute the numSuccess-parameter to feed to the @computeSize@ function
     -- NOTE: if there is a size to replay, the computed size is offset by that much to make sure
@@ -710,6 +714,13 @@ testLoop vst True f = do
     testSizeInput st = case stsizeStrategy st of
       Offset -> (fromMaybe 0 (replayStartSize st)) + numSuccessOffset st + numSuccessTests st
       Stride -> (fromMaybe 0 (replayStartSize st)) + numSuccessTests st * numConcurrent st + myId st
+    
+    size :: State -> Int
+    size st = computeSize (maxSuccessTests st)
+                          (maxTestSize st)
+                          (maxDiscardedRatio st)
+                          (testSizeInput st)
+                          (numRecentlyDiscardedTests st)
 
 {- | Printing loop. It will read the current test state from the list of @MVar State@,
 and print a summary to the terminal. It will do this every @delay@ microseconds.
@@ -882,7 +893,6 @@ updateStateAfterResult :: Rose P.Result -> State -> State
 updateStateAfterResult (MkRose res ts) st =
   st { coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
      , stlabels = Map.insertWith (+) (P.labels res) 1 (stlabels st)
---     , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList (zip (P.classes res) (repeat 1)))
      , stclasses = Map.unionWith (+) (stclasses st) (Map.fromList [ (s, if b then 1 else 0) | (s, b) <- P.classes res ])
      , sttables = foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
                      (sttables st) (P.tables res)
@@ -955,36 +965,9 @@ runTest st f seed size = do
   res <- callbackPostTest st res
   return (MkRose res ts)
   where
-    {- | Clever way of checking that a number is a power of two in constant time lol
-    
-    Explanation:
-
-    Example numbers that are a power of two (in binary)
-
-       1 (1)
-      10 (2)
-     100 (4)
-    1000 (8)
-
-    Corresponding numbers when you subtract 1 from them
-
-       0 (0)
-      01 (1)
-     011 (3)
-    0111 (4)
-
-    Computing the bitwise conjunction of the pairwise numbers yield
-
-    0 (   1 & 0)
-    0 (  10 & 01)
-    0 ( 100 & 011)
-    0 (1000 & 0111)
-
-    -}
     powerOfTwo :: (Integral a, Bits a) => a -> Bool
     powerOfTwo n = n .&. (n - 1) == 0
 
-    -- | TODO: Ask Nick to help me describe what this does
     confidenceTest :: Bool
     confidenceTest = (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100)
 
@@ -1367,29 +1350,6 @@ shrinker chatty detshrinking st numsucc n res ts = do
           Just (xs', b) -> if b then Just (xs', b) else Just ((ox,oy):xs, b)
           Nothing -> Nothing
       | otherwise = Nothing
-
-
-
-      --     let (xs',b) = computePath xs (x,y)
-      --     in if b
-      --          then (xs', b)
-      --          else ((ox,oy) : xs, b)
-      -- | otherwise = error $ "path = " ++ show ((ox,oy):xs) ++ " and candidate is " ++ show (x,y)
-
-printAppendTid :: String -> IO ()
-printAppendTid str = do
-  tid <- myThreadId
-  putStrLn $ show tid <> ": " <> str
-
-unmaskedModifyMVar :: MVar a -> (a -> IO (a,b)) -> IO b
-unmaskedModifyMVar mvar f = do
-  a <- takeMVar mvar
-  (a',b) <- (f a >>= Control.Exception.evaluate) `onException` (putStrLn "exception raised" >> putMVar mvar a)
-  putMVar mvar a'
-  return b
-
-unmaskedModifyMVar_ :: MVar a -> (a -> IO a) -> IO ()
-unmaskedModifyMVar_ mvar f = unmaskedModifyMVar mvar (\x -> flip (,) () <$> f x)
 
 shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> Int -> P.Result -> Int -> IO ()
 shrinkPrinter terminal stats n res delay = do
