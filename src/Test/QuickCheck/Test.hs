@@ -1277,7 +1277,7 @@ shrinker chatty detshrinking st numsucc n res ts = do
     updateWork res' ts' cand@(r',c') parent jobs = do
       tid <- myThreadId
       modifyMVar_ jobs $ \st ->
-        if not $ parent `elem` path st
+        if not $ parent `elem` path st -- in rare cases, 'stale' candidates could be delivered. Here we check if this candidate is to be considered
           then return st
           else do
             case computePath (path st) cand of
