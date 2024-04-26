@@ -315,8 +315,10 @@ module Test.QuickCheck
   , (.&.)
   , (.&&.)
   , conjoin
+  , Every (..)
   , (.||.)
   , disjoin
+  , Some (..)
     -- ** What to do on failure
 #ifndef NO_TYPEABLE
   , Witness(..)
@@ -355,6 +357,7 @@ module Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Modifiers
+import Test.QuickCheck.Monoids
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Exception
