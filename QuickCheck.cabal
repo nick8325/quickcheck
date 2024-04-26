@@ -105,6 +105,7 @@ library
     Test.QuickCheck.Gen,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
+    Test.QuickCheck.Monoids,
     Test.QuickCheck.Modifiers,
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
@@ -277,4 +278,11 @@ Test-Suite test-quickcheck-discard
     Default-language: Haskell2010
     hs-source-dirs: tests
     main-is: DiscardRatio.hs
+    build-depends: base, QuickCheck
+
+Test-Suite test-quickcheck-monoids
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: Monoids.hs
     build-depends: base, QuickCheck
