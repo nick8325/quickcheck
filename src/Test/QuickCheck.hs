@@ -50,8 +50,8 @@ them to:
 +++ Ok, passed 100 tests.
 @
 
-That's because GHCi will default any type variables in your property to '()', so in the example
-above @quickCheck@ was really testing that '()' is equal to itself. To avoid this behaviour it
+That's because GHCi will default any type variables in your property to @()@, so in the example
+above @quickCheck@ was really testing that @()@ is equal to itself. To avoid this behaviour it
 is best practise to monomorphise your polymorphic properties when testing:
 
 @
@@ -236,24 +236,24 @@ module Test.QuickCheck
     --
     -- @
     -- -- Functions cannot be shown (but see 'Function')
-    -- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
+    -- prop_TakeDropWhile ('Blind' p) (xs :: ['Test.QuickCheck.Poly.A']) =
     --   takeWhile p xs ++ dropWhile p xs == xs
     -- @
     --
     -- @
-    -- prop_TakeDrop ('NonNegative' n) (xs :: ['A']) =
+    -- prop_TakeDrop ('NonNegative' n) (xs :: ['Test.QuickCheck.Poly.A']) =
     --   take n xs ++ drop n xs == xs
     -- @
     --
     -- @
     -- -- cycle does not work for empty lists
-    -- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['A'])) =
+    -- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['Test.QuickCheck.Poly.A'])) =
     --   take n (cycle xs) == take n (xs ++ cycle xs)
     -- @
     --
     -- @
     -- -- Instead of 'forAll' 'orderedList'
-    -- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
+    -- prop_Sort ('Ordered' (xs :: ['Test.QuickCheck.Poly.OrdA'])) =
     --   sort xs == xs
     -- @
   , Blind(..)

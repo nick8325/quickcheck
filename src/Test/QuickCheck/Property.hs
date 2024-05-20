@@ -532,8 +532,9 @@ withMaxSize :: Testable prop => Int -> prop -> Property
 withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
 
 #ifndef NO_TYPEABLE
--- | Return a value in the 'witnesses' field of the 'Result' returned by 'quickCheckResult'. Witnesses
--- are returned outer-most first.
+-- | Return a value in the 'Test.QuickCheck.witnesses' field of the 'Result'
+-- returned by 'Test.QuickCheck.quickCheckResult'. Witnesses are returned
+-- outer-most first.
 --
 -- In ghci, for example:
 --
@@ -773,7 +774,7 @@ tabulate key values =
   mapTotalResult $
     \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
--- | Checks that the values in a given 'table' appear a certain proportion of
+-- | Checks that the values in a given @table@ appear a certain proportion of
 -- the time. A call to 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ asserts
 -- that of the values in @table@, @x1@ should appear at least @p1@ percent of
 -- the time that @table@ appears, @x2@ at least @p2@ percent of the time that
@@ -782,7 +783,7 @@ tabulate key values =
 -- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
 -- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
 --
--- Continuing the example from the 'tabular' combinator...
+-- Continuing the example from the 'tabulate' combinator...
 --
 -- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
 -- > prop_chatroom :: [Command] -> Property
@@ -916,8 +917,8 @@ forAllShrinkBlind gen shrinker pf =
     unProperty $
     shrinking shrinker x pf
 
--- | Nondeterministic choice: 'p1' '.&.' 'p2' picks randomly one of
--- 'p1' and 'p2' to test. If you test the property 100 times it
+-- | Nondeterministic choice: @p1@ '.&.' @p2@ picks randomly one of
+-- @p1@ and @p2@ to test. If you test the property 100 times it
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
@@ -927,7 +928,7 @@ p1 .&. p2 =
     counterexample (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
--- | Conjunction: 'p1' '.&&.' 'p2' passes if both 'p1' and 'p2' pass.
+-- | Conjunction: @p1@ '.&&.' @p2@ passes if both @p1@ and @p2@ pass.
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&&. p2 = conjoin [property p1, property p2]
 
@@ -965,7 +966,7 @@ conjoin ps =
         classes = classes result ++ classes r,
         tables = tables result ++ tables r }
 
--- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
+-- | Disjunction: @p1@ '.||.' @p2@ passes unless @p1@ and @p2@ simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .||. p2 = disjoin [property p1, property p2]
 
