@@ -202,7 +202,8 @@ class Arbitrary a where
   -- It is worth spending time thinking about what sort of test data
   -- you want - good generators are often the difference between
   -- finding bugs and not finding them. You can use 'sample',
-  -- 'label' and 'classify' to check the quality of your test data.
+  -- 'Test.QuickCheck.label' and 'Test.QuickCheck.classify' to check the quality
+  -- of your test data.
   --
   -- There is no generic @arbitrary@ implementation included because we don't
   -- know how to make a high-quality one. If you want one, consider using the

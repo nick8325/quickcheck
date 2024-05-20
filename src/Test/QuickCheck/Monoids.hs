@@ -19,8 +19,8 @@ import Test.QuickCheck.Property
 -- Use `property @Every` as an accessor which doesn't leak
 -- existential variables.
 --
--- Note: monoid laws are satisfied up to `isSuccess` unless one is using
--- `checkCoverage`.
+-- Note: monoid laws are satisfied up to 'Test.QuickCheck.isSuccess' unless one
+-- is using `checkCoverage`.
 --
 #ifndef NO_EXISTENTIAL_FIELD_SELECTORS
 data Every = forall p. Testable p => Every { getEvery :: p }
@@ -53,8 +53,8 @@ instance Monoid Every where
 -- Use `property @Some` as an accessor which doesn't leak
 -- existential variables.
 --
--- Note: monoid laws are satisfied up to `isSuccess` unless one is using
--- `checkCoverage`.
+-- Note: monoid laws are satisfied up to 'Test.QuickCheck.isSuccess' unless one
+-- is using `checkCoverage`.
 --
 #ifndef NO_EXISTENTIAL_FIELD_SELECTORS
 data Some = forall p. Testable p => Some { getSome :: p }

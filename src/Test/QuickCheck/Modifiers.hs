@@ -24,24 +24,24 @@
 --
 -- @
 -- -- Functions cannot be shown (but see "Test.QuickCheck.Function")
--- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
+-- prop_TakeDropWhile ('Blind' p) (xs :: ['Test.QuickCheck.Poly.A']) =
 --   takeWhile p xs ++ dropWhile p xs == xs
 -- @
 --
 -- @
--- prop_TakeDrop ('NonNegative' n) (xs :: ['A']) =
+-- prop_TakeDrop ('NonNegative' n) (xs :: ['Test.QuickCheck.Poly.A']) =
 --   take n xs ++ drop n xs == xs
 -- @
 --
 -- @
 -- -- cycle does not work for empty lists
--- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['A'])) =
+-- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['Test.QuickCheck.Poly.A'])) =
 --   take n (cycle xs) == take n (xs ++ cycle xs)
 -- @
 --
 -- @
--- -- Instead of 'forAll' 'orderedList'
--- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
+-- -- Instead of 'Test.QuickCheck.forAll' 'orderedList'
+-- prop_Sort ('Ordered' (xs :: ['Test.QuickCheck.Poly.OrdA'])) =
 --   sort xs == xs
 -- @
 module Test.QuickCheck.Modifiers
@@ -183,7 +183,7 @@ instance Arbitrary a => Arbitrary (NonEmptyList a) where
 --
 -- > prop_take_10 :: InfiniteList Char -> Bool
 -- > prop_take_10 (InfiniteList xs _) =
--- >   or [ x == 'a' | x <- take 10 xs ]
+-- >   or [ x == \'a\' | x <- take 10 xs ]
 --
 -- In the following counterexample, the list must start with @"bbbbbbbbbb"@ but
 -- the remaining (infinite) part can contain anything:
