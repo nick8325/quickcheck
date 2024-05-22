@@ -37,6 +37,7 @@
 -- See the @'Function' [a]@ instance for an example of the latter.
 module Test.QuickCheck.Function
   ( Fun(..)
+  , mkFun
   , applyFun
   , apply
   , applyFun2
@@ -584,6 +585,8 @@ pattern Fn3 f <- (applyFun3 -> f)
 #endif
 #endif
 
+-- | Create a `Fun` from a function representation and a default value (in case the function
+-- is partial).
 mkFun :: (a :-> b) -> b -> Fun a b
 mkFun p d = Fun (p, d, NotShrunk) (abstract p d)
 
