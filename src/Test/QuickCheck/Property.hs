@@ -1,7 +1,6 @@
 {-# OPTIONS_HADDOCK hide #-}
 -- | Combinators for constructing properties.
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE BangPatterns #-}
 #ifndef NO_TYPEABLE
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -656,10 +655,11 @@ classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
-classify !b s =
+classify b s =
 #ifndef NO_DEEPSEQ
   s `deepseq`
 #endif
+  b `seq`
   mapTotalResult $
     \res -> res { classes = (s, b):classes res }
 
