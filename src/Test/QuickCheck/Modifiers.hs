@@ -62,6 +62,7 @@ module Test.QuickCheck.Modifiers
   , Small(..)
   , Smart(..)
   , Shrink2(..)
+  , NoShrink(..)
 #ifndef NO_MULTI_PARAM_TYPE_CLASSES
   , Shrinking(..)
   , ShrinkState(..)
@@ -411,6 +412,24 @@ instance Arbitrary a => Arbitrary (Shrink2 a) where
     ]
    where
     shrink_x = shrink x
+
+--------------------------------------------------------------------------
+-- | @NoShrink x@: no shrinking
+newtype NoShrink a = NoShrink {getNoShrink :: a}
+ deriving ( Eq, Ord, Show, Read
+#ifndef NO_NEWTYPE_DERIVING
+          , Num, Integral, Real, Enum, Ix
+#endif
+#ifndef NO_TYPEABLE
+          , Typeable
+#endif
+          )
+
+instance Functor NoShrink where
+  fmap f (NoShrink x) = NoShrink (f x)
+
+instance Arbitrary a => Arbitrary (NoShrink a) where
+  arbitrary = fmap NoShrink arbitrary
 
 --------------------------------------------------------------------------
 -- | @Smart _ x@: tries a different order when shrinking.
