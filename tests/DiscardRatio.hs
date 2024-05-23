@@ -49,3 +49,8 @@ main = do
   putStrLn "\nExpecting success (discard ratio 40): x < 50 ==> True"
   quickCheckYes $ withDiscardRatio 40 p50
   quickCheckYesWith stdArgs{maxDiscardRatio = 40} p50
+
+  -- Annoying interactions of discard and cover
+  quickCheckYes $ forAllBlind (oneof [pure True, pure discard]) $ \ b -> cover 10 b "b" True
+  quickCheck $ cover 10 discard "b" True
+  quickCheck $ classify "b" discard True
