@@ -471,6 +471,7 @@ quickCheckInternal a p = do
                                     , numTotTryShrinks          = 0
            
                                     -- new
+                                    -- there is a lot of callbacks here etc
                                     , testBudget                = tbudget
                                     , stealTests                = if rightToWorkSteal a
                                                                     then tryStealBudget $ filter ((/=) tbudget) testbudgets
@@ -508,7 +509,7 @@ quickCheckInternal a p = do
                 else do head testers >> return [] -- if only one worker, let the main thread run the tests
 
       -- wait for wakeup
-      s <- readMVar signal `catch` (\UserInterrupt -> return Interrupted)
+      s <- readMVar signal `catch` (\UserInterrupt -> return Interrupted) -- catching Ctrl-C, Nick thinks this is bad, as users might have their own handlers
       mt <- case s of
         Interrupted -> mapM_ (\tid -> throwTo tid QCInterrupted) tids >> mapM_ killThread tids >> return Nothing
         KillTesters tid st seed res ts size -> do mapM_ (\tid -> throwTo tid QCInterrupted >> killThread tid) (filter ((/=) tid) tids)
@@ -1009,46 +1010,6 @@ abortConcurrent st = do
                    , output       = theOutput
                    }
 
-failureSummary :: State -> P.Result -> String
-failureSummary st res = fst (failureSummaryAndReason st res)
-
-failureReason :: State -> P.Result -> [String]
-failureReason st res = snd (failureSummaryAndReason st res)
-
-failureSummaryAndReason :: State -> P.Result -> (String, [String])
-failureSummaryAndReason st res = (summary, full)
-  where
-    summary =
-      header ++
-      short 26 (oneLine theReason ++ " ") ++
-      count True ++ "..."
-
-    full =
-      (header ++
-       (if isOneLine theReason then theReason ++ " " else "") ++
-       count False ++ ":"):
-      if isOneLine theReason then [] else lines theReason
-
-    theReason = P.reason res
-
-    header =
-      if expect res then
-        bold "*** Failed! "
-      else "+++ OK, failed as expected. "
-
-    count full =
-      "(after " ++ number (numSuccessTests st+1) "test" ++
-      concat [
-        " and " ++
-        show (numSuccessShrinks st) ++
-        concat [ "." ++ show (numTryShrinks st) | showNumTryShrinks ] ++
-        " shrink" ++
-        (if numSuccessShrinks st == 1 && not showNumTryShrinks then "" else "s")
-        | numSuccessShrinks st > 0 || showNumTryShrinks ] ++
-      ")"
-      where
-        showNumTryShrinks = full && numTryShrinks st > 0
-
 labelsAndTables :: Map.Map [String] Int
                  -> Map.Map String Int
                  -> Map.Map String (Map.Map String Int)
@@ -1101,52 +1062,6 @@ showTable k mtable m =
 --------------------------------------------------------------------------
 -- main shrinking loop
 
-foundFailureOld :: State -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-foundFailureOld st n res ts =
-  do localMin st{ numTryShrinks = 0 } res ts
-
-localMin :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
--- Don't try to shrink for too long
-localMin st res ts
-  | numSuccessShrinks st + numTotTryShrinks st >= numTotMaxShrinks st =
-    localMinFound st res
-localMin st res ts = do
-  r <- tryEvaluateIO $
-    putTemp (terminal st) (failureSummary st res)
-  case r of
-    Left err ->
-      localMinFound st (exception "Exception while printing status message" err) { callbacks = callbacks res }
-    Right () -> do
-      r <- tryEvaluate ts
-      case r of
-        Left err ->
-          localMinFound st
-            (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
-        Right ts' -> localMin' st res ts'
-
-localMin' :: State -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
-localMin' st res [] = localMinFound st res
-localMin' st res (t:ts) =
-  do -- CALLBACK before_test
-    MkRose res' ts' <- protectRose (reduceRose t)
-    res' <- callbackPostTest st res'
-    if ok res' == Just False
-      then localMin st{ numSuccessShrinks = numSuccessShrinks st + 1,
-                        numTryShrinks     = 0 } res' ts'
-      else localMin st{ numTryShrinks    = numTryShrinks st + 1,
-                        numTotTryShrinks = numTotTryShrinks st + 1 } res ts
-
-localMinFound :: State -> P.Result -> IO (Int, Int, Int, P.Result)
-localMinFound st res =
-  do sequence_ [ putLine (terminal st) msg | msg <- failureReason st res ]
-     callbackPostFinalFailure st res
-     -- NB no need to check if callbacks threw an exception because
-     -- we are about to return to the user anyway
-     return (numSuccessShrinks st, numTotTryShrinks st - numTryShrinks st, numTryShrinks st, res)
-
---------------------------------------------------------------------------
--- new shrinking loop
-
 foundFailure :: Bool -> State -> Int -> Int -> P.Result -> [Rose P.Result] -> IO (Int, Int, Int, P.Result)
 foundFailure chatty st numsucc n res ts = do
   re@(n1,n2,n3,r) <- shrinker chatty st numsucc n res ts
@@ -1163,7 +1078,7 @@ data ShrinkSt = ShrinkSt
   -- ^ current column
   , book :: Map.Map ThreadId (Int, Int)
   -- ^ map from @ThreadId@ to the candidate they are currently evaluating
-  , path :: [(Int, Int)]
+  , path :: [(Int, Int)] -- TODO make this list be built in reverse order and then reverse it at the end
   -- ^ path taken when shrinking so far
   , selfTerminated :: Int
   -- ^ how many threads died on their own
@@ -1207,6 +1122,7 @@ shrinker chatty st numsucc n res ts = do
 
   return (length p, ntot-nt, nt, r)
   where
+    -- | The shrink loop evaluated by each individual worker
     worker :: MVar ShrinkSt -> IORef (Int, Int, Int) -> MVar () -> IO ()
     worker jobs stats signal = do
       -- try to get a candidate to evaluate
@@ -1276,30 +1192,26 @@ shrinker chatty st numsucc n res ts = do
       modifyMVar_ jobs $ \st ->
         if not $ parent `elem` path st -- in rare cases, 'stale' candidates could be delivered. Here we check if this candidate is to be considered
           then return st
-          else do
-            case computePath (path st) cand of
-              Nothing -> return st
-              Just (path', b) -> do
-                let (tids, wm') = toRestart tid (book st) 
-                interruptShrinkers tids
-                let n = selfTerminated st
-                if n > 0
-                  then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
-                  else return ()
-                return $ st { row            = r' + 1
-                            , col            = 0
-                            , book           = wm'
-                            , path           = path'
-                            , currentResult  = res'
-                            , candidates     = ts'
-                            , selfTerminated = 0}
+          else do let (tids, wm') = toRestart tid (book st) 
+                  interruptShrinkers tids
+                  let n = selfTerminated st
+                  if n > 0
+                    then sequence_ (replicate n (putMVar (blockUntilAwoken st) ()))
+                    else return ()
+                  return $ st { row            = r' + 1
+                              , col            = 0
+                              , book           = wm'
+                              , path           = path st <> [cand] -- path'
+                              , currentResult  = res'
+                              , candidates     = ts'
+                              , selfTerminated = 0}
       where
         toRestart :: ThreadId -> Map.Map ThreadId (Int, Int) -> ([ThreadId], Map.Map ThreadId (Int, Int))
-        toRestart tid wm = (filter ((/=) tid) $ Map.keys wm, Map.empty) -- kill everyone
+        toRestart tid wm = (filter ((/=) tid) $ Map.keys wm, Map.empty)
 
-    gracefullyKill :: [ThreadId] -> IO ()
-    gracefullyKill tids = mapM_ (\tid -> throwTo tid UserInterrupt >> killThread tid) tids
-
+    -- TODO I tried adding my own kind of internal exception here, but I could not get it to work... piggybacking on this one
+    -- for now, but it can not stay in the merge. Need to figure out what went wrong last time.
+    -- I think the QCException type I added didn't work here for some reason, but I can't quite remember what that was now.
     interruptShrinkers :: [ThreadId] -> IO ()
     interruptShrinkers tids = mapM_ (\tid -> throwTo tid UserInterrupt) tids
 
@@ -1307,6 +1219,10 @@ shrinker chatty st numsucc n res ts = do
     spawnWorkers num jobs stats signal =
       sequence $ replicate num $ forkIO $ defHandler $ worker jobs stats signal
       where
+        -- apparently this programming style can leak a lot of memory, but I tried to measure it during my evaluation, and
+        -- had no real problems. Could someone verify, or is this OK?
+        -- Edsko De Vries showed code at HIW 2023 that looked like this, and said it had major memory flaws. Title of his
+        -- lightening talk was: Severing ties: the need for non-updateable thunks
         defHandler :: IO () -> IO ()
         defHandler ioa = do
           r <- try ioa
@@ -1314,41 +1230,6 @@ shrinker chatty st numsucc n res ts = do
             Right a -> pure a
             Left UserInterrupt -> defHandler ioa
             Left ThreadKilled -> myThreadId >>= killThread
-
-    {- | Given a list of jobs being evaluated, and the taken path, return a list of those
-    jobs that should be cancelled. -}
-    shouldDie :: [(Int, Int)] -> [(Int, Int)] -> [(Int, Int)]
-    shouldDie activeWorkers path = flip filter activeWorkers $ \(wr,wc) ->
-      -- compute the path that starts at wr
-      let path' = dropWhile (\(pr,pc) -> pr > wr) path
-      in case path' of
-        []          -> False
-                    -- are you a candidate 'to the left' of the already chosen one?
-        ((sr,sc):_) | sr == wr -> wc > sc
-                    | sr < wr  -> True
-    
-    {- | Given the current path and a new candidate location, check if the new location
-    should be part of the path, or if the path should remain unchanged.
-    Returns the path to use, and a bool to indicate if it is a different path than the
-    one fed into the function.
-
-    edit: in extremely rare cases, there is a bug I can not figure out where the same
-    candidate is presented twice. It seems OK to just drop the second occurence, but 
-    I would like to know exactly what happens. I wrapped this in Maybe to use Nothing
-    as an indication that the same candidate was presented twice.
-    -}
-    computePath :: [(Int, Int)] -> (Int, Int) -> Maybe ([(Int, Int)], Bool)
-    computePath [] (x,y) = Just ([(x,y)], True)
-    computePath ((ox,oy):xs) (x,y)
-      | x > ox            = Just ((x,y)   : (ox,oy) : xs, True)
-      | x == ox && y < oy = Just ((x,y)   :           xs, True)
-      | x == ox && y > oy = Just ((ox,oy) :           xs, False)
-      | x < ox            =
-        let r = computePath xs (x,y)
-        in case r of
-          Just (xs', b) -> if b then Just (xs', b) else Just ((ox,oy):xs, b)
-          Nothing -> Nothing
-      | otherwise = Nothing
 
 shrinkPrinter :: Terminal -> IORef (Int, Int, Int) -> Int -> P.Result -> Int -> IO ()
 shrinkPrinter terminal stats n res delay = do

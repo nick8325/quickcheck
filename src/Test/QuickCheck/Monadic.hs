@@ -311,6 +311,10 @@ prop_graceful = monadicIO $ do
 
 -}
 graceful :: IO a -> IO () -> PropertyM IO a
+-- TODO piggybacking on UserInterrupt here, but this should really be a QC internal exception
+-- this was just placed here for my evaluation
+--
+-- design of this combinator might have to change
 graceful prop ioa = run $ prop `catch` \UserInterrupt -> do
   ioa
   tid <- myThreadId
