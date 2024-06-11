@@ -71,7 +71,7 @@ flag old-random
 
 library
   Hs-source-dirs: src
-  Build-depends: base >=4.3 && <5, containers, time
+  Build-depends: base >=4.3 && <5, containers
   Default-language: Haskell2010
 
   -- New vs old random.
