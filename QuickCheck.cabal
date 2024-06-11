@@ -181,35 +181,6 @@ Test-Suite test-quickcheck
     if !flag(templateHaskell) || impl(haste)
         Buildable: False
 
-Test-Suite robert-test-quickcheck
-    type: exitcode-stdio-1.0
-    Default-language: Haskell2010
-    hs-source-dirs:
-        examples
-    main-is: MyList.hs
-    build-depends: base, QuickCheck, directory
-    ghc-options:
-      -threaded
-      -rtsopts
-      -feager-blackholing
-      -with-rtsopts=-N4
-    if !flag(templateHaskell) || impl(haste)
-        Buildable: False
-
-Test-Suite robert-test-shrinking
-    type: exitcode-stdio-1.0
-    Default-language: Haskell2010
-    hs-source-dirs:
-        examples
-    main-is: MyList.hs
-    build-depends: base, QuickCheck, directory
-    ghc-options:
-      -threaded
-      -rtsopts
-      -feager-blackholing
-    if !flag(templateHaskell) || impl(haste)
-        Buildable: False
-
 Test-Suite test-quickcheck-gcoarbitrary
     type: exitcode-stdio-1.0
     Default-language: Haskell2010
