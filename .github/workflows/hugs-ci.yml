@@ -1,7 +1,6 @@
 name: Hugs-CI
 on:
-  - push
-  - pull_request
+  push:
 jobs:
   linux:
     name: Hugs-CI - Linux
