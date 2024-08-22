@@ -1,15 +1,28 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TemplateHaskell  #-}
+{-# LANGUAGE ConstraintKinds #-}
 
+#if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -Wno-orphans #-}
+#endif
 {-# LANGUAGE FlexibleInstances #-}
 
 module Main (main) where
 
+#ifndef NO_SEMIGROUP_CLASS
 import Data.List.NonEmpty
 import Data.Semigroup (Semigroup (..))
+#else
+import Data.Monoid (Monoid (..), (<>))
+#endif
 
 import Test.QuickCheck
+
+#ifdef NO_SEMIGROUP_CLASS
+type Semigroup = Monoid
+sconcat :: Monoid a => [a] -> a
+sconcat = mconcat
+#endif
 
 instance Arbitrary Every where
     arbitrary = oneof [ pure $ Every True
@@ -65,11 +78,13 @@ check_unit_law (Blind a) = ioProperty $ do
     return (x == y .&&. y == z)
 
 
+#ifndef NO_SEMIGROUP_CLASS
 check_sconcat_law :: (Testable p, Semigroup p) => Blind p -> Blind p -> Property
 check_sconcat_law (Blind a) (Blind b) = ioProperty $ do
     x <- isSuccess <$> quickCheckWithResult args (sconcat $ a :| [b])
     y <- isSuccess <$> quickCheckWithResult args (a <> b)
     return (x == y)
+#endif
 
 
 #ifndef NO_SEMIGROUP_SUPERCLASS
@@ -104,8 +119,10 @@ prop_every_unit_fail :: Blind (Fail Every) -> Property
 prop_every_unit_fail (Blind (Fail a)) =
     expectFailure $ check_unit_law (Blind a)
 
+#ifndef NO_SEMIGROUP_CLASS
 prop_every_sconcat_law :: Blind Every -> Blind Every -> Property
 prop_every_sconcat_law = check_sconcat_law
+#endif
 
 prop_every_mconcat_law :: Blind Every -> Blind Every -> Property
 prop_every_mconcat_law = check_mconcat_law
@@ -116,8 +133,10 @@ prop_some_associative = check_associative_law
 prop_some_unit :: Blind Some -> Property
 prop_some_unit = check_unit_law
 
+#ifndef NO_SEMIGROUP_CLASS
 prop_some_sconcat_law :: Blind Some -> Blind Some -> Property
 prop_some_sconcat_law = check_sconcat_law
+#endif
 
 prop_some_mconcat_law :: Blind Some -> Blind Some -> Property
 prop_some_mconcat_law = check_mconcat_law

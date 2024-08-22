@@ -285,3 +285,5 @@ Test-Suite test-quickcheck-monoids
     build-depends: base, QuickCheck
     if !impl(ghc >= 8.4)
       cpp-options: -DNO_SEMIGROUP_SUPERCLASS
+    if !impl(ghc >= 8.0)
+      cpp-options: -DNO_SEMIGROUP_CLASS
