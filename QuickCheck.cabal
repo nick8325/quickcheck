@@ -92,6 +92,9 @@ library
   else
     Build-depends: splitmix >= 0.1.0.2 && <0.2
 
+  if impl(hugs)
+    cpp-options: -DNO_SEMIGROUP -DNO_EXISTENTIAL_FIELD_SELECTORS
+
   -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
@@ -99,6 +102,7 @@ library
     Test.QuickCheck.Gen,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
+    Test.QuickCheck.Monoids,
     Test.QuickCheck.Modifiers,
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
@@ -127,7 +131,7 @@ library
     cpp-options: -DNO_TEMPLATE_HASKELL
 
   if !impl(ghc >= 8.0)
-    cpp-options: -DNO_CALLSTACK
+    cpp-options: -DNO_CALLSTACK -DNO_SEMIGROUP
 
   if !impl(ghc >= 7.4)
     cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
@@ -272,3 +276,14 @@ Test-Suite test-quickcheck-discard
     hs-source-dirs: tests
     main-is: DiscardRatio.hs
     build-depends: base, QuickCheck
+
+Test-Suite test-quickcheck-monoids
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: Monoids.hs
+    build-depends: base, QuickCheck
+    if !impl(ghc >= 8.4)
+      cpp-options: -DNO_SEMIGROUP_SUPERCLASS
+    if !impl(ghc >= 8.0)
+      cpp-options: -DNO_SEMIGROUP_CLASS
