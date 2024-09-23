@@ -1,5 +1,7 @@
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
+import Control.Monad
+import System.Exit
 
 prop_tabulateALot :: Int -> Property
 prop_tabulateALot x =
@@ -12,4 +14,5 @@ prop_tabulateALot x =
       tabulates (n - 1)
 
 main = do
-  quickCheck $ forAll arbitrary prop_tabulateALot
+  r <- quickCheckResult $ within 10000 $ forAll arbitrary prop_tabulateALot
+  unless (isSuccess r) exitFailure
