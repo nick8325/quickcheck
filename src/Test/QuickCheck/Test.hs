@@ -201,7 +201,8 @@ quickCheckResult p = quickCheckWithResult stdArgs p
 -- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
-  withState a (\s -> test s (property p))
+  let MkProperty mp = property p
+  in withState a (\s -> test s $ MkProperty $ fmap protectProp mp)
 
 -- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
 recheck :: Testable prop => Result -> prop -> IO ()

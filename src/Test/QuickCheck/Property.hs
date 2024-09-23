@@ -141,7 +141,7 @@ instance Testable prop => Testable (Gen prop) where
   property mp = MkProperty $ do p <- mp; unProperty (property p)
 
 instance Testable Property where
-  property (MkProperty mp) = MkProperty (fmap protectProp mp)
+  property = id
 
 -- | Do I/O inside a property.
 {-# DEPRECATED morallyDubiousIOProperty "Use 'ioProperty' instead" #-}
@@ -241,10 +241,13 @@ protectProp (MkProp r) = MkProp (IORose . protectRose . return $ r)
 
 -- | Wrap all the Results in a rose tree in exception handlers.
 protectResults :: Rose Result -> Rose Result
-protectResults = onRose $ \x rs ->
-  IORose $ do
-    y <- protectResult (return x)
-    return (MkRose y (map protectResults rs))
+protectResults = IORose . protect'
+  where
+    protect' :: Rose Result -> IO (Rose Result)
+    protect' (MkRose x rs) = do
+      y <- protectResult (return x)
+      return (MkRose y (map protectResults rs))
+    protect' (IORose m) = m >>= protect'
 
 -- ** Result type
 
