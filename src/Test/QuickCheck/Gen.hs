@@ -157,7 +157,7 @@ scale f g = sized (\n -> resize (f n) g)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
--- | Generates a random element over the natural range of `a`.
+-- | Generates a random element over the natural range of @a@.
 chooseAny :: Random a => Gen a
 chooseAny = MkGen (\r _ -> let (x,_) = random r in x)
 
@@ -244,7 +244,7 @@ sample' :: Gen a -> IO [a]
 sample' g =
   generate (sequence [ resize n g | n <- [0,2..20] ])
 
--- | Generates some example values and prints them to 'stdout'.
+-- | Generates some example values and prints them to 'System.IO.stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g =
   sequence_ [ do r <- newQCGen

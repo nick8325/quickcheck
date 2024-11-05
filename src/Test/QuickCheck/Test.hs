@@ -177,7 +177,7 @@ stdArgs = Args
   , maxShrinks      = maxBound
   }
 
--- | Tests a property and prints the results to 'stdout'.
+-- | Tests a property and prints the results to 'System.IO.stdout'.
 --
 -- By default up to 100 tests are performed, which may not be enough
 -- to find all bugs. To run more tests, use 'withMaxSuccess'.
@@ -190,15 +190,15 @@ stdArgs = Args
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheckWith stdArgs p
 
--- | Tests a property, using test arguments, and prints the results to 'stdout'.
+-- | Tests a property, using test arguments, and prints the results to 'System.IO.stdout'.
 quickCheckWith :: Testable prop => Args -> prop -> IO ()
 quickCheckWith args p = quickCheckWithResult args p >> return ()
 
--- | Tests a property, produces a test result, and prints the results to 'stdout'.
+-- | Tests a property, produces a test result, and prints the results to 'System.IO.stdout'.
 quickCheckResult :: Testable prop => prop -> IO Result
 quickCheckResult p = quickCheckWithResult stdArgs p
 
--- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
+-- | Tests a property, using test arguments, produces a test result, and prints the results to 'System.IO.stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
@@ -258,7 +258,7 @@ computeSize MkState{maxSuccessTests = ms, maxTestSize = mts, maxDiscardedRatio =
 clamp :: Ord a => a -> (a, a) -> a
 clamp x (l, h) = max l (min x h)
 
--- | Tests a property and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -267,7 +267,7 @@ clamp x (l, h) = max l (min x h)
 verboseCheck :: Testable prop => prop -> IO ()
 verboseCheck p = quickCheck (verbose p)
 
--- | Tests a property, using test arguments, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, using test arguments, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckWith' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -276,7 +276,7 @@ verboseCheck p = quickCheck (verbose p)
 verboseCheckWith :: Testable prop => Args -> prop -> IO ()
 verboseCheckWith args p = quickCheckWith args (verbose p)
 
--- | Tests a property, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, produces a test result, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckResult' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -285,7 +285,7 @@ verboseCheckWith args p = quickCheckWith args (verbose p)
 verboseCheckResult :: Testable prop => prop -> IO Result
 verboseCheckResult p = quickCheckResult (verbose p)
 
--- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckWithResult' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
