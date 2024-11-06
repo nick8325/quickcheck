@@ -25,6 +25,9 @@ import System.Timeout(timeout)
 #endif
 import Data.Maybe
 import Control.Applicative
+#if MIN_VERSION_base(4,8,0)
+import Control.Exception (displayException)
+#endif
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Map(Map)
@@ -319,7 +322,11 @@ exception msg err
                         theException = Just err }
 
 formatException :: String -> AnException -> String
+#if MIN_VERSION_base(4,8,0)
+formatException msg err = msg ++ ":" ++ format (displayException err)
+#else
 formatException msg err = msg ++ ":" ++ format (show err)
+#endif
   where format xs | isOneLine xs = " '" ++ xs ++ "'"
                   | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
