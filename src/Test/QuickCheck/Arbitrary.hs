@@ -723,7 +723,7 @@ instance Arbitrary Float where
     where
       smallDenominators = sized $ \n -> do
         i <- chooseInt (0, n)
-        pure (fromRational (streamNth i rationalUniverse))
+        pure (fromRational (streamNth (min i 256) rationalUniverse))
 
       uniform = sized $ \n -> do
         let n' = toInteger n
@@ -749,7 +749,7 @@ instance Arbitrary Double where
     where
       smallDenominators = sized $ \n -> do
         i <- chooseInt (0, n)
-        pure (fromRational (streamNth i rationalUniverse))
+        pure (fromRational (streamNth (min i 256) rationalUniverse))
 
       uniform = sized $ \n -> do
         let n' = toInteger n
@@ -1639,8 +1639,9 @@ streamNth :: Int -> Stream a -> a
 streamNth n (x :< xs) | n <= 0    = x
                       | otherwise = streamNth (n - 1) xs
 
--- We read into this stream only with ~size argument,
--- so it's ok to have it as CAF.
+-- We read into this stream only with ~size argument, capped to 256,
+-- so it's ok to have it as CAF. (256 chosen somewhat arbitrarily, the
+-- point is just to stop this blowing up.)
 --
 rationalUniverse :: Stream Rational
 rationalUniverse = 0 :< 1 :< (-1) :< go leftSideStream
