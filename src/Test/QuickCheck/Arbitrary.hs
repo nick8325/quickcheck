@@ -722,8 +722,8 @@ instance Arbitrary Float where
     ]
     where
       smallDenominators = sized $ \n -> do
-        i <- chooseInt (0, n)
-        pure (fromRational (streamNth (min i 256) rationalUniverse))
+        i <- chooseInt (0, min n 256)
+        pure (fromRational (streamNth i rationalUniverse))
 
       uniform = sized $ \n -> do
         let n' = toInteger n
@@ -748,8 +748,8 @@ instance Arbitrary Double where
     ]
     where
       smallDenominators = sized $ \n -> do
-        i <- chooseInt (0, n)
-        pure (fromRational (streamNth (min i 256) rationalUniverse))
+        i <- chooseInt (0, min n 256)
+        pure (fromRational (streamNth i rationalUniverse))
 
       uniform = sized $ \n -> do
         let n' = toInteger n
