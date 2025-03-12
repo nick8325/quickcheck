@@ -4,12 +4,14 @@ on:
     branches:
       - 'master'
   pull_request:
+    branches:
+      - 'master'
   schedule:
     - cron: 0 0 * * *
 jobs:
   linux:
     name: Hugs-CI - Linux
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - name: apt
         run: |
