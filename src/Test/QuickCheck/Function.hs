@@ -67,12 +67,14 @@ module Test.QuickCheck.Function
 
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Poly
+import Test.QuickCheck.Modifiers (Small(..))
 
 import Control.Applicative
 import Data.Char
 import Data.Word
 import Data.List( intersperse )
 import Data.Ratio
+import Data.Ord
 import qualified Data.IntMap as IntMap
 import qualified Data.IntSet as IntSet
 import qualified Data.Map as Map
@@ -100,6 +102,13 @@ import Data.Fixed
 
 #ifndef NO_GENERICS
 import GHC.Generics hiding (C)
+#endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.Semigroup as Semigroup
+#endif
 #endif
 
 --------------------------------------------------------------------------
@@ -261,6 +270,13 @@ instance Function a => Function [a] where
 
     h (Left _)       = []
     h (Right (x,xs)) = x:xs
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,9,0)
+instance Function a => Function (NonEmpty a) where
+  function = functionMap (\(a :| as) -> (a, as)) (uncurry (:|))
+#endif
+#endif
 
 instance Function a => Function (Maybe a) where
   function = functionMap g h
@@ -424,9 +440,24 @@ instance Function a => Function (Monoid.First a) where
 instance Function a => Function (Monoid.Last a) where
   function = functionMap Monoid.getLast Monoid.Last
 
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,6,0)
+instance Function a => Function (Down a) where
+  function = functionMap (\(Down a) -> a) Down
+#endif
+
 #if MIN_VERSION_base(4,8,0)
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
+#endif
+
+#if MIN_VERSION_base(4,9,0)
+instance Function a => Function (Semigroup.Min a) where
+  function = functionMap Semigroup.getMin Semigroup.Min
+
+instance Function a => Function (Semigroup.Max a) where
+  function = functionMap Semigroup.getMax Semigroup.Max
+#endif
 #endif
 
 -- poly instances
@@ -448,6 +479,11 @@ instance Function OrdB where
 
 instance Function OrdC where
   function = functionMap unOrdC OrdC
+
+-- Instances for modifiers
+
+instance Function a => Function (Small a) where
+  function = functionMap getSmall Small
 
 -- instance Arbitrary
 

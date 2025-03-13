@@ -385,6 +385,9 @@ instance Integral a => Arbitrary (Small a) where
   arbitrary = fmap Small arbitrarySizedIntegral
   shrink (Small x) = map Small (shrinkIntegral x)
 
+instance CoArbitrary a => CoArbitrary (Small a) where
+  coarbitrary (Small a) = coarbitrary a
+
 --------------------------------------------------------------------------
 -- | @Shrink2 x@: allows 2 shrinking steps at the same time when shrinking x
 newtype Shrink2 a = Shrink2 {getShrink2 :: a}
