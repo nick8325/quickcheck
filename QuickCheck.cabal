@@ -287,3 +287,10 @@ Test-Suite test-quickcheck-monoids
       cpp-options: -DNO_SEMIGROUP_SUPERCLASS
     if !impl(ghc >= 8.0)
       cpp-options: -DNO_SEMIGROUP_CLASS
+
+Test-Suite test-quickcheck-withprogress
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: WithProgress.hs
+    build-depends: base, QuickCheck

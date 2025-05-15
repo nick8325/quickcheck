@@ -18,7 +18,7 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State( State(terminal), Confidence(..) )
+import Test.QuickCheck.State( State(terminal, numSuccessTests, numDiscardedTests, maxSuccessTests, numSuccessShrinks, numTryShrinks, numTotTryShrinks), Confidence(..), TestProgress(..) )
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
@@ -449,6 +449,22 @@ whenFail' m =
     if ok res == Just False
       then m
       else return ()
+
+-- | Performs an IO action every time a property is tested, after every test.
+-- The IO action is allowed to depend on @TestProgress@, which contains information
+-- regarding how testing is progressing.
+withProgress :: Testable prop => (TestProgress -> IO ()) -> prop -> Property
+withProgress m =
+  callback $ PostTest NotCounterexample $ \st _r ->
+    let tp = TestProgress { numpassed    = numSuccessTests st
+                          , numdiscarded = numDiscardedTests st
+                          , maxtests     = maxSuccessTests st
+                          
+                          , numshrinks       = numSuccessShrinks st
+                          , numfailedshrinks = numTryShrinks st
+                          , numtotalshrinks  = numTotTryShrinks st
+                          }
+    in m tp
 
 -- | Prints out the generated test case every time the property is tested.
 -- Only variables quantified over /inside/ the 'verbose' are printed.

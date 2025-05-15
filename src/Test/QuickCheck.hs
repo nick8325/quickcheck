@@ -73,7 +73,7 @@ module Test.QuickCheck
   (
     -- * Running tests
     quickCheck
-  , Args(..), Result(..)
+  , Args(..), Result(..), TestProgress(..)
   , stdArgs
   , quickCheckWith
   , quickCheckWithResult
@@ -328,6 +328,7 @@ module Test.QuickCheck
 #endif
   , counterexample
   , printTestCase
+  , withProgress
   , whenFail
   , whenFail'
   , expectFailure
