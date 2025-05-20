@@ -99,8 +99,7 @@ data Confidence =
 -- that reports e.g. progress.
 data TestProgress
   = TestProgress
-  {
-    currentPassed        :: Int -- ^ Number of tests passed so far
+  { currentPassed        :: Int -- ^ Number of tests passed so far
   , currentDiscarded     :: Int -- ^ Number of discared tests so far
   , maxTests             :: Int -- ^ Number of tests to execute
   , currentShrinks       :: Int -- ^ Number of successful shrinking steps
