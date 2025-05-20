@@ -453,16 +453,20 @@ whenFail' m =
 -- | Performs an IO action every time a property is tested, after every test.
 -- The IO action is allowed to depend on @TestProgress@, which contains information
 -- regarding how testing is progressing.
+--
+-- Note: QC invokes callbacks before the internal state has been updated to reflect the
+-- most recent test. The means that e.g. @currentPassed@ will, after the first test has
+-- been executed, still show 0.
 withProgress :: Testable prop => (TestProgress -> IO ()) -> prop -> Property
 withProgress m =
   callback $ PostTest NotCounterexample $ \st _r ->
-    let tp = TestProgress { numpassed    = numSuccessTests st
-                          , numdiscarded = numDiscardedTests st
-                          , maxtests     = maxSuccessTests st
+    let tp = TestProgress { currentPassed    = numSuccessTests st
+                          , currentDiscarded = numDiscardedTests st
+                          , maxTests         = maxSuccessTests st
                           
-                          , numshrinks       = numSuccessShrinks st
-                          , numfailedshrinks = numTryShrinks st
-                          , numtotalshrinks  = numTotTryShrinks st
+                          , currentShrinks       = numSuccessShrinks st
+                          , currentFailedShrinks = numTryShrinks st
+                          , currentTotalShrinks  = numTotTryShrinks st
                           }
     in m tp
 

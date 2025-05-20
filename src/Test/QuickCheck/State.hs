@@ -100,14 +100,14 @@ data Confidence =
 data TestProgress
   = TestProgress
   {
-    numpassed        :: Int -- ^ Number of tests passed so far
-  , numdiscarded     :: Int -- ^ Number of discared tests so far
-  , maxtests         :: Int -- ^ Number of tests to execute
+    currentPassed        :: Int -- ^ Number of tests passed so far
+  , currentDiscarded     :: Int -- ^ Number of discared tests so far
+  , maxTests             :: Int -- ^ Number of tests to execute
 
-  , numshrinks       :: Int -- ^ Number of successful shrinking steps
-  , numfailedshrinks :: Int -- ^ Number of failed shrinking steps since last successful one
-  , numtotalshrinks  :: Int -- ^ total number of failed shrinking steps
-  }
+  , currentShrinks       :: Int -- ^ Number of successful shrinking steps
+  , currentFailedShrinks :: Int -- ^ Number of failed shrinking steps since last successful one
+  , currentTotalShrinks  :: Int -- ^ Total number of failed shrinking steps
+  } deriving Show
 
 --------------------------------------------------------------------------
 -- the end.
