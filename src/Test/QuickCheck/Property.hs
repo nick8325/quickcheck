@@ -460,10 +460,9 @@ whenFail' m =
 withProgress :: Testable prop => (TestProgress -> IO ()) -> prop -> Property
 withProgress m =
   callback $ PostTest NotCounterexample $ \st _r ->
-    let tp = TestProgress { currentPassed    = numSuccessTests st
-                          , currentDiscarded = numDiscardedTests st
-                          , maxTests         = maxSuccessTests st
-                          
+    let tp = TestProgress { currentPassed        = numSuccessTests st
+                          , currentDiscarded     = numDiscardedTests st
+                          , maxTests             = maxSuccessTests st
                           , currentShrinks       = numSuccessShrinks st
                           , currentFailedShrinks = numTryShrinks st
                           , currentTotalShrinks  = numTotTryShrinks st
