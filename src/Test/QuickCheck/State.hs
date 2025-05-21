@@ -94,5 +94,18 @@ data Confidence =
     }
   deriving Show
 
+-- | TestProgress, contains information that might be interesting to external
+-- libraries, e.g. Tasty. From this it is possible to install your own callbacks
+-- that reports e.g. progress.
+data TestProgress
+  = TestProgress
+  { currentPassed        :: Int -- ^ Number of tests passed so far
+  , currentDiscarded     :: Int -- ^ Number of discared tests so far
+  , maxTests             :: Int -- ^ Number of tests to execute
+  , currentShrinks       :: Int -- ^ Number of successful shrinking steps
+  , currentFailedShrinks :: Int -- ^ Number of failed shrinking steps since last successful one
+  , currentTotalShrinks  :: Int -- ^ Total number of failed shrinking steps
+  } deriving Show
+
 --------------------------------------------------------------------------
 -- the end.
