@@ -10,7 +10,7 @@ Maintainer: Nick Smallbone <nick@smallbone.se>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
 Tested-with: GHC == 7.10.3 ||
                  == 8.0.2  ||
-                 >= 8.2.2 && < 9.11
+                 >= 8.2.2 && < 9.13
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
