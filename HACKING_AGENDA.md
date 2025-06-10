@@ -8,6 +8,7 @@
   - Better: Monomorphise and generate a properties to test the arbitrary instance
   - Manually exclude modules/types (to avoid writing clever rules for which
     types to support)
+- See CollectDataTypes.hs and RunCollectDataTypes.hs.
 
 ### Parallel fork
 
