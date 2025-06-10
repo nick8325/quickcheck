@@ -30,7 +30,7 @@ getPackageModules :: String -> IO [String]
 getPackageModules pkg = 
   concatMap (parseWords . words) . splitOn ", " . unwords . words <$> readProcess cmd args ""
   where
-    cmd:args = ["stack", "exec", "--", "ghc-pkg", "field", pkg, "exposed-modules", "--simple-output"]
+    cmd:args = ["ghc-pkg", "field", pkg, "exposed-modules", "--simple-output"]
     parseWords [mod, "from", _] = [mod]
     parseWords xs = xs
 
