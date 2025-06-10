@@ -62,20 +62,22 @@ data Result = NotFound | FunnyKind String | NoArbitrary | HasArbitrary deriving 
 doTheMagicStuff :: String -> Q Exp
 doTheMagicStuff pkg = do
   datatypes <- runIO (getPackageDataTypes pkg)
-  result <- forM datatypes $ \dt -> do
-    mtype <- dataTypeType dt
-    case mtype of
-      Nothing -> return (dt, NotFound)
-      Just typ -> do
-        case typeArity typ of
-          Nothing -> return (dt, FunnyKind (show (pprType 0 typ)))
-          Just arity -> do
-            hasArb <- runIO $ hasArbitraryInstance dt arity
-            case hasArb of
-              False -> return (dt, NoArbitrary)
-              True -> return (dt, HasArbitrary)
+  results <- mapM checkDataType datatypes
+  lift (zip datatypes results)
 
-  lift result
+checkDataType :: DataType -> Q Result
+checkDataType dt = do
+  mtype <- dataTypeType dt
+  case mtype of
+    Nothing -> return NotFound
+    Just typ ->
+      case typeArity typ of
+        Nothing -> return (FunnyKind (show (pprType 0 typ)))
+        Just arity -> do
+          hasArb <- runIO $ hasArbitraryInstance dt arity
+          case hasArb of
+            False -> return NoArbitrary
+            True -> return HasArbitrary
         
 hasArbitraryInstance :: DataType -> Int -> IO Bool
 hasArbitraryInstance dt@DataType{..} arity =
