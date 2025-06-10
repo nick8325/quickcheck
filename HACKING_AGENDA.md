@@ -30,3 +30,5 @@
 
 - Drop ghc 7 support
 - Clean up flag mess in cabal file
+- Add MicroHs support
+  - Lennart: "needs random numbers, this is hard!"
