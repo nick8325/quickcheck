@@ -15,6 +15,7 @@ import Control.Monad.IO.Class
 import Text.Printf
 import Data.Either
 import Data.Char
+import Data.Function
 
 data DataType =
   DataType {
@@ -64,8 +65,9 @@ createProperties :: String -> Q [Dec]
 createProperties pkg = do
   datatypes0 <- runIO (getPackageDataTypes pkg)
   let datatypes = [ dt | dt <- datatypes0, not $ haskellName dt `elem` typeBlacklist ]
-  missingModules <- fmap (nub . map dt_module) $ filterM (\ dt -> isNothing <$> dataTypeType dt) datatypes
-  unless (null missingModules) $ error ("Missing the following imports:\n" ++ unlines [ "import " ++ m | m <- missingModules ])
+  let mkImport dt = printf "import %s -- for %s" (dt_module dt) (dt_type dt)
+  missingModules <- fmap (map mkImport . nubBy ((==) `on` dt_module)) $ filterM (\ dt -> isNothing <$> dataTypeType dt) datatypes
+  unless (null missingModules) $ error ("Missing the following imports:\n" ++ unlines missingModules)
   namesAndDecs <- fmap concat $ mapM createProperty datatypes
   let (allNames, props) = unzip namesAndDecs
   allPropsDec <- [d| allProps =
@@ -111,6 +113,7 @@ typeBlacklist = [ "Prelude.IO"
                 , "Data.Proxy.KProxy"
                 , "Data.Monoid.Endo"
                 , "Data.Semigroup.Endo"
+                , "Data.List.[]" -- This is buggy and annoying
                 , "System.IO.HandlePosn"
                 , "System.IO.Handle"
                 ] ++
