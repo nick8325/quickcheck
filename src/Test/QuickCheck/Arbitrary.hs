@@ -1101,7 +1101,7 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Semigroup.Arg a b) where
 
 #endif
 
-#if !MIN_VERSION_base(4,15,0)
+#if !MIN_VERSION_base(4,16,0)
 instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   arbitrary = Semigroup.Option <$> arbitrary
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
