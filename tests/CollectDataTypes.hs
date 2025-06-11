@@ -108,9 +108,17 @@ typeBlacklist = [ "Prelude.IO"
                 , "Data.STRef.Lazy.STRef"
                 , "Data.STRef.Strict.STRef"
                 , "Data.Void.Void"
+                , "Data.Proxy.KProxy"
+                , "Data.Monoid.Endo"
+                , "Data.Semigroup.Endo"
+                , "System.IO.HandlePosn"
+                , "System.IO.Handle"
                 ] ++
                 -- These are phantom types used for indexing
-                [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ]
+                [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ] ++
+                -- TODO: Some controversial ones?
+                [ "System.IO.Error.IOErrorType" ]
+
 
 modulePrefixBlacklist :: [String]
 modulePrefixBlacklist = [ "GHC"
@@ -123,10 +131,17 @@ modulePrefixBlacklist = [ "GHC"
                         , "Data.Dynamic"
                         , "Data.Typeable"
                         , "Type.Reflection"
+                        , "System.Mem"
+                        , "System.Timeout"
+                        , "Text.ParserCombinators"
                         ] ++
                         -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
                         -- later
                         [ "Data.Functor.Contravariant"
+                        , "Text.Printf"
+                        , "Text.Read"
+                        , "Text.Show"
+                        , "System.Console"
                         ]
 
 isValidModule :: String -> Bool
