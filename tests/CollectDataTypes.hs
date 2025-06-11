@@ -96,12 +96,21 @@ typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
                 , "Prelude.ReadS"
                 , "Prelude.ShowS"
+                , "System.IO.IO"
                 , "System.IO.Error.IOError"
                 , "Prelude.IOError"
                 , "Data.Kind.Type"
                 , "Data.Array.Byte.MutableByteArray"
                 , "Data.IORef.IORef"
-                ]
+                , "Data.Kind.Constraint"
+                , "Data.Unique.Unique"
+                , "Data.STRef.STRef"
+                , "Data.STRef.Lazy.STRef"
+                , "Data.STRef.Strict.STRef"
+                , "Data.Void.Void"
+                ] ++
+                -- These are phantom types used for indexing
+                [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ]
 
 modulePrefixBlacklist :: [String]
 modulePrefixBlacklist = [ "GHC"
@@ -110,8 +119,15 @@ modulePrefixBlacklist = [ "GHC"
                         , "Control.Exception"
                         , "Control.Monad.ST"
                         , "System.Posix"
+                        , "Data.Data"
+                        , "Data.Dynamic"
+                        , "Data.Typeable"
+                        , "Type.Reflection"
+                        ] ++
+                        -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
+                        -- later
+                        [ "Data.Functor.Contravariant"
                         ]
 
 isValidModule :: String -> Bool
-isValidModule mod = mod == "Prelude" -- TODO: fixme by actually introducing all the relevant instances
 isValidModule mod = not $ any (`isPrefixOf` mod) modulePrefixBlacklist

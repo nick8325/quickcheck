@@ -88,6 +88,8 @@ module Test.QuickCheck.Arbitrary
 -- imports
 
 import Control.Applicative
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
 import Data.Foldable(toList)
 import System.Random(Random)
 import Test.QuickCheck.Gen
@@ -500,6 +502,14 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
                ++ [ x:xs' | xs' <- shrink xs ]
                ++ [ x':xs | x'  <- shrink x ]
 -}
+
+instance Arbitrary1 NonEmpty where
+  liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
+  liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
+
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
@@ -1083,6 +1093,10 @@ instance Arbitrary NewlineMode where
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
 #endif
 #endif
+
+instance Arbitrary GeneralCategory where
+  arbitrary = arbitraryBoundedEnum
+  shrink = shrinkBoundedEnum
 
 -- ** Helper functions for implementing arbitrary
 
