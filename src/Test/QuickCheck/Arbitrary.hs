@@ -138,6 +138,8 @@ import Data.List
   , nub
   )
 
+import Numeric.Natural
+
 import Data.Version (Version (..))
 
 #if defined(MIN_VERSION_base)
@@ -145,6 +147,11 @@ import Data.Version (Version (..))
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
+  , SeekMode(..)
+  , BufferMode(..)
+  , TextEncoding
+  , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
+  , IOMode(..)
   )
 #endif
 #endif
@@ -187,6 +194,15 @@ import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
 #endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,16,0)
+import Data.Type.Ord
+#endif
+#endif
+
+import qualified Data.Semigroup as Semigroup
+import Data.Ord
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -655,6 +671,10 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
+instance Arbitrary Natural where
+  arbitrary = arbitrarySizedNatural
+  shrink    = shrinkIntegral
+
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
@@ -1045,7 +1065,44 @@ instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
   shrink = map Monoid.Alt . shrink . Monoid.getAlt
 #endif
+
+#if MIN_VERSION_base(4,9,0)
+instance Arbitrary a => Arbitrary (Semigroup.Min a) where
+  arbitrary = fmap Semigroup.Min arbitrary
+  shrink = map Semigroup.Min . shrink . Semigroup.getMin
+
+instance Arbitrary a => Arbitrary (Semigroup.Max a) where
+  arbitrary = fmap Semigroup.Max arbitrary
+  shrink = map Semigroup.Max . shrink . Semigroup.getMax
+
+instance Arbitrary a => Arbitrary (Semigroup.First a) where
+  arbitrary = fmap Semigroup.First arbitrary
+  shrink = map Semigroup.First . shrink . Semigroup.getFirst
+
+instance Arbitrary a => Arbitrary (Semigroup.Last a) where
+  arbitrary = fmap Semigroup.Last arbitrary
+  shrink = map Semigroup.Last . shrink . Semigroup.getLast
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Semigroup.Arg a b) where
+  arbitrary = Semigroup.Arg <$> arbitrary <*> arbitrary
+  shrink (Semigroup.Arg a b) = uncurry Semigroup.Arg <$> shrink (a, b)
+
 #endif
+
+#if !MIN_VERSION_base(4,15,0)
+instance Arbitrary a => Arbitrary (Semigroup.Option a) where
+  arbitrary = Semigroup.Option <$> arbitrary
+  shrink = map Semigroup.Option . shrink . Semigroup.getOption
+#endif
+
+instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
+  arbitrary = Semigroup.WrapMonoid <$> arbitrary
+  shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
+#endif
+
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = fmap Down arbitrary
+  shrink = map Down . shrink . getDown
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
 instance Arbitrary Version where
@@ -1097,6 +1154,23 @@ instance Arbitrary NewlineMode where
 instance Arbitrary GeneralCategory where
   arbitrary = arbitraryBoundedEnum
   shrink = shrinkBoundedEnum
+
+instance Arbitrary SeekMode where
+  arbitrary = elements [ AbsoluteSeek, RelativeSeek, SeekFromEnd ]
+  shrink x = takeWhile (x /=) [ AbsoluteSeek, RelativeSeek, SeekFromEnd ]
+
+instance Arbitrary TextEncoding where
+  arbitrary = elements [ latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8 ]
+
+instance Arbitrary BufferMode where
+  arbitrary = oneof [ pure NoBuffering, pure LineBuffering, BlockBuffering <$> arbitrary ]
+  shrink NoBuffering = []
+  shrink LineBuffering = [ NoBuffering ]
+  shrink (BlockBuffering m) = [ NoBuffering, LineBuffering ] ++ map BlockBuffering (shrink m)
+
+instance Arbitrary IOMode where
+  arbitrary = elements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+  shrink x = takeWhile (/=x) [ReadMode, WriteMode, AppendMode, ReadWriteMode]
 
 -- ** Helper functions for implementing arbitrary
 
