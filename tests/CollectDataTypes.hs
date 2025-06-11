@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift #-}
+{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift, TupleSections #-}
 module CollectDataTypes where
 
 import Language.Haskell.TH
@@ -66,9 +66,16 @@ createProperties pkg = do
   let datatypes = [ dt | dt <- datatypes0, not $ haskellName dt `elem` typeBlacklist ]
   missingModules <- fmap (nub . map dt_module) $ filterM (\ dt -> isNothing <$> dataTypeType dt) datatypes
   unless (null missingModules) $ error ("Missing the following imports:\n" ++ unlines [ "import " ++ m | m <- missingModules ])
-  fmap concat $ mapM createProperty datatypes
+  namesAndDecs <- fmap concat $ mapM createProperty datatypes
+  let (allNames, props) = unzip namesAndDecs
+  allPropsDec <- [d| allProps =
+                        $(pure $ ListE [ TupE [Just (LitE (StringL $ nameBase name)), Just (VarE name)]
+                                              | name <- allNames ]
+                         )
+                 |]
+  return $ allPropsDec ++ props
 
-createProperty :: DataType -> Q [Dec]
+createProperty :: DataType -> Q [(Name, Dec)]
 createProperty dt = do
   mtype <- dataTypeType dt
   -- TODO: monad?!
@@ -80,12 +87,10 @@ createProperty dt = do
         Just name <- lookupTypeName (haskellName dt)
         Just int <- lookupTypeName "Int"
         Just gen <- lookupTypeName "Gen"
-        let propName = VarP <$> newName ("prop_" ++ filter isAlphaNum (haskellName dt))
+        nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
+        let propName = pure $ VarP nm
         let ty = pure $ AppT (ConT gen) $ foldl AppT (ConT name) $ replicate arity (ConT int)
-        [d| $propName =
-              forAll (arbitrary :: $ty)
-                     (\ x -> x `seq` True)
-          |]
+        map (nm,) <$> [d| $propName = forAll (arbitrary :: $ty) (\ x -> x `seq` True) |]
 
 typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
@@ -108,5 +113,5 @@ modulePrefixBlacklist = [ "GHC"
                         ]
 
 isValidModule :: String -> Bool
-isValidModule mod = mod == "Prelude" -- TODO: tmp
+isValidModule mod = mod == "Prelude" -- TODO: fixme by actually introducing all the relevant instances
 isValidModule mod = not $ any (`isPrefixOf` mod) modulePrefixBlacklist
