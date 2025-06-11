@@ -1136,9 +1136,33 @@ instance Arbitrary ByteArray where
 #endif
 
 #if MIN_VERSION_base(4,15,0)
+
+#if !MIN_VERSION_base(4,18,0)
+
+getSolo :: Solo a -> a
+getSolo (Solo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = Solo
+
+#elif !MIN_VERSION_base(4,19,0)
+
+getSolo :: Solo a -> a
+getSolo (MkSolo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#else
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#endif
+
 instance Arbitrary a => Arbitrary (Solo a) where
-  arbitrary = MkSolo <$> arbitrary
-  shrink = map MkSolo . shrink . getSolo
+  arbitrary = mkSolo <$> arbitrary
+  shrink = map mkSolo . shrink . getSolo
 #endif
 #endif
 
