@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -ddump-splices #-}
 import CollectDataTypes
 import Language.Haskell.TH
+import Test.QuickCheck.All
 import Test.QuickCheck
 
 import Control.Applicative
@@ -80,4 +81,4 @@ $(createProperties "base")
 newDeclarationGroup
 
 -- TODO for some reason this doesn't work?!
-main = $quickCheckAll
+main = runQuickCheckAll allProps quickCheckResult
