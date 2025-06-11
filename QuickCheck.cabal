@@ -8,9 +8,7 @@ Copyright: 2000-2019 Koen Claessen, 2006-2008 Björn Bringert, 2009-2019 Nick Sm
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: Nick Smallbone <nick@smallbone.se>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
-Tested-with: GHC == 7.10.3 ||
-                 == 8.0.2  ||
-                 >= 8.2.2 && < 9.13
+Tested-with: GHC >= 8.10 && < 9.13
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
