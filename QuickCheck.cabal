@@ -294,3 +294,18 @@ Test-Suite test-quickcheck-withprogress
     hs-source-dirs: tests
     main-is: WithProgress.hs
     build-depends: base, QuickCheck
+
+Test-Suite test-arbitrary-instances
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    other-modules: CollectDataTypes
+    main-is: RunCollectDataTypes.hs
+    build-depends:
+      base,
+      QuickCheck,
+      transformers,
+      split,
+      process,
+      template-haskell,
+      hint
