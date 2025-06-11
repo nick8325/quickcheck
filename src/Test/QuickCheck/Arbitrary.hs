@@ -211,7 +211,7 @@ import Data.Array.Byte
 import qualified GHC.Exts as Exts
 #endif
 
-#if MIN_VERSION_base(4,15,0)
+#if MIN_VERSION_base(4,16,0)
 import Data.Tuple
 #endif
 #endif
@@ -1135,7 +1135,7 @@ instance Arbitrary ByteArray where
   shrink = map Exts.fromList . shrink . Exts.toList
 #endif
 
-#if MIN_VERSION_base(4,15,0)
+#if MIN_VERSION_base(4,16,0)
 
 #if !MIN_VERSION_base(4,18,0)
 
