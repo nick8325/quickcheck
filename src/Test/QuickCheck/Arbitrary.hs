@@ -184,7 +184,6 @@ import qualified Data.IntMap as IntMap
 #endif
 import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
-import Data.Bits
 
 import qualified Data.Monoid as Monoid
 
@@ -203,6 +202,19 @@ import Data.Type.Ord
 
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
+
+import Data.Bits
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,17,0)
+import Data.Array.Byte
+import qualified GHC.Exts as Exts
+#endif
+
+#if MIN_VERSION_base(4,15,0)
+import Data.Tuple
+#endif
+#endif
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -1095,9 +1107,39 @@ instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
 #endif
 
+#if MIN_VERSION_base(4,16,0)
+instance Arbitrary a => Arbitrary (Iff a) where
+  arbitrary = Iff <$> arbitrary
+  shrink = map Iff . shrink . getIff
+
+instance Arbitrary a => Arbitrary (Ior a) where
+  arbitrary = Ior <$> arbitrary
+  shrink = map Ior . shrink . getIor
+
+instance Arbitrary a => Arbitrary (Xor a) where
+  arbitrary = Xor <$> arbitrary
+  shrink = map Xor . shrink . getXor
+
+instance Arbitrary a => Arbitrary (And a) where
+  arbitrary = And <$> arbitrary
+  shrink = map And . shrink . getAnd
+#endif
+
 instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
   arbitrary = Semigroup.WrapMonoid <$> arbitrary
   shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
+
+#if MIN_VERSION_base(4,17,0)
+instance Arbitrary ByteArray where
+  arbitrary = Exts.fromList <$> arbitrary
+  shrink = map Exts.fromList . shrink . Exts.toList
+#endif
+
+#if MIN_VERSION_base(4,15,0)
+instance Arbitrary a => Arbitrary (Solo a) where
+  arbitrary = MkSolo <$> arbitrary
+  shrink = map MkSolo . shrink . getSolo
+#endif
 #endif
 
 instance Arbitrary a => Arbitrary (Down a) where
