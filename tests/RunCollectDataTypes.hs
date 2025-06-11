@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, CPP #-}
 {-# OPTIONS_GHC -ddump-splices #-}
 import CollectDataTypes
 import Language.Haskell.TH
@@ -17,7 +17,11 @@ import Control.Exception.Base
 import Control.Monad.ST
 import Control.Monad.ST.Lazy
 import Control.Monad.ST.Strict
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
+#endif
+#endif
 import Data.Bits
 import Data.Bool
 import Data.Char
@@ -50,7 +54,11 @@ import Data.Tuple
 import Data.Type.Bool
 import Data.Type.Coercion
 import Data.Type.Equality
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,16,0)
 import Data.Type.Ord
+#endif
+#endif
 import Data.Typeable
 import Data.Unique
 import Data.Version
@@ -78,7 +86,4 @@ import Unsafe.Coerce
 
 $(createProperties "base")
 
-newDeclarationGroup
-
--- TODO for some reason this doesn't work?!
 main = runQuickCheckAll allProps quickCheckResult
