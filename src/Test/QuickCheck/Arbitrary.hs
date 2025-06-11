@@ -198,14 +198,12 @@ import Data.Functor.Product
 #if MIN_VERSION_base(4,16,0)
 import Data.Type.Ord
 #endif
-#endif
 
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
 import Data.Bits
 
-#if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
 import qualified GHC.Exts as Exts
