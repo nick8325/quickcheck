@@ -88,8 +88,6 @@ module Test.QuickCheck.Arbitrary
 -- imports
 
 import Control.Applicative
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
 import Data.Foldable(toList)
 import System.Random(Random)
 import Test.QuickCheck.Gen
@@ -138,11 +136,15 @@ import Data.List
   , nub
   )
 
-import Numeric.Natural
 
 import Data.Version (Version (..))
 
 #if defined(MIN_VERSION_base)
+import Numeric.Natural
+
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
+
 #if MIN_VERSION_base(4,2,0)
 import System.IO
   ( Newline(..)
@@ -202,7 +204,6 @@ import Data.Type.Ord
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
-import Data.Bits
 
 #if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
@@ -213,6 +214,8 @@ import qualified GHC.Exts as Exts
 import Data.Tuple
 #endif
 #endif
+
+import Data.Bits
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -529,6 +532,7 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
                ++ [ x':xs | x'  <- shrink x ]
 -}
 
+#if defined(MIN_VERSION_base)
 instance Arbitrary1 NonEmpty where
   liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
   liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
@@ -536,6 +540,7 @@ instance Arbitrary1 NonEmpty where
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
   shrink = shrink1
+#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
@@ -681,9 +686,11 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
+#if defined(MIN_VERSION_base)
 instance Arbitrary Natural where
   arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
+#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -1162,11 +1169,11 @@ instance Arbitrary a => Arbitrary (Solo a) where
   arbitrary = mkSolo <$> arbitrary
   shrink = map mkSolo . shrink . getSolo
 #endif
-#endif
 
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . getDown
+#endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
 instance Arbitrary Version where
@@ -1213,7 +1220,6 @@ instance Arbitrary NewlineMode where
 
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
 #endif
-#endif
 
 instance Arbitrary GeneralCategory where
   arbitrary = arbitraryBoundedEnum
@@ -1235,6 +1241,8 @@ instance Arbitrary BufferMode where
 instance Arbitrary IOMode where
   arbitrary = elements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
   shrink x = takeWhile (/=x) [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+
+#endif
 
 -- ** Helper functions for implementing arbitrary
 
