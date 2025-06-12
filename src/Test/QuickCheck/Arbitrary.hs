@@ -1243,8 +1243,6 @@ instance Arbitrary IOMode where
   arbitrary = elements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
   shrink x = takeWhile (/=x) [ReadMode, WriteMode, AppendMode, ReadWriteMode]
 
-#endif
-
 instance Arbitrary FormatSign where
   arbitrary = elements [SignPlus, SignSpace]
   shrink SignPlus = []
@@ -1268,6 +1266,8 @@ instance Arbitrary FieldFormat where
                           <*> arbitrary
                           <*> arbitrary
   shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
+
+#endif
 
 -- ** Helper functions for implementing arbitrary
 
