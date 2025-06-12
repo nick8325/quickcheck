@@ -92,7 +92,7 @@ createProperty dt = do
         nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
         let propName = pure $ VarP nm
         let ty = pure $ AppT (ConT gen) $ foldl AppT (ConT name) $ replicate arity (ConT int)
-        map (nm,) <$> [d| $propName = forAll (arbitrary :: $ty) (\ x -> x `seq` True) |]
+        map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: $ty) (\ x -> x `seq` True) |]
 
 typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
@@ -116,6 +116,8 @@ typeBlacklist = [ "Prelude.IO"
                 , "Data.List.[]" -- This is buggy and annoying
                 , "System.IO.HandlePosn"
                 , "System.IO.Handle"
+                , "Text.Printf.FieldFormatter" -- This is a function type and it
+                                               -- requires an annoying coarbitrary instance
                 ] ++
                 -- These are phantom types used for indexing
                 [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ] ++
@@ -126,25 +128,31 @@ typeBlacklist = [ "Prelude.IO"
 modulePrefixBlacklist :: [String]
 modulePrefixBlacklist = [ "GHC"
                         , "Foreign"
+                          -- Exports things like MVar etc
                         , "Control.Concurrent"
-                        , "Control.Exception"
+                          -- Exports ST and RealWorld that we can't support
                         , "Control.Monad.ST"
-                        , "System.Posix"
-                        , "Data.Data"
+                          -- Existential wrapper around a Typeable thing, could be supported but would
+                          -- be a bit artificially limited to wrapping a bunch of types we can list
                         , "Data.Dynamic"
+                          -- We _could_ support this, but it would result in the same problem as with Dynamic
                         , "Data.Typeable"
                         , "Type.Reflection"
+                          -- System.Mem.Weak and System.Mem.Stable export pointer types
+                          -- we don't support
                         , "System.Mem"
+                          -- Exports an exception
                         , "System.Timeout"
                         , "Text.ParserCombinators"
                         ] ++
                         -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
                         -- later
                         [ "Data.Functor.Contravariant"
-                        , "Text.Printf"
                         , "Text.Read"
-                        , "Text.Show"
                         , "System.Console"
+                        , "Control.Exception"
+                        , "System.Posix"
+                        , "Data.Data"
                         ]
 
 isValidModule :: String -> Bool

@@ -216,6 +216,7 @@ import Data.Tuple
 #endif
 
 import Data.Bits
+import Text.Printf
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -1243,6 +1244,30 @@ instance Arbitrary IOMode where
   shrink x = takeWhile (/=x) [ReadMode, WriteMode, AppendMode, ReadWriteMode]
 
 #endif
+
+instance Arbitrary FormatSign where
+  arbitrary = elements [SignPlus, SignSpace]
+  shrink SignPlus = []
+  shrink SignSpace = [SignPlus]
+
+instance Arbitrary FormatAdjustment where
+  arbitrary = elements [LeftAdjust, ZeroPad]
+  shrink LeftAdjust = []
+  shrink ZeroPad = [LeftAdjust]
+
+instance Arbitrary FormatParse where
+  arbitrary = FormatParse <$> arbitrary <*> arbitrary <*> arbitrary
+  shrink (FormatParse a b c) = [ FormatParse a' b' c' | (a', b', c') <- shrink (a, b, c) ]
+
+instance Arbitrary FieldFormat where
+  arbitrary = FieldFormat <$> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+  shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
 
 -- ** Helper functions for implementing arbitrary
 
