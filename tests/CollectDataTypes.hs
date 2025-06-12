@@ -143,7 +143,6 @@ modulePrefixBlacklist = [ "GHC"
                         , "System.Mem"
                           -- Exports an exception
                         , "System.Timeout"
-                        , "Text.ParserCombinators"
                         ] ++
                         -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
                         -- later
@@ -153,6 +152,7 @@ modulePrefixBlacklist = [ "GHC"
                         , "Control.Exception"
                         , "System.Posix"
                         , "Data.Data"
+                        , "Text.ParserCombinators"
                         ]
 
 isValidModule :: String -> Bool
