@@ -14,11 +14,19 @@
 
 - Robert gives a nice presentation of what's going on
 
+- We should decide on some design principles:
+    - we care only about locally minimal counterexamples
+    - we want the features module
+    - we don't care about parallel quickcheck exploring sizes
+      deterministically
+    - we do care about sizes being explored in order small to big
+
 ### Crazy Koen ideas
 
-- Faster splittable generators
-
 - Constrained generation
+    - Let's make a little language that let's us talk about the kind of
+    constraints we want to evaluate in a closed universe of functions and a
+    closed universe of types (therefore no crazy typeclass nonsense etc)
 
 ### API for test runners
 
