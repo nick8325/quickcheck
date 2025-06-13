@@ -1,5 +1,5 @@
 Name: QuickCheck
-Version: 2.15.0.1
+Version: 2.16.0.0
 Cabal-Version: >= 1.10
 Build-type: Simple
 License: BSD3
@@ -59,7 +59,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.15.0.1
+  tag:      2.16
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
