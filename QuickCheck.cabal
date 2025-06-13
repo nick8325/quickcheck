@@ -8,9 +8,7 @@ Copyright: 2000-2019 Koen Claessen, 2006-2008 Björn Bringert, 2009-2019 Nick Sm
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: Nick Smallbone <nick@smallbone.se>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
-Tested-with: GHC == 7.10.3 ||
-                 == 8.0.2  ||
-                 >= 8.2.2 && < 9.11
+Tested-with: GHC >= 8.10 && < 9.13
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
@@ -294,3 +292,18 @@ Test-Suite test-quickcheck-withprogress
     hs-source-dirs: tests
     main-is: WithProgress.hs
     build-depends: base, QuickCheck
+
+Test-Suite test-arbitrary-instances
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    other-modules: CollectDataTypes
+    main-is: RunCollectDataTypes.hs
+    build-depends:
+      base,
+      QuickCheck,
+      transformers,
+      split,
+      process,
+      template-haskell,
+      hint
