@@ -148,7 +148,6 @@ modulePrefixBlacklist = [ "GHC"
                         -- later
                         [ "Data.Functor.Contravariant"
                         , "Text.Read"
-                        , "System.Console"
                         , "Control.Exception"
                         , "System.Posix"
                         , "Data.Data"
