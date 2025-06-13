@@ -204,6 +204,9 @@ import Data.Type.Ord
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
+#if MIN_VERSION_base(4,16,0)
+import System.Console.GetOpt
+#endif
 
 #if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
@@ -1174,6 +1177,29 @@ instance Arbitrary a => Arbitrary (Solo a) where
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . getDown
+#endif
+
+#if MIN_VERSION_base(4,16,0)
+
+instance Arbitrary (ArgDescr Int) where
+  arbitrary = oneof [ NoArg <$> arbitrary
+                    , ReqArg <$> arbitrary <*> arbitrary
+                    , OptArg <$> arbitrary <*> arbitrary
+                    ]
+
+instance Arbitrary (ArgOrder Int) where
+  arbitrary = oneof [ return RequireOrder
+                    , return Permute
+                    , ReturnInOrder <$> arbitrary
+                    ]
+
+instance Arbitrary (OptDescr Int) where
+  arbitrary = Option
+                <$> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+
 #endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
