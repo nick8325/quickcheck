@@ -1184,7 +1184,7 @@ instance Arbitrary a => Arbitrary (Down a) where
 
 #if MIN_VERSION_base(4,14,0)
 
-instance Arbitrary (ArgDescr Int) where
+instance Arbitrary a => Arbitrary (ArgDescr a) where
   arbitrary = oneof [ NoArg <$> arbitrary
                     , ReqArg <$> arbitrary <*> arbitrary
                     , OptArg <$> arbitrary <*> arbitrary
@@ -1196,7 +1196,7 @@ instance Arbitrary (ArgDescr Int) where
   shrink (OptArg a1 a2) = [ OptArg a1' a2 | a1' <- shrink a1 ] ++
                           [ OptArg a1 a2' | a2' <- shrink a2 ]
 
-instance Arbitrary (ArgOrder Int) where
+instance Arbitrary a => Arbitrary (ArgOrder a) where
   arbitrary = oneof [ return RequireOrder
                     , return Permute
                     , ReturnInOrder <$> arbitrary
@@ -1206,7 +1206,7 @@ instance Arbitrary (ArgOrder Int) where
   shrink Permute           = []
   shrink (ReturnInOrder a) = [ ReturnInOrder a' | a' <- shrink a ]
 
-instance Arbitrary (OptDescr Int) where
+instance Arbitrary a => Arbitrary (OptDescr a) where
   arbitrary = Option
                 <$> arbitrary
                 <*> arbitrary
