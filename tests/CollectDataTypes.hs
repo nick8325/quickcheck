@@ -143,11 +143,13 @@ modulePrefixBlacklist = [ "GHC"
                         , "System.Mem"
                           -- Exports an exception
                         , "System.Timeout"
+                        -- Exports types, but not the constructors (or ways of creating them, e.g. Number).
+                        -- No feasible way to create meaningful generator
+                        , "Text.Read"
                         ] ++
                         -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
                         -- later
                         [ "Data.Functor.Contravariant"
-                        , "Text.Read"
                         , "Control.Exception"
                         , "System.Posix"
                         , "Data.Data"
