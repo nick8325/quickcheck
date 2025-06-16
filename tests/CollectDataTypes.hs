@@ -149,8 +149,7 @@ modulePrefixBlacklist = [ "GHC"
                         ] ++
                         -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
                         -- later
-                        [ "Data.Functor.Contravariant"
-                        , "Control.Exception"
+                        [ "Control.Exception"
                         , "System.Posix"
                         , "Data.Data"
                         , "Text.ParserCombinators"

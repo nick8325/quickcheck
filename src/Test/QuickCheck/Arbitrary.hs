@@ -207,6 +207,8 @@ import Data.Ord
 #if MIN_VERSION_base(4,14,0)
 import System.Console.GetOpt
     ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
+
+import Data.Functor.Contravariant
 #endif
 
 #if MIN_VERSION_base(4,17,0)
@@ -1215,6 +1217,29 @@ instance Arbitrary (OptDescr Int) where
                             [ Option a b' c d | b' <- shrink b ] ++
                             [ Option a b c' d | c' <- shrink c ] ++
                             [ Option a b c d' | d' <- shrink d ]
+
+-- Data.Functor.Contravariant
+
+-- can maybe use Arbitrary1/2 for these
+instance CoArbitrary a => Arbitrary (Predicate a) where
+  arbitrary = Predicate <$> arbitrary
+
+  shrink (Predicate p) = [ Predicate p' | p' <- shrink p ]
+
+instance (Arbitrary a, CoArbitrary b) => Arbitrary (Op a b) where
+  arbitrary = Op <$> arbitrary
+
+  shrink (Op f) = [ Op f' | f' <- shrink f ]
+
+instance CoArbitrary a => Arbitrary (Equivalence a) where
+  arbitrary = Equivalence <$> arbitrary
+
+  shrink (Equivalence e) = [ Equivalence e' | e' <- shrink e ]
+
+instance CoArbitrary a => Arbitrary (Comparison a) where
+  arbitrary = Comparison <$> arbitrary
+
+  shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
 
 #endif
 
