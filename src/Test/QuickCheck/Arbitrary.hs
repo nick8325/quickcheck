@@ -206,6 +206,7 @@ import Data.Ord
 
 #if MIN_VERSION_base(4,14,0)
 import System.Console.GetOpt
+    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
 #endif
 
 #if MIN_VERSION_base(4,17,0)
