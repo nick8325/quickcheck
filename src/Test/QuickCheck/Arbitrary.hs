@@ -204,7 +204,7 @@ import Data.Type.Ord
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
-#if MIN_VERSION_base(4,16,0)
+#if MIN_VERSION_base(4,14,0)
 import System.Console.GetOpt
 #endif
 
@@ -1179,7 +1179,7 @@ instance Arbitrary a => Arbitrary (Down a) where
   shrink = map Down . shrink . getDown
 #endif
 
-#if MIN_VERSION_base(4,16,0)
+#if MIN_VERSION_base(4,14,0)
 
 instance Arbitrary (ArgDescr Int) where
   arbitrary = oneof [ NoArg <$> arbitrary
@@ -1187,11 +1187,21 @@ instance Arbitrary (ArgDescr Int) where
                     , OptArg <$> arbitrary <*> arbitrary
                     ]
 
+  shrink (NoArg i) = [ NoArg i' | i' <- shrink i ]
+  shrink (ReqArg a1 a2) = [ ReqArg a1' a2 | a1' <- shrink a1 ] ++
+                          [ ReqArg a1 a2' | a2' <- shrink a2 ]
+  shrink (OptArg a1 a2) = [ OptArg a1' a2 | a1' <- shrink a1 ] ++
+                          [ OptArg a1 a2' | a2' <- shrink a2 ]
+
 instance Arbitrary (ArgOrder Int) where
   arbitrary = oneof [ return RequireOrder
                     , return Permute
                     , ReturnInOrder <$> arbitrary
                     ]
+  
+  shrink RequireOrder      = []
+  shrink Permute           = []
+  shrink (ReturnInOrder a) = [ ReturnInOrder a' | a' <- shrink a ]
 
 instance Arbitrary (OptDescr Int) where
   arbitrary = Option
@@ -1199,6 +1209,11 @@ instance Arbitrary (OptDescr Int) where
                 <*> arbitrary
                 <*> arbitrary
                 <*> arbitrary
+  
+  shrink (Option a b c d) = [ Option a' b c d | a' <- shrink a ] ++
+                            [ Option a b' c d | b' <- shrink b ] ++
+                            [ Option a b c' d | c' <- shrink c ] ++
+                            [ Option a b c d' | d' <- shrink d ]
 
 #endif
 
