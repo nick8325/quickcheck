@@ -1,5 +1,6 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE Safe #-}
 
 module Test.QuickCheck.Monoids
   ( Every (..)

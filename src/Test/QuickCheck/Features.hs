@@ -11,6 +11,7 @@ import Test.QuickCheck.Test
 import Test.QuickCheck.Gen
 import Test.QuickCheck.State
 import Test.QuickCheck.Text
+import Test.QuickCheck.Random
 import qualified Data.Set as Set
 import Data.Set(Set)
 import Data.List (intersperse)
@@ -85,26 +86,23 @@ labelledExamplesResult prop = labelledExamplesWithResult stdArgs prop
 
 -- | A variant of 'labelledExamples' that takes test arguments and returns a result.
 labelledExamplesWithResult :: Testable prop => Args -> prop -> IO Result
-labelledExamplesWithResult args prop =
-  withState args $ \state -> do
-    let
-      loop :: Set String -> State -> IO Result
-      loop feats state = withNullTerminal $ \nullterm -> do
-        res <- test state{terminal = nullterm} (property (prop_noNewFeatures feats prop))
-        let feats' = features (failingLabels res) (failingClasses res)
-        case res of
-          Failure{reason = "New feature found"} -> do
-            putLine (terminal state) $
-              "*** Found example of " ++
-              concat (intersperse ", " (Set.toList (feats' Set.\\ feats)))
-            mapM_ (putLine (terminal state)) (failingTestCase res)
-            putStrLn ""
-            loop (Set.union feats feats')
-              state{randomSeed = usedSeed res, replayStartSize = Just $ usedSize res}
-          _ -> do
-            out <- terminalOutput nullterm
-            putStr out
-            return res
-      at0 f s 0 0 = s
-      at0 f s n d = f n d
-    loop Set.empty state
+labelledExamplesWithResult args prop = loop Set.empty Nothing
+  where
+    loop :: Set String -> Maybe (QCGen, Int) -> IO Result
+    loop feats replay = withNullTerminal $ \nullterm -> do
+      res <- quickCheckWithResult stdArgs{chatty = False, replay = replay} (prop_noNewFeatures feats prop)
+      let feats' = features (failingLabels res) (failingClasses res)
+      case res of
+        Failure{reason = "New feature found"} -> do
+          putStrLn $
+            "*** Found example of " ++
+            concat (intersperse ", " (Set.toList (feats' Set.\\ feats)))
+          mapM_ putStrLn (failingTestCase res)
+          putStrLn ""
+          loop (Set.union feats feats') (Just (usedSeed res, usedSize res))
+        _ -> do
+          out <- terminalOutput nullterm
+          putStr out
+          return res
+    at0 f s 0 0 = s
+    at0 f s n d = f n d
