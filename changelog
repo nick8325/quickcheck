@@ -1,3 +1,14 @@
+QuickCheck 2.16
+	* Add a `Safe` declaration to `Test.QuickCheck.Monoids`
+	* Fix `Test.QuickCheck.Features` to not depend on the internal testing loop
+	* Add `withProgress` to install common callbacks for downstream tools
+	* Relax bounds on `random` dependency (thanks to LaurentRDC and
+	Andreas Abel)
+	* Fix some haddock issues (thanks to pgujjula)
+	* Use `displayException` instead of `show` (thanks Edsko)
+	* Added helper monoids `Every` and `Some` for predicates (thanks
+	Marcin)
+
 QuickCheck 2.15
 	* BREAKING: properties without quantification are no longer implicitly
 	  wrapped in once
