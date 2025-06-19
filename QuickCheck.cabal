@@ -187,7 +187,7 @@ Test-Suite test-quickcheck-gcoarbitrary
     hs-source-dirs: tests
     main-is: GCoArbitraryExample.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.2)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-generators
@@ -205,7 +205,7 @@ Test-Suite test-quickcheck-gshrink
     hs-source-dirs: tests
     main-is: GShrinkExample.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.2)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-terminal
@@ -214,7 +214,7 @@ Test-Suite test-quickcheck-terminal
     hs-source-dirs: tests
     main-is: Terminal.hs
     build-depends: base, process, deepseq >= 1.1.0.0, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-monadfix
@@ -223,7 +223,7 @@ Test-Suite test-quickcheck-monadfix
     hs-source-dirs: tests
     main-is: MonadFix.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-split
@@ -241,7 +241,7 @@ Test-Suite test-quickcheck-strictness
     hs-source-dirs: tests
     main-is: Strictness.hs
     build-depends: base, QuickCheck, containers
-    if !flag(templateHaskell) || !impl(ghc >= 7.10)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-misc
@@ -250,7 +250,7 @@ Test-Suite test-quickcheck-misc
     hs-source-dirs: tests
     main-is: Misc.hs
     build-depends: base, QuickCheck, containers
-    if !flag(templateHaskell) || !impl(ghc >= 7.10)
+    if !flag(templateHaskell)
         buildable: False
 
 Test-Suite test-quickcheck-discard
@@ -266,10 +266,6 @@ Test-Suite test-quickcheck-monoids
     hs-source-dirs: tests
     main-is: Monoids.hs
     build-depends: base, QuickCheck
-    if !impl(ghc >= 8.4)
-      cpp-options: -DNO_SEMIGROUP_SUPERCLASS
-    if !impl(ghc >= 8.0)
-      cpp-options: -DNO_SEMIGROUP_CLASS
 
 Test-Suite test-quickcheck-withprogress
     type: exitcode-stdio-1.0
@@ -292,3 +288,5 @@ Test-Suite test-arbitrary-instances
       process,
       template-haskell,
       hint
+    if !flag(templateHaskell)
+        buildable: False
