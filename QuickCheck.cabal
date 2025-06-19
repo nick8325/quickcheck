@@ -71,7 +71,7 @@ flag old-random
 
 library
   Hs-source-dirs: src
-  Build-depends: base >=4.3 && <5, containers
+  Build-depends: base >=4.14 && <5, containers
   Default-language: Haskell2010
 
   -- New vs old random.
@@ -134,17 +134,6 @@ library
   if !impl(ghc >= 7.4)
     cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
 
-  -- The new generics appeared in GHC 7.2...
-  if impl(ghc < 7.2)
-    cpp-options: -DNO_GENERICS
-  -- ...but in 7.2-7.4 it lives in the ghc-prim package.
-  if impl(ghc >= 7.2) && impl(ghc < 7.6)
-    Build-depends: ghc-prim
-
-  -- Safe Haskell appeared in GHC 7.2, but GHC.Generics isn't safe until 7.4.
-  if impl (ghc < 7.4)
-    cpp-options: -DNO_SAFE_HASKELL
-
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
   if impl(ghc >= 7.2)
@@ -200,8 +189,6 @@ Test-Suite test-quickcheck-gcoarbitrary
     build-depends: base, QuickCheck
     if !flag(templateHaskell) || !impl(ghc >= 7.2)
         buildable: False
-    if impl(ghc >= 7.2) && impl(ghc < 7.6)
-        build-depends: ghc-prim
 
 Test-Suite test-quickcheck-generators
     type: exitcode-stdio-1.0
@@ -220,8 +207,6 @@ Test-Suite test-quickcheck-gshrink
     build-depends: base, QuickCheck
     if !flag(templateHaskell) || !impl(ghc >= 7.2)
         buildable: False
-    if impl(ghc >= 7.2) && impl(ghc < 7.6)
-        build-depends: ghc-prim
 
 Test-Suite test-quickcheck-terminal
     type: exitcode-stdio-1.0
