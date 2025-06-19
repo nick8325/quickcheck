@@ -299,9 +299,9 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 
 test :: State -> Property -> IO Result
 test st prop
-  | finishedSuccessfully st         = doneTesting st prop
-  | finishedInsufficientCoverage st = failCoverage st prop
-  | tooManyDiscards st              = giveUp st prop
+  | finishedSuccessfully st         = doneTesting st
+  | finishedInsufficientCoverage st = failCoverage st
+  | tooManyDiscards st              = giveUp st
   | otherwise                       = runATest st prop
 
 finishedSuccessfully :: State -> Bool
@@ -352,8 +352,8 @@ coverageKnownInsufficient st@MkState{coverageConfidence=Just confidence} =
      | (_, _, tot, n, p) <- allCoverage st ]
 coverageKnownInsufficient _ = False
 
-failCoverage :: State -> Property -> IO Result
-failCoverage st prop =
+failCoverage :: State -> IO Result
+failCoverage st =
              -- The last test wasn't actually successful, as the coverage failed
              -- also this prevents an off-by-one error in the printing
     runATest st{numSuccessTests = numSuccessTests st - 1}
@@ -361,8 +361,8 @@ failCoverage st prop =
                                     (paragraphs [theLabels, theTables])
     where (theLabels, theTables) = labelsAndTables st
 
-doneTesting :: State -> Property -> IO Result
-doneTesting st _f
+doneTesting :: State -> IO Result
+doneTesting st
   | expected st == False = do
       putPart (terminal st)
         ( bold ("*** Failed!")
@@ -383,8 +383,8 @@ doneTesting st _f
       theOutput <- terminalOutput (terminal st)
       return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) theOutput)
 
-giveUp :: State -> Property -> IO Result
-giveUp st _f =
+giveUp :: State -> IO Result
+giveUp st =
   do -- CALLBACK gave_up?
      putPart (terminal st)
        ( bold ("*** Gave up!")
@@ -426,9 +426,10 @@ runATest st prop =
      MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty prop) rnd1 size)))
      res <- callbackPostTest st res
 
-     let continue break st'
+     let continue :: (State -> IO Result) -> State -> IO Result
+         continue break st'
            | abort res = break $ updateState st'
-           | otherwise = test $ updateState st'
+           | otherwise = test (updateState st') prop
 
          updateState st0 = addNewOptions $ st0{ randomSeed = rnd2 }
 
@@ -459,14 +460,14 @@ runATest st prop =
          do continue doneTesting
               stC{ numSuccessTests           = numSuccessTests st + 1
                  , numRecentlyDiscardedTests = 0
-                 } prop
+                 }
 
        MkResult{ok = Nothing} -> -- discarded test
          do continue giveUp
               -- Don't add coverage info from this test
               st{ numDiscardedTests         = numDiscardedTests st + 1
                 , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
-                } prop
+                }
 
        MkResult{ok = Just False} -> -- failed test
          do (numShrinks, totFailed, lastFailed, res) <- foundFailure (addNewOptions stC) res ts
