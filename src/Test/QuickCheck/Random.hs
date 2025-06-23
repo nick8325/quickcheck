@@ -55,7 +55,7 @@ instance RandomGen QCGen where
   genWord64 = wrapQCGen genWord64
   genWord32R r = wrapQCGen (genWord32R r)
   genWord64R r = wrapQCGen (genWord64R r)
-  genShortByteString n = wrapQCGen (genShortByteString n)
+  genShortByteString n = wrapQCGen (uniformShortByteString n)
 #endif
 #endif
 
