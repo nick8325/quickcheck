@@ -21,7 +21,6 @@ import System.Random
   ( Random
   , random
   , randomR
-  , split
   )
 
 import Control.Monad
@@ -89,7 +88,7 @@ instance Monad Gen where
 
   MkGen m >>= k =
     MkGen (\r n ->
-      case split r of
+      case splitImpl r of
         (r1, r2) ->
           let MkGen m' = k (m r1 n)
           in m' r2 n
