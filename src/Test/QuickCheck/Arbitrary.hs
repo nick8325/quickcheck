@@ -1180,6 +1180,8 @@ instance Arbitrary a => Arbitrary (Down a) where
   shrink = map Down . shrink . getDown
 #endif
 
+#ifdef __GLASGOW_HASKELL__
+
 instance Arbitrary a => Arbitrary (ArgDescr a) where
   arbitrary = oneof [ NoArg <$> arbitrary
                     , ReqArg <$> arbitrary <*> arbitrary
@@ -1236,6 +1238,8 @@ instance CoArbitrary a => Arbitrary (Comparison a) where
   arbitrary = Comparison <$> arbitrary
 
   shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
+
+#endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
 instance Arbitrary Version where
