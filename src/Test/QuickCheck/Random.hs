@@ -26,17 +26,25 @@ instance Show QCGen where
 instance Read QCGen where
   readsPrec n xs = [(QCGen g, ys) | (g, ys) <- readsPrec n xs]
 
-instance RandomGen QCGen where
+splitImpl :: QCGen -> (QCGen, QCGen)
 #ifdef NO_SPLITMIX
-  split (QCGen g) =
+splitImpl (QCGen g) =
     case split g of
       (g1, g2) -> (QCGen g1, QCGen g2)
+#else
+splitImpl (QCGen g) =
+    case splitSMGen g of
+      (g1, g2) -> (QCGen g1, QCGen g2)
+#endif
+
+instance RandomGen QCGen where
+#ifdef OLD_RANDOM
+  split = splitImpl
+#endif
+#ifdef NO_SPLITMIX
   genRange (QCGen g) = genRange g
   next = wrapQCGen next
 #else
-  split (QCGen g) =
-    case splitSMGen g of
-      (g1, g2) -> (QCGen g1, QCGen g2)
   genRange _ = (minBound, maxBound)
   next = wrapQCGen nextInt
 
@@ -49,6 +57,11 @@ instance RandomGen QCGen where
   genWord64R r = wrapQCGen (genWord64R r)
   genShortByteString n = wrapQCGen (genShortByteString n)
 #endif
+#endif
+
+#ifndef OLD_RANDOM
+instance SplitGen QCGen where
+  splitGen = splitImpl
 #endif
 
 {-# INLINE wrapQCGen #-}
@@ -80,8 +93,8 @@ class Splittable a where
   left, right :: a -> a
 
 instance Splittable QCGen where
-  left = fst . split
-  right = snd . split
+  left = fst . splitImpl
+  right = snd . splitImpl
 
 -- The logic behind 'variant'. Given a random number seed, and an integer, uses
 -- splitting to transform the seed according to the integer. We use a
