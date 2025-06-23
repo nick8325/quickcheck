@@ -204,12 +204,10 @@ import Data.Type.Ord
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
-#if MIN_VERSION_base(4,14,0)
 import System.Console.GetOpt
     ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
 
 import Data.Functor.Contravariant
-#endif
 
 #if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
@@ -1182,8 +1180,6 @@ instance Arbitrary a => Arbitrary (Down a) where
   shrink = map Down . shrink . getDown
 #endif
 
-#if MIN_VERSION_base(4,14,0)
-
 instance Arbitrary a => Arbitrary (ArgDescr a) where
   arbitrary = oneof [ NoArg <$> arbitrary
                     , ReqArg <$> arbitrary <*> arbitrary
@@ -1201,7 +1197,7 @@ instance Arbitrary a => Arbitrary (ArgOrder a) where
                     , return Permute
                     , ReturnInOrder <$> arbitrary
                     ]
-  
+
   shrink RequireOrder      = []
   shrink Permute           = []
   shrink (ReturnInOrder a) = [ ReturnInOrder a' | a' <- shrink a ]
@@ -1212,7 +1208,7 @@ instance Arbitrary a => Arbitrary (OptDescr a) where
                 <*> arbitrary
                 <*> arbitrary
                 <*> arbitrary
-  
+
   shrink (Option a b c d) = [ Option a' b c d | a' <- shrink a ] ++
                             [ Option a b' c d | b' <- shrink b ] ++
                             [ Option a b c' d | c' <- shrink c ] ++
@@ -1240,8 +1236,6 @@ instance CoArbitrary a => Arbitrary (Comparison a) where
   arbitrary = Comparison <$> arbitrary
 
   shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
-
-#endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
 instance Arbitrary Version where
