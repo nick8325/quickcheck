@@ -120,31 +120,28 @@ library
 
   if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
-    if impl(ghc >=8.0)
-      Other-Extensions: TemplateHaskellQuotes
-    else
-      Other-Extensions: TemplateHaskell
+    Other-Extensions: TemplateHaskellQuotes
     Exposed-Modules: Test.QuickCheck.All
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
 
-  if !impl(ghc >= 8.0)
+  if !impl(ghc)
     cpp-options: -DNO_CALLSTACK -DNO_SEMIGROUP
 
-  if !impl(ghc >= 7.4)
+  if !impl(ghc)
     cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
-  if impl(ghc >= 7.2)
+  if impl(ghc)
     Build-depends: random >=1.0.1.0
-  if impl(ghc >= 7.4)
+  if impl(ghc)
     Build-depends: containers >=0.4.2.1
 
-  if !impl(ghc >= 7.6)
+  if !impl(ghc)
       cpp-options: -DNO_POLYKINDS
 
-  if !impl(ghc >= 8.0)
+  if !impl(ghc)
     cpp-options: -DNO_MONADFAIL
 
   if impl(ghc >= 9.8)
