@@ -121,6 +121,10 @@ typeBlacklist = [ "Prelude.IO"
                 ] ++
                 -- These are phantom types used for indexing
                 [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ] ++
+                #if MIN_VERSION_base(4,15,0)
+                -- Exists but is deprecated
+                [ "Semigroup.Option" ] ++
+                #endif
                 -- TODO: Some controversial ones?
                 [ "System.IO.Error.IOErrorType" ]
 
