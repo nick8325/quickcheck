@@ -86,12 +86,10 @@ import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
   )
-#endif
 #endif
 
 #ifndef NO_FIXED
@@ -383,7 +381,6 @@ instance Function Word64 where
   function = functionIntegral
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance Function Newline where
   function = functionMap g h
     where
@@ -398,7 +395,6 @@ instance Function NewlineMode where
     where
       g (NewlineMode inNL outNL) = (inNL,outNL)
       h (inNL,outNL) = NewlineMode inNL outNL
-#endif
 #endif
 
 -- instances for Data.Monoid newtypes
@@ -424,10 +420,8 @@ instance Function a => Function (Monoid.First a) where
 instance Function a => Function (Monoid.Last a) where
   function = functionMap Monoid.getLast Monoid.Last
 
-#if MIN_VERSION_base(4,8,0)
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
-#endif
 
 -- poly instances
 
