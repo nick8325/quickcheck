@@ -145,7 +145,6 @@ import Numeric.Natural
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 
-#if MIN_VERSION_base(4,2,0)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -155,7 +154,6 @@ import System.IO
   , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
   , IOMode(..)
   )
-#endif
 #endif
 
 import Control.Monad
@@ -559,7 +557,8 @@ instance Integral a => Arbitrary (Ratio a) where
     pure $ fromI numer % fromI denom
   shrink = shrinkRealFrac
 
-#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+
+#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Complex a) where
 #else
 instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
@@ -1072,7 +1071,6 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(3,0,0)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -1080,15 +1078,11 @@ instance Arbitrary a => Arbitrary (Monoid.First a) where
 instance Arbitrary a => Arbitrary (Monoid.Last a) where
   arbitrary = fmap Monoid.Last arbitrary
   shrink = map Monoid.Last . shrink . Monoid.getLast
-#endif
 
-#if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
   shrink = map Monoid.Alt . shrink . Monoid.getAlt
-#endif
 
-#if MIN_VERSION_base(4,9,0)
 instance Arbitrary a => Arbitrary (Semigroup.Min a) where
   arbitrary = fmap Semigroup.Min arbitrary
   shrink = map Semigroup.Min . shrink . Semigroup.getMin
@@ -1109,15 +1103,17 @@ instance (Arbitrary a, Arbitrary b) => Arbitrary (Semigroup.Arg a b) where
   arbitrary = Semigroup.Arg <$> arbitrary <*> arbitrary
   shrink (Semigroup.Arg a b) = uncurry Semigroup.Arg <$> shrink (a, b)
 
-#endif
+instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
+  arbitrary = Semigroup.WrapMonoid <$> arbitrary
+  shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
 
 #if !MIN_VERSION_base(4,16,0)
 instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   arbitrary = Semigroup.Option <$> arbitrary
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
-#endif
 
-#if MIN_VERSION_base(4,16,0)
+#else
+
 instance Arbitrary a => Arbitrary (Iff a) where
   arbitrary = Iff <$> arbitrary
   shrink = map Iff . shrink . getIff
@@ -1134,10 +1130,6 @@ instance Arbitrary a => Arbitrary (And a) where
   arbitrary = And <$> arbitrary
   shrink = map And . shrink . getAnd
 #endif
-
-instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
-  arbitrary = Semigroup.WrapMonoid <$> arbitrary
-  shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
 
 #if MIN_VERSION_base(4,17,0)
 instance Arbitrary ByteArray where
@@ -1269,7 +1261,6 @@ instance Arbitrary ExitCode where
   shrink _        = []
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1285,7 +1276,6 @@ instance Arbitrary NewlineMode where
   arbitrary = NewlineMode <$> arbitrary <*> arbitrary
 
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
-#endif
 
 instance Arbitrary GeneralCategory where
   arbitrary = arbitraryBoundedEnum
@@ -1683,7 +1673,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Complex a) where
 #else
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
@@ -1815,32 +1805,26 @@ instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(3,0,0)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
-#endif
 
-#if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
-#endif
 #endif
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance CoArbitrary Newline where
   coarbitrary LF = variant 0
   coarbitrary CRLF = variant 1
 
 instance CoArbitrary NewlineMode where
   coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
-#endif
 #endif
 
 -- ** Helpers for implementing coarbitrary

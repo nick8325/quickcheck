@@ -1,10 +1,6 @@
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
-#if !defined(NO_ST_MONAD) && !(MIN_VERSION_base(4,8,0))
-{-# LANGUAGE Trustworthy #-}
-#else
 {-# LANGUAGE Safe #-}
-#endif
 #endif
 #ifndef NO_ST_MONAD
 {-# LANGUAGE Rank2Types #-}
@@ -142,9 +138,6 @@ instance Applicative (PropertyM m) where
 instance Monad m => Monad (PropertyM m) where
   return = pure
   (>>=) = bind
-#if !MIN_VERSION_base(4,13,0)
-  fail = fail_
-#endif
 
 #ifndef NO_MONADFAIL
 instance Monad m => Fail.MonadFail (PropertyM m) where

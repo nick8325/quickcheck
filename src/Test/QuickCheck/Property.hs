@@ -25,7 +25,7 @@ import System.Timeout(timeout)
 #endif
 import Data.Maybe
 import Control.Applicative
-#if MIN_VERSION_base(4,8,0)
+#if defined(MIN_VERSION_base)
 import Control.Exception (displayException)
 #endif
 import Control.Monad
@@ -322,7 +322,7 @@ exception msg err
                         theException = Just err }
 
 formatException :: String -> AnException -> String
-#if MIN_VERSION_base(4,8,0)
+#if defined(MIN_VERSION_base)
 formatException msg err = msg ++ ":" ++ format (displayException err)
 #else
 formatException msg err = msg ++ ":" ++ format (show err)
