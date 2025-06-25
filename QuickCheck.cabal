@@ -115,8 +115,6 @@ library
   if impl(ghc)
     Exposed-Modules: Test.QuickCheck.Function
     Build-depends: transformers >= 0.3, deepseq >= 1.1.0.0
-  else
-    cpp-options: -DNO_TRANSFORMERS -DNO_DEEPSEQ
 
   if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
@@ -126,23 +124,20 @@ library
     cpp-options: -DNO_TEMPLATE_HASKELL
 
   if !impl(ghc)
-    cpp-options: -DNO_CALLSTACK -DNO_SEMIGROUP
-
-  if !impl(ghc)
-    cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
+    cpp-options: -DNO_CALLSTACK
+                 -DNO_SEMIGROUP
+                 -DNO_CTYPES_CONSTRUCTORS
+                 -DNO_FOREIGN_C_USECONDS
+                 -DNO_POLYKINDS
+                 -DNO_MONADFAIL
+                 -DNO_TRANSFORMERS
+                 -DNO_DEEPSEQ
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
   if impl(ghc)
     Build-depends: random >=1.0.1.0
-  if impl(ghc)
-    Build-depends: containers >=0.4.2.1
-
-  if !impl(ghc)
-      cpp-options: -DNO_POLYKINDS
-
-  if !impl(ghc)
-    cpp-options: -DNO_MONADFAIL
+                 , containers >=0.4.2.1
 
   if impl(ghc >= 9.8)
     ghc-options: -Wno-x-partial
@@ -160,13 +155,6 @@ library
   -- LANGUAGE pragmas don't have any effect in Hugs.
   if impl(hugs)
     Default-Extensions: CPP
-
-  if impl(uhc)
-    -- Cabal under UHC needs pointing out all the dependencies of the
-    -- random package.
-    Build-depends: old-time, old-locale
-    -- Plus some bits of the standard library are missing.
-    cpp-options: -DNO_FIXED -DNO_EXCEPTIONS
 
 Test-Suite test-quickcheck
     type: exitcode-stdio-1.0
