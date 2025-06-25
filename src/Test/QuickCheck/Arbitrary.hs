@@ -1107,13 +1107,13 @@ instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
   arbitrary = Semigroup.WrapMonoid <$> arbitrary
   shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
 
-#if !MIN_VERSION_base(4,16,0)
+#if !MIN_VERSION_base(4,15,0)
 instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   arbitrary = Semigroup.Option <$> arbitrary
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
+#endif
 
-#else
-
+#if MIN_VERSION_base(4,16,0)
 instance Arbitrary a => Arbitrary (Iff a) where
   arbitrary = Iff <$> arbitrary
   shrink = map Iff . shrink . getIff
