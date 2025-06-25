@@ -271,7 +271,7 @@ Test-Suite test-quickcheck-withprogress
     main-is: WithProgress.hs
     build-depends: base, QuickCheck
 
-Test-Suite test-arbitrary-instances
+Test-Suite test-quickcheck-instances
     type: exitcode-stdio-1.0
     Default-language: Haskell2010
     hs-source-dirs: tests

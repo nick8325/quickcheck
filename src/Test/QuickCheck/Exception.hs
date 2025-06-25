@@ -63,7 +63,7 @@ tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = E.tryJust notAsync (m >>= E.evaluate)
   where
     notAsync :: AnException -> Maybe AnException
-#if MIN_VERSION_base(4,7,0)
+#if defined(MIN_VERSION_base)
     notAsync e = case E.fromException e of
         Just (E.SomeAsyncException _) -> Nothing
         Nothing                       -> Just e
