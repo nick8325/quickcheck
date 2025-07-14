@@ -273,5 +273,5 @@ Test-Suite test-quickcheck-instances
       process,
       template-haskell,
       hint
-    if !flag(templateHaskell)
+    if !flag(templateHaskell) || impl(ghc <= 8.10)
         buildable: False
