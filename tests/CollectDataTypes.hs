@@ -132,31 +132,43 @@ typeBlacklist = [ "Prelude.IO"
 modulePrefixBlacklist :: [String]
 modulePrefixBlacklist = [ "GHC"
                         , "Foreign"
+                        , "Control.Exception"
                           -- Exports things like MVar etc
                         , "Control.Concurrent"
                           -- Exports ST and RealWorld that we can't support
                         , "Control.Monad.ST"
-                          -- Existential wrapper around a Typeable thing, could be supported but would
-                          -- be a bit artificially limited to wrapping a bunch of types we can list
+                          -- Existential wrapper around a Typeable thing, could
+                          -- be supported but would be a bit artificially
+                          -- limited to wrapping a bunch of types we can list
                         , "Data.Dynamic"
-                          -- We _could_ support this, but it would result in the same problem as with Dynamic
+                          -- We _could_ support this, but it would result in
+                          -- the same problem as with Dynamic
                         , "Data.Typeable"
                         , "Type.Reflection"
-                          -- System.Mem.Weak and System.Mem.Stable export pointer types
-                          -- we don't support
+                          -- System.Mem.Weak and System.Mem.Stable export
+                          -- pointer types we don't support
                         , "System.Mem"
                           -- Exports an exception
                         , "System.Timeout"
-                        -- Exports types, but not the constructors (or ways of creating them, e.g. Number).
-                        -- No feasible way to create meaningful generator
+                        -- Exports types, but not the constructors (or ways of
+                        -- creating them, e.g. Number).  No feasible way to
+                        -- create meaningful generator
                         , "Text.Read"
-                        ] ++
-                        -- TODO: Some controversial ones thrown in for now to simplify things, should be removed
-                        -- later
-                        [ "Control.Exception"
-                        , "System.Posix"
+                        -- Old generics implementation that doesn't fit nicely
+                        -- with arbitrary, as it has the same kind of problem
+                        -- that Typeable and Dynamic face
                         , "Data.Data"
-                        , "Text.ParserCombinators"
+                        -- Platform specific types that one could implement but
+                        -- would be tricky to keep consistent and correct
+                        -- across a number of platforms, esp. since we don't
+                        -- have good CI tests for them
+                        , "System.Posix"
+                        -- This exports a bunch of combinators whose only real
+                        -- role is to build a parser of an opaque type,
+                        -- consequently there isn't some super-interesting
+                        -- useful work you can do with it and it should be OK
+                        -- not to provide instances for it
+                        , "Text.ParserCombinators.ReadP"
                         ]
 
 isValidModule :: String -> Bool
