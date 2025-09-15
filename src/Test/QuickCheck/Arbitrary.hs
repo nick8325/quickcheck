@@ -89,7 +89,7 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
-import System.Random(Random)
+import System.Random(Random, uniformByteArray)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
@@ -1133,7 +1133,10 @@ instance Arbitrary a => Arbitrary (And a) where
 
 #if MIN_VERSION_base(4,17,0)
 instance Arbitrary ByteArray where
-  arbitrary = Exts.fromList <$> arbitrary
+  arbitrary = do
+    pin <- arbitrary
+    len <- abs <$> arbitrary
+    MkGen $ \ qcGen _ -> fst $ uniformByteArray pin len qcGen
   shrink = map Exts.fromList . shrink . Exts.toList
 #endif
 
