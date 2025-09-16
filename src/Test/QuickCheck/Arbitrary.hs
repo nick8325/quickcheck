@@ -1139,10 +1139,14 @@ instance Arbitrary a => Arbitrary (And a) where
 
 #if MIN_VERSION_base(4,17,0)
 instance Arbitrary ByteArray where
+#if MIN_VERSION_random(1,3,0)
   arbitrary = do
     pin <- arbitrary
     len <- abs <$> arbitrary
     MkGen $ \ qcGen _ -> fst $ uniformByteArray pin len qcGen
+#else
+  arbitrary = Exts.fromList <$> arbitrary
+#endif
   shrink = map Exts.fromList . shrink . Exts.toList
 #endif
 
