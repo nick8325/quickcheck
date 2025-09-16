@@ -89,10 +89,8 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
-#if defined(MIN_VERSION_random)
 #if MIN_VERSION_random(1,3,0)
 import System.Random(Random, uniformByteArray)
-#endif
 #else
 import System.Random(Random)
 #endif
@@ -213,10 +211,8 @@ import System.Console.GetOpt
 
 import Data.Functor.Contravariant
 
-#if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
 import qualified GHC.Exts as Exts
-#endif
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
@@ -532,14 +528,6 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
    where
     xs1 = take k xs
     xs2 = drop k xs
-
-{-
-  -- "standard" definition for lists:
-  shrink []     = []
-  shrink (x:xs) = [ xs ]
-               ++ [ x:xs' | xs' <- shrink xs ]
-               ++ [ x':xs | x'  <- shrink x ]
--}
 
 #if defined(MIN_VERSION_base)
 instance Arbitrary1 NonEmpty where
@@ -1137,7 +1125,6 @@ instance Arbitrary a => Arbitrary (And a) where
   shrink = map And . shrink . getAnd
 #endif
 
-#if MIN_VERSION_base(4,17,0)
 instance Arbitrary ByteArray where
 #if MIN_VERSION_random(1,3,0)
   arbitrary = do
@@ -1148,7 +1135,6 @@ instance Arbitrary ByteArray where
   arbitrary = Exts.fromList <$> arbitrary
 #endif
   shrink = map Exts.fromList . shrink . Exts.toList
-#endif
 
 #if MIN_VERSION_base(4,16,0)
 
