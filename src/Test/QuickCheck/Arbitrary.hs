@@ -165,9 +165,14 @@ import GHC.Generics
 #endif
 
 import qualified Data.Set as Set
-import qualified Data.Map as Map
 import qualified Data.IntSet as IntSet
+#if MIN_VERSION_containers(0,5,0)
+import qualified Data.Map.Strict as Map
+import qualified Data.IntMap.Strict as IntMap
+#else
+import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
+#endif
 import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 import Data.Bits
@@ -197,7 +202,8 @@ class Arbitrary a where
   -- It is worth spending time thinking about what sort of test data
   -- you want - good generators are often the difference between
   -- finding bugs and not finding them. You can use 'sample',
-  -- 'label' and 'classify' to check the quality of your test data.
+  -- 'Test.QuickCheck.label' and 'Test.QuickCheck.classify' to check the quality
+  -- of your test data.
   --
   -- There is no generic @arbitrary@ implementation included because we don't
   -- know how to make a high-quality one. If you want one, consider using the
@@ -409,7 +415,7 @@ instance GSubtermsIncl f a => GSubtermsIncl (M1 i c f) a where
 instance OVERLAPPING_ GSubtermsIncl (K1 i a) a where
   gSubtermsIncl (K1 x) = [x]
 
-instance OVERLAPPING_ GSubtermsIncl (K1 i a) b where
+instance GSubtermsIncl (K1 i a) b where
   gSubtermsIncl (K1 _) = []
 
 #endif
@@ -496,8 +502,16 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
 -}
 
 instance Integral a => Arbitrary (Ratio a) where
-  arbitrary = arbitrarySizedFractional
-  shrink    = shrinkRealFrac
+  arbitrary = sized $ \ n -> do
+    denom <- chooseInt (1, max 1 n)
+    let lb | isNonNegativeType fromI = 0
+           | otherwise = (-n*denom)
+        -- NOTE: this is a trick to make sure we get around lack of scoped type
+        -- variables by pinning the result-type of fromIntegral.
+        fromI = fromIntegral
+    numer <- chooseInt (lb, n*denom)
+    pure $ fromI numer % fromI denom
+  shrink = shrinkRealFrac
 
 #if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
 instance Arbitrary a => Arbitrary (Complex a) where
@@ -708,7 +722,7 @@ instance Arbitrary Float where
     ]
     where
       smallDenominators = sized $ \n -> do
-        i <- chooseInt (0, n)
+        i <- chooseInt (0, min n 256)
         pure (fromRational (streamNth i rationalUniverse))
 
       uniform = sized $ \n -> do
@@ -734,7 +748,7 @@ instance Arbitrary Double where
     ]
     where
       smallDenominators = sized $ \n -> do
-        i <- chooseInt (0, n)
+        i <- chooseInt (0, min n 256)
         pure (fromRational (streamNth i rationalUniverse))
 
       uniform = sized $ \n -> do
@@ -852,27 +866,36 @@ instance Arbitrary CDouble where
   shrink = shrinkDecimal
 
 -- Arbitrary instances for container types
+-- | WARNING: Users working on the internals of the @Set@ type via e.g. @Data.Set.Internal@
+-- should be aware that this instance aims to give a good representation of @Set a@
+-- as mathematical sets but *does not* aim to provide a varied distribution over the
+-- underlying representation.
 instance (Ord a, Arbitrary a) => Arbitrary (Set.Set a) where
   arbitrary = fmap Set.fromList arbitrary
   shrink = map Set.fromList . shrink . Set.toList
 instance (Ord k, Arbitrary k) => Arbitrary1 (Map.Map k) where
   liftArbitrary = fmap Map.fromList . liftArbitrary . liftArbitrary
   liftShrink shr = map Map.fromList . liftShrink (liftShrink shr) . Map.toList
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance (Ord k, Arbitrary k, Arbitrary v) => Arbitrary (Map.Map k v) where
   arbitrary = arbitrary1
   shrink = shrink1
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary IntSet.IntSet where
   arbitrary = fmap IntSet.fromList arbitrary
   shrink = map IntSet.fromList . shrink . IntSet.toList
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary1 IntMap.IntMap where
   liftArbitrary = fmap IntMap.fromList . liftArbitrary . liftArbitrary
   liftShrink shr = map IntMap.fromList . liftShrink (liftShrink shr) . IntMap.toList
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary a => Arbitrary (IntMap.IntMap a) where
   arbitrary = arbitrary1
   shrink = shrink1
 instance Arbitrary1 Sequence.Seq where
   liftArbitrary = fmap Sequence.fromList . liftArbitrary
   liftShrink shr = map Sequence.fromList . liftShrink shr . toList
+-- | WARNING: The same warning as for @Arbitrary (Set a)@ applies here.
 instance Arbitrary a => Arbitrary (Sequence.Seq a) where
   arbitrary = arbitrary1
   shrink = shrink1
@@ -1082,9 +1105,19 @@ applyArbitrary4 f = applyArbitrary3 (uncurry f)
 -- | Generates an integral number. The number can be positive or negative
 -- and its maximum absolute value depends on the size parameter.
 arbitrarySizedIntegral :: Integral a => Gen a
-arbitrarySizedIntegral =
-  sized $ \n ->
-  inBounds fromIntegral (chooseInt (-n, n))
+arbitrarySizedIntegral
+  | isNonNegativeType fromI = arbitrarySizedNatural
+  | otherwise = sized $ \n -> inBounds fromI (chooseInt (-n, n))
+  where
+    -- NOTE: this is a trick to make sure we get around lack of scoped type
+    -- variables by pinning the result-type of fromIntegral.
+    fromI = fromIntegral
+
+isNonNegativeType :: Enum a => (Int -> a) -> Bool
+isNonNegativeType fromI =
+  case enumFromThen (fromI 1) (fromI 0) of
+    [_, _] -> True
+    _ -> False
 
 -- | Generates a natural number. The number's maximum value depends on
 -- the size parameter.
@@ -1606,8 +1639,9 @@ streamNth :: Int -> Stream a -> a
 streamNth n (x :< xs) | n <= 0    = x
                       | otherwise = streamNth (n - 1) xs
 
--- We read into this stream only with ~size argument,
--- so it's ok to have it as CAF.
+-- We read into this stream only with ~size argument, capped to 256,
+-- so it's ok to have it as CAF. (256 chosen somewhat arbitrarily, the
+-- point is just to stop this blowing up.)
 --
 rationalUniverse :: Stream Rational
 rationalUniverse = 0 :< 1 :< (-1) :< go leftSideStream

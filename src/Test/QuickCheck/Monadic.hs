@@ -72,6 +72,17 @@ module Test.QuickCheck.Monadic (
   , monadicST
   , runSTGen
 #endif
+
+  -- * Exceptions
+
+#ifndef NO_EXCEPTIONS
+  , assertException
+  , assertExceptionIO
+#ifndef NO_DEEPSEQ
+  , assertDeepException
+  , assertDeepExceptionIO
+#endif
+#endif
   ) where
 
 --------------------------------------------------------------------------
@@ -95,6 +106,13 @@ import Control.Monad.Trans.Class
 import qualified Control.Monad.Fail as Fail
 #endif
 
+#ifndef NO_DEEPSEQ
+import Control.DeepSeq
+#endif
+
+#ifndef NO_EXCEPTIONS
+import qualified Control.Exception as E
+#endif
 --------------------------------------------------------------------------
 -- type PropertyM
 
@@ -296,6 +314,61 @@ runSTGen :: (forall s. Gen (ST s a)) -> Gen a
 runSTGen f = do
   Capture eval <- capture
   return (runST (eval f))
+#endif
+
+-- Exceptions
+
+
+#ifndef NO_EXCEPTIONS
+
+-- | Evaluate the value to Weak Head Normal Form (WHNF) and fail if it does not result in
+-- an expected exception being thrown.
+assertException ::
+     E.Exception exc
+  => (exc -> Bool) -- ^ Return `True` if that is the exception that was expected
+  -> a -- ^ Value that should result in an exception, when evaluated to WHNF
+  -> Property
+assertException isExc value = assertExceptionIO isExc (return value)
+
+
+-- | Make sure that a specific exception is thrown during an IO action. The result is
+-- evaluated to WHNF.
+assertExceptionIO ::
+     E.Exception exc
+  => (exc -> Bool) -- ^ Return `True` if that is the exception that was expected
+  -> IO a -- ^ An action that should throw the expected exception
+  -> Property
+assertExceptionIO isExc action =
+  monadicIO $ do
+    hasFailed <-
+      run
+        (E.catch
+           (do res <- action
+               res `seq` return False)
+           (return . isExc))
+    assert hasFailed
+
+#ifndef NO_DEEPSEQ
+
+-- | Same as `assertException`, but evaluate the value to Normal Form (NF) and fail if it
+-- does not result in an expected exception being thrown.
+assertDeepException ::
+     (NFData a, E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> a -- ^ Value that should result in an exception, when fully evaluated to NF
+  -> Property
+assertDeepException isExc value = assertException isExc (rnf value)
+
+-- | Make sure that a specific exception is thrown during an IO action. The result is
+-- evaluated to NF.
+assertDeepExceptionIO ::
+     (NFData a, E.Exception exc)
+  => (exc -> Bool) -- ^ Return True if that is the exception that was expected
+  -> IO a -- ^ An action that should throw the expected exception
+  -> Property
+assertDeepExceptionIO isExc action = assertExceptionIO isExc (fmap rnf action)
+
+#endif
 #endif
 
 --------------------------------------------------------------------------

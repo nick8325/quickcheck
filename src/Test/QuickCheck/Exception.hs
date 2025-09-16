@@ -75,8 +75,6 @@ tryEvaluateIO m = E.tryJust notAsync (m >>= E.evaluate)
     notAsync e = Just e
 #endif
 
---tryEvaluateIO m = Right `fmap` m
-
 evaluate :: a -> IO a
 evaluate = E.evaluate
 

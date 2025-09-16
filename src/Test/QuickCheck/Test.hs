@@ -12,6 +12,7 @@ module Test.QuickCheck.Test where
 --------------------------------------------------------------------------
 -- imports
 
+import Control.Applicative
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Property hiding ( Result( reason, theException, labels, classes, tables ), (.&.) )
 import qualified Test.QuickCheck.Property as P
@@ -20,7 +21,6 @@ import Test.QuickCheck.State hiding (labels, classes, tables, requiredCoverage)
 import qualified Test.QuickCheck.State as S
 import Test.QuickCheck.Exception
 import Test.QuickCheck.Random
-import System.Random(split)
 #if defined(MIN_VERSION_containers)
 #if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
@@ -50,6 +50,7 @@ import Data.Ord(comparing)
 import Text.Printf(printf)
 import Control.Monad
 import Data.Bits
+import Data.Maybe
 
 #ifndef NO_TYPEABLE
 import Data.Typeable (Typeable)
@@ -80,7 +81,7 @@ data Args
   , chatty          :: Bool
     -- ^ Whether to print anything
   , maxShrinks      :: Int
-    -- ^ Maximum number of shrinks to before giving up. Setting this to zero
+    -- ^ Maximum number of shrinks to do before giving up. Setting this to zero
     --   turns shrinking off.
   }
  deriving ( Show, Read
@@ -142,6 +143,10 @@ data Result
       -- ^ The test case's labels (see 'label')
     , failingClasses  :: Set String
       -- ^ The test case's classes (see 'classify')
+#ifndef NO_TYPEABLE
+    , witnesses :: [Witness]
+      -- ^ The existentially quantified witnesses provided by 'witness'
+#endif
     }
   -- | A property that should have failed did not
   | NoExpectedFailure
@@ -171,7 +176,7 @@ stdArgs = Args
   , maxShrinks      = maxBound
   }
 
--- | Tests a property and prints the results to 'stdout'.
+-- | Tests a property and prints the results to 'System.IO.stdout'.
 --
 -- By default up to 100 tests are performed, which may not be enough
 -- to find all bugs. To run more tests, use 'withNumTests'.
@@ -184,18 +189,23 @@ stdArgs = Args
 quickCheck :: Testable prop => prop -> IO ()
 quickCheck p = quickCheckWith stdArgs p
 
--- | Tests a property, using test arguments, and prints the results to 'stdout'.
+-- | Tests a property, using test arguments, and prints the results to 'System.IO.stdout'.
 quickCheckWith :: Testable prop => Args -> prop -> IO ()
 quickCheckWith args p = quickCheckWithResult args p >> return ()
 
--- | Tests a property, produces a test result, and prints the results to 'stdout'.
+-- | Tests a property, produces a test result, and prints the results to 'System.IO.stdout'.
 quickCheckResult :: Testable prop => prop -> IO Result
 quickCheckResult p = quickCheckWithResult stdArgs p
 
--- | Tests a property, using test arguments, produces a test result, and prints the results to 'stdout'.
+-- | Tests a property, using test arguments, produces a test result, and prints the results to 'System.IO.stdout'.
 quickCheckWithResult :: Testable prop => Args -> prop -> IO Result
 quickCheckWithResult a p =
   withState a (\s -> test s (property p))
+
+-- | Re-run a property with the seed and size that failed in a run of 'quickCheckResult'.
+recheck :: Testable prop => Result -> prop -> IO ()
+recheck res@Failure{} = quickCheckWith stdArgs{ replay = Just (usedSeed res, usedSize res)} . once
+recheck _ = error "Can only recheck tests that failed with a counterexample."
 
 withState :: Args -> (State -> IO a) -> IO a
 withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ \tm -> do
@@ -206,9 +216,8 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , maxSuccessTests           = maxSuccess a
                  , coverageConfidence        = Nothing
                  , maxDiscardedRatio         = maxDiscardRatio a
-                 , computeSize               = case replay a of
-                                                 Nothing    -> computeSize'
-                                                 Just (_,s) -> computeSize' `at0` s
+                 , replayStartSize           = snd <$> replay a
+                 , maxTestSize               = maxSize a
                  , numTotMaxShrinks          = maxShrinks a
                  , numSuccessTests           = 0
                  , numDiscardedTests         = 0
@@ -223,19 +232,32 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
                  , numTryShrinks             = 0
                  , numTotTryShrinks          = 0
                  }
-  where computeSize' n d
-          -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
-          -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
-          | n `roundTo` maxSize a + maxSize a <= maxSuccess a ||
-            n >= maxSuccess a ||
-            maxSuccess a `mod` maxSize a == 0 = (n `mod` maxSize a + d `div` 10) `min` maxSize a
-          | otherwise =
-            ((n `mod` maxSize a) * maxSize a `div` (maxSuccess a `mod` maxSize a) + d `div` 10) `min` maxSize a
-        n `roundTo` m = (n `div` m) * m
-        at0 f s 0 0 = s
-        at0 f s n d = f n d
 
--- | Tests a property and prints the results and all test cases generated to 'stdout'.
+computeSize :: State -> Int
+computeSize MkState{replayStartSize = Just s,numSuccessTests = 0,numRecentlyDiscardedTests=0} = s
+-- NOTE: Beware that changing this means you also have to change `prop_discardCoverage` as that currently relies
+-- on the sequence produced by this function.
+computeSize MkState{maxSuccessTests = ms, maxTestSize = mts, maxDiscardedRatio = md,numSuccessTests=n,numRecentlyDiscardedTests=d}
+    -- e.g. with maxSuccess = 250, maxSize = 100, goes like this:
+    -- 0, 1, 2, ..., 99, 0, 1, 2, ..., 99, 0, 2, 4, ..., 98.
+    | n `roundTo` mts + mts <= ms ||
+      n >= ms ||
+      ms `mod` mts == 0 = (n `mod` mts + d `div` dDenom) `min` mts
+    | otherwise =
+      ((n `mod` mts) * mts `div` (ms `mod` mts) + d `div` dDenom) `min` mts
+  where
+    -- The inverse of the rate at which we increase size as a function of discarded tests
+    -- if the discard ratio is high we can afford this to be slow, but if the discard ratio
+    -- is low we risk bowing out too early
+    dDenom
+      | md > 0 = (ms * md `div` 3) `clamp` (1, 10)
+      | otherwise = 1 -- Doesn't matter because there will be no discards allowed
+    n `roundTo` m = (n `div` m) * m
+
+clamp :: Ord a => a -> (a, a) -> a
+clamp x (l, h) = max l (min x h)
+
+-- | Tests a property and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that means the same as @'quickCheck' . 'verbose'@.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -244,7 +266,7 @@ withState a test = (if chatty a then withStdioTerminal else withNullTerminal) $ 
 verboseCheck :: Testable prop => prop -> IO ()
 verboseCheck p = quickCheck (verbose p)
 
--- | Tests a property, using test arguments, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, using test arguments, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckWith' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -253,7 +275,7 @@ verboseCheck p = quickCheck (verbose p)
 verboseCheckWith :: Testable prop => Args -> prop -> IO ()
 verboseCheckWith args p = quickCheckWith args (verbose p)
 
--- | Tests a property, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, produces a test result, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckResult' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -262,7 +284,7 @@ verboseCheckWith args p = quickCheckWith args (verbose p)
 verboseCheckResult :: Testable prop => prop -> IO Result
 verboseCheckResult p = quickCheckResult (verbose p)
 
--- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'stdout'.
+-- | Tests a property, using test arguments, produces a test result, and prints the results and all test cases generated to 'System.IO.stdout'.
 -- This is just a convenience function that combines 'quickCheckWithResult' and 'verbose'.
 --
 -- Note: for technical reasons, the test case is printed out /after/
@@ -275,16 +297,71 @@ verboseCheckWithResult a p = quickCheckWithResult a (verbose p)
 -- main test loop
 
 test :: State -> Property -> IO Result
-test st f
-  | numSuccessTests st   >= maxSuccessTests st && isNothing (coverageConfidence st) =
-    doneTesting st f
-  | numDiscardedTests st >= maxDiscardedRatio st * max (numSuccessTests st) (maxSuccessTests st) =
-    giveUp st f
-  | otherwise =
-    runATest st f
+test st prop
+  | finishedSuccessfully st         = doneTesting st
+  | finishedInsufficientCoverage st = failCoverage st
+  | tooManyDiscards st              = giveUp st
+  | otherwise                       = runATest st prop
 
-doneTesting :: State -> Property -> IO Result
-doneTesting st _f
+finishedSuccessfully :: State -> Bool
+finishedSuccessfully st
+  | checkingCoverage st =
+      and [ timeToCheckCoverage st
+          , coverageKnownSufficient st
+          , numSuccessTests st >= maxSuccessTests st
+          ]
+  | otherwise = numSuccessTests st >= maxSuccessTests st
+
+finishedInsufficientCoverage :: State -> Bool
+finishedInsufficientCoverage st =
+  and [ checkingCoverage st
+      , timeToCheckCoverage st
+      , coverageKnownInsufficient st
+      ]
+
+tooManyDiscards :: State -> Bool
+tooManyDiscards st
+  | maxDiscardedRatio st > 0 = numDiscardedTests st `div` maxDiscardedRatio st >= max (numSuccessTests st) (maxSuccessTests st)
+  | otherwise = numDiscardedTests st > 0
+
+checkingCoverage :: State -> Bool
+checkingCoverage st = isJust (coverageConfidence st)
+
+timeToCheckCoverage :: State -> Bool
+timeToCheckCoverage st
+ -- This is the time when we would normally finish testing, so lets check
+ -- it now to see if we can finish testing already
+ | numSuccessTests st == maxSuccessTests st && numRecentlyDiscardedTests st == 0 = True
+ -- We are on test 100 * 2^k for k > 0
+ | otherwise =
+    and [ numSuccessTests st > 0
+        , numSuccessTests st `mod` 100 == 0
+        , powerOfTwo (numSuccessTests st `div` 100)
+        ]
+  where powerOfTwo n = n .&. (n - 1) == 0
+
+coverageKnownSufficient :: State -> Bool
+coverageKnownSufficient st@MkState{coverageConfidence=Just confidence} =
+  and [ sufficientlyCovered confidence tot n p | (_, _, tot, n, p) <- allCoverage st ]
+coverageKnownSufficient _ = True
+
+coverageKnownInsufficient :: State -> Bool
+coverageKnownInsufficient st@MkState{coverageConfidence=Just confidence} =
+  or [ insufficientlyCovered (Just (certainty confidence)) tot n p
+     | (_, _, tot, n, p) <- allCoverage st ]
+coverageKnownInsufficient _ = False
+
+failCoverage :: State -> IO Result
+failCoverage st =
+             -- The last test wasn't actually successful, as the coverage failed
+             -- also this prevents an off-by-one error in the printing
+    runATest st{numSuccessTests = numSuccessTests st - 1}
+             $ foldr counterexample (property failed{P.reason = "Insufficient coverage"})
+                                    (paragraphs [theLabels, theTables])
+    where (theLabels, theTables) = labelsAndTables st
+
+doneTesting :: State -> IO Result
+doneTesting st
   | expected st == False = do
       putPart (terminal st)
         ( bold ("*** Failed!")
@@ -305,8 +382,8 @@ doneTesting st _f
       theOutput <- terminalOutput (terminal st)
       return (k (numSuccessTests st) (numDiscardedTests st) (S.labels st) (S.classes st) (S.tables st) theOutput)
 
-giveUp :: State -> Property -> IO Result
-giveUp st _f =
+giveUp :: State -> IO Result
+giveUp st =
   do -- CALLBACK gave_up?
      putPart (terminal st)
        ( bold ("*** Gave up!")
@@ -325,77 +402,88 @@ giveUp st _f =
                   }
 
 showTestCount :: State -> String
-showTestCount st =
-     number (numSuccessTests st) "test"
-  ++ concat [ "; " ++ show (numDiscardedTests st) ++ " discarded"
-            | numDiscardedTests st > 0
+showTestCount st = formatTestCount (numSuccessTests st) (numDiscardedTests st)
+
+formatTestCount :: Int -> Int -> String
+formatTestCount succeeded discarded =
+     number succeeded "test"
+  ++ concat [ "; " ++ show discarded ++ " discarded"
+            | discarded > 0
             ]
 
 runATest :: State -> Property -> IO Result
-runATest st f =
+runATest st prop =
   do -- CALLBACK before_test
      putTemp (terminal st)
         ( "("
        ++ showTestCount st
        ++ ")"
         )
-     let powerOfTwo n = n .&. (n - 1) == 0
-     let f_or_cov =
-           case coverageConfidence st of
-             Just confidence | (1 + numSuccessTests st) `mod` 100 == 0 && powerOfTwo ((1 + numSuccessTests st) `div` 100) ->
-               addCoverageCheck confidence st f
-             _ -> f
-     let size = computeSize st (numSuccessTests st) (numRecentlyDiscardedTests st)
-     MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty f_or_cov) rnd1 size)))
+
+     let size = computeSize st
+
+     MkRose res ts <- protectRose (reduceRose (unProp (unGen (unProperty prop) rnd1 size)))
      res <- callbackPostTest st res
 
-     let continue break st' | abort res = break st'
-                            | otherwise = test st'
+     let continue :: (State -> IO Result) -> State -> IO Result
+         continue break st'
+           | abort res = break $ updateState st'
+           | otherwise = test (updateState st') prop
 
-     let st' = st{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st
-                 , maxSuccessTests = fromMaybe (maxSuccessTests st) (maybeNumTests res)
-                 , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st)
-                 , S.classes = Map.unionWith (+) (S.classes st) (Map.fromList (zip (P.classes res) (repeat 1)))
-                 , S.tables =
-                   foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
-                     (S.tables st) (P.tables res)
-                 , S.requiredCoverage =
-                   foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
-                     (S.requiredCoverage st) (P.requiredCoverage res)
-                 , expected = expect res }
+         updateState st0 = addNewOptions $ st0{ randomSeed = rnd2 }
+
+         addNewOptions st0 = st0{ maxSuccessTests   = fromMaybe (maxSuccessTests st0) (maybeNumTests res)
+                                , maxDiscardedRatio = fromMaybe (maxDiscardedRatio st0) (maybeDiscardedRatio res)
+                                , numTotMaxShrinks  = fromMaybe (numTotMaxShrinks st0) (maybeMaxShrinks res)
+                                , maxTestSize       = fromMaybe (maxTestSize st0) (maybeMaxTestSize res)
+                                , expected          = expect res
+                                }
+
+         addCoverageInfo st0 =
+           st0{ coverageConfidence = maybeCheckCoverage res `mplus` coverageConfidence st0
+              , S.labels = Map.insertWith (+) (P.labels res) 1 (S.labels st0)
+              , S.classes = Map.unionWith (+) (S.classes st0)
+                                              (Map.fromList [ (s, if b then 1 else 0) | (s, b) <- P.classes res ])
+              , S.tables =
+                foldr (\(tab, x) -> Map.insertWith (Map.unionWith (+)) tab (Map.singleton x 1))
+                  (S.tables st0) (P.tables res)
+              , S.requiredCoverage =
+                foldr (\(key, value, p) -> Map.insertWith max (key, value) p)
+                  (S.requiredCoverage st0) (P.requiredCoverage res)
+              }
+
+         stC = addCoverageInfo st
 
      case res of
        MkResult{ok = Just True} -> -- successful test
          do continue doneTesting
-              st'{ numSuccessTests           = numSuccessTests st' + 1
+              stC{ numSuccessTests           = numSuccessTests st + 1
                  , numRecentlyDiscardedTests = 0
-                 , randomSeed = rnd2
-                 } f
+                 }
 
-       MkResult{ok = Nothing, expect = expect, maybeNumTests = mnt, maybeCheckCoverage = mcc} -> -- discarded test
+       MkResult{ok = Nothing} -> -- discarded test
          do continue giveUp
               -- Don't add coverage info from this test
-              st{ numDiscardedTests         = numDiscardedTests st' + 1
-                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st' + 1
-                , randomSeed = rnd2
-                } f
+              st{ numDiscardedTests         = numDiscardedTests st + 1
+                , numRecentlyDiscardedTests = numRecentlyDiscardedTests st + 1
+                }
 
        MkResult{ok = Just False} -> -- failed test
-         do (numShrinks, totFailed, lastFailed, res) <- foundFailure st' res ts
-            theOutput <- terminalOutput (terminal st')
+         do (numShrinks, totFailed, lastFailed, res) <- foundFailure (addNewOptions stC) res ts
+            theOutput <- terminalOutput (terminal stC)
             if not (expect res) then
-              return Success{ labels = S.labels st',
-                              classes = S.classes st',
-                              tables = S.tables st',
-                              numTests = numSuccessTests st'+1,
-                              numDiscarded = numDiscardedTests st',
+              return Success{ labels = S.labels stC,
+                              classes = S.classes stC,
+                              tables = S.tables stC,
+                              numTests = numSuccessTests stC+1,
+                              numDiscarded = numDiscardedTests stC,
                               output = theOutput }
              else do
               testCase <- mapM showCounterexample (P.testCase res)
-              return Failure{ usedSeed        = randomSeed st' -- correct! (this will be split first)
+              return Failure{ usedSeed        = randomSeed stC -- correct! (this will be split first)
                             , usedSize        = size
-                            , numTests        = numSuccessTests st'+1
-                            , numDiscarded    = numDiscardedTests st'
+                            , numTests        = numSuccessTests stC + 1
+                            , numDiscarded    = numDiscardedTests stC
                             , numShrinks      = numShrinks
                             , numShrinkTries  = totFailed
                             , numShrinkFinal  = lastFailed
@@ -404,10 +492,13 @@ runATest st f =
                             , theException    = P.theException res
                             , failingTestCase = testCase
                             , failingLabels   = P.labels res
-                            , failingClasses  = Set.fromList (P.classes res)
+                            , failingClasses  = Set.fromList (map fst $ filter snd $ P.classes res)
+#ifndef NO_TYPEABLE
+                            , witnesses = theWitnesses res
+#endif
                             }
  where
-  (rnd1,rnd2) = split (randomSeed st)
+  (rnd1,rnd2) = splitImpl (randomSeed st)
 
 failureSummary :: State -> P.Result -> String
 failureSummary st res = fst (failureSummaryAndReason st res)
@@ -524,7 +615,9 @@ localMin st res ts = do
     Right () -> do
       r <- tryEvaluate ts
       case r of
-        Left err ->
+        Left err
+          | isDiscard err -> localMinFound st res
+          | otherwise ->
           localMinFound st
             (exception "Exception while generating shrink-list" err) { callbacks = callbacks res }
         Right ts' -> localMin' st res ts'
@@ -664,18 +757,6 @@ invnormcdf p
     p_low  = 0.02425
     p_high = 1 - p_low
 
-addCoverageCheck :: Confidence -> State -> Property -> Property
-addCoverageCheck confidence st prop
-  | and [ sufficientlyCovered confidence tot n p
-        | (_, _, tot, n, p) <- allCoverage st ] =
-    -- Note: run prop once more so that we get labels for this test case run
-    once prop
-  | or [ insufficientlyCovered (Just (certainty confidence)) tot n p
-       | (_, _, tot, n, p) <- allCoverage st ] =
-    let (theLabels, theTables) = labelsAndTables st in
-    foldr counterexample (property failed{P.reason = "Insufficient coverage"})
-      (paragraphs [theLabels, theTables])
-  | otherwise = prop
 
 allCoverage :: State -> [(Maybe String, String, Int, Int, Double)]
 allCoverage st =

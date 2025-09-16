@@ -28,6 +28,39 @@ To use QuickCheck on your own data types you will need to write 'Arbitrary'
 instances for those types. See the
 <http://www.cse.chalmers.se/~rjmh/QuickCheck/manual.html QuickCheck manual> for
 details about how to do that.
+
+When testing fails @quickCheck@ will try to give you a minimal counterexample to
+your property:
+@
+import Test.QuickCheck
+
+prop_reverse_bad :: [Int] -> Bool
+prop_reverse_bad xs = reverse xs == xs
+
+>>> quickCheck prop_reverse_bad
+*** Failed! Falsified (after 3 tests and 3 shrinks):
+[0,1]
+@
+
+However, beware because not all properties that ought to fail will fail when you expect
+them to:
+
+@
+>>> quickCheck $ \ x y -> x == y
++++ Ok, passed 100 tests.
+@
+
+That's because GHCi will default any type variables in your property to @()@, so in the example
+above @quickCheck@ was really testing that @()@ is equal to itself. To avoid this behaviour it
+is best practise to monomorphise your polymorphic properties when testing:
+
+@
+>>> quickCheck $ \ x y -> (x :: Int) == y
+*** Failed! Falsified (after 4 tests and 3 shrinks):
+0
+1
+@
+
 -}
 {-# LANGUAGE CPP #-}
 #ifndef NO_SAFE_HASKELL
@@ -40,11 +73,12 @@ module Test.QuickCheck
   (
     -- * Running tests
     quickCheck
-  , Args(..), Result(..)
+  , Args(..), Result(..), TestProgress(..)
   , stdArgs
   , quickCheckWith
   , quickCheckWithResult
   , quickCheckResult
+  , recheck
   , isSuccess
     -- ** Running tests verbosely
   , verboseCheck
@@ -202,24 +236,24 @@ module Test.QuickCheck
     --
     -- @
     -- -- Functions cannot be shown (but see 'Function')
-    -- prop_TakeDropWhile ('Blind' p) (xs :: ['A']) =
+    -- prop_TakeDropWhile ('Blind' p) (xs :: ['Test.QuickCheck.Poly.A']) =
     --   takeWhile p xs ++ dropWhile p xs == xs
     -- @
     --
     -- @
-    -- prop_TakeDrop ('NonNegative' n) (xs :: ['A']) =
+    -- prop_TakeDrop ('NonNegative' n) (xs :: ['Test.QuickCheck.Poly.A']) =
     --   take n xs ++ drop n xs == xs
     -- @
     --
     -- @
     -- -- cycle does not work for empty lists
-    -- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['A'])) =
+    -- prop_Cycle ('NonNegative' n) ('NonEmpty' (xs :: ['Test.QuickCheck.Poly.A'])) =
     --   take n (cycle xs) == take n (xs ++ cycle xs)
     -- @
     --
     -- @
     -- -- Instead of 'forAll' 'orderedList'
-    -- prop_Sort ('Ordered' (xs :: ['OrdA'])) =
+    -- prop_Sort ('Ordered' (xs :: ['Test.QuickCheck.Poly.OrdA'])) =
     --   sort xs == xs
     -- @
   , Blind(..)
@@ -272,6 +306,9 @@ module Test.QuickCheck
   , withMaxSuccess
   , within
   , discardAfter
+  , withDiscardRatio
+  , withMaxSize
+  , withMaxShrinks
   , once
   , again
   , mapSize
@@ -279,11 +316,20 @@ module Test.QuickCheck
   , (.&.)
   , (.&&.)
   , conjoin
+  , Every (..)
   , (.||.)
   , disjoin
+  , Some (..)
     -- ** What to do on failure
+#ifndef NO_TYPEABLE
+  , Witness(..)
+  , witness
+  , coerceWitness
+  , castWitness
+#endif
   , counterexample
   , printTestCase
+  , withProgress
   , whenFail
   , whenFail'
   , expectFailure
@@ -313,6 +359,7 @@ module Test.QuickCheck
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Modifiers
+import Test.QuickCheck.Monoids
 import Test.QuickCheck.Property hiding ( Result(..) )
 import Test.QuickCheck.Test
 import Test.QuickCheck.Exception

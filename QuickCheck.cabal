@@ -1,5 +1,5 @@
 Name: QuickCheck
-Version: 2.14.3
+Version: 2.16.0.0
 Cabal-Version: >= 1.10
 Build-type: Simple
 License: BSD3
@@ -8,7 +8,9 @@ Copyright: 2000-2019 Koen Claessen, 2006-2008 Björn Bringert, 2009-2019 Nick Sm
 Author: Koen Claessen <koen@chalmers.se>
 Maintainer: Nick Smallbone <nick@smallbone.se>
 Bug-reports: https://github.com/nick8325/quickcheck/issues
-Tested-with: GHC ==7.0.4 || ==7.2.2 || >= 7.4
+Tested-with: GHC == 7.10.3 ||
+                 == 8.0.2  ||
+                 >= 8.2.2 && < 9.11
 Homepage: https://github.com/nick8325/quickcheck
 Category:       Testing
 Synopsis:       Automatic testing of Haskell programs
@@ -57,7 +59,7 @@ source-repository head
 source-repository this
   type:     git
   location: https://github.com/nick8325/quickcheck
-  tag:      2.14.3
+  tag:      2.16
 
 flag templateHaskell
   Description: Build Test.QuickCheck.All, which uses Template Haskell.
@@ -79,7 +81,7 @@ library
     Build-depends: random >= 1.0.0.3 && < 1.2.0
     cpp-options: -DOLD_RANDOM
   else
-    Build-depends: random >= 1.2.0 && < 1.3
+    Build-depends: random >= 1.2.0 && < 1.4
 
   -- We always use splitmix directly rather than going through StdGen
   -- (it's somewhat more efficient).
@@ -88,7 +90,10 @@ library
   if impl(hugs)
     cpp-options: -DNO_SPLITMIX
   else
-    Build-depends: splitmix >= 0.1 && <0.2
+    Build-depends: splitmix >= 0.1.0.2 && <0.2
+
+  if impl(hugs)
+    cpp-options: -DNO_SEMIGROUP -DNO_EXISTENTIAL_FIELD_SELECTORS
 
   -- Modules that are always built.
   Exposed-Modules:
@@ -97,6 +102,7 @@ library
     Test.QuickCheck.Gen,
     Test.QuickCheck.Gen.Unsafe,
     Test.QuickCheck.Monadic,
+    Test.QuickCheck.Monoids,
     Test.QuickCheck.Modifiers,
     Test.QuickCheck.Property,
     Test.QuickCheck.Test,
@@ -114,7 +120,7 @@ library
   else
     cpp-options: -DNO_TRANSFORMERS -DNO_DEEPSEQ
 
-  if impl(ghc) && flag(templateHaskell) && !impl(haste)
+  if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
     if impl(ghc >=8.0)
       Other-Extensions: TemplateHaskellQuotes
@@ -123,6 +129,9 @@ library
     Exposed-Modules: Test.QuickCheck.All
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
+
+  if !impl(ghc >= 8.0)
+    cpp-options: -DNO_CALLSTACK -DNO_SEMIGROUP
 
   if !impl(ghc >= 7.4)
     cpp-options: -DNO_CTYPES_CONSTRUCTORS -DNO_FOREIGN_C_USECONDS
@@ -151,13 +160,16 @@ library
   if !impl(ghc >= 8.0)
     cpp-options: -DNO_MONADFAIL
 
+  if impl(ghc >= 9.8)
+    ghc-options: -Wno-x-partial
+
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
     cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
       -DNO_TEMPLATE_HASKELL -DNO_SAFE_HASKELL -DNO_TYPEABLE -DNO_GADTS
-      -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM
+      -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM -DNO_CALLSTACK
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
 
@@ -179,7 +191,7 @@ Test-Suite test-quickcheck
         examples
     main-is: Heap.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || impl(haste)
+    if !flag(templateHaskell)
         Buildable: False
 
 Test-Suite test-quickcheck-gcoarbitrary
@@ -188,7 +200,7 @@ Test-Suite test-quickcheck-gcoarbitrary
     hs-source-dirs: tests
     main-is: GCoArbitraryExample.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.2) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.2)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
@@ -199,7 +211,7 @@ Test-Suite test-quickcheck-generators
     hs-source-dirs: tests
     main-is: Generators.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || impl(haste)
+    if !flag(templateHaskell)
         Buildable: False
 
 Test-Suite test-quickcheck-gshrink
@@ -208,7 +220,7 @@ Test-Suite test-quickcheck-gshrink
     hs-source-dirs: tests
     main-is: GShrinkExample.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.2) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.2)
         buildable: False
     if impl(ghc >= 7.2) && impl(ghc < 7.6)
         build-depends: ghc-prim
@@ -219,7 +231,7 @@ Test-Suite test-quickcheck-terminal
     hs-source-dirs: tests
     main-is: Terminal.hs
     build-depends: base, process, deepseq >= 1.1.0.0, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.10)
         buildable: False
 
 Test-Suite test-quickcheck-monadfix
@@ -228,7 +240,7 @@ Test-Suite test-quickcheck-monadfix
     hs-source-dirs: tests
     main-is: MonadFix.hs
     build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
+    if !flag(templateHaskell) || !impl(ghc >= 7.10)
         buildable: False
 
 Test-Suite test-quickcheck-split
@@ -237,12 +249,48 @@ Test-Suite test-quickcheck-split
     hs-source-dirs: tests
     main-is: Split.hs
     build-depends: base, QuickCheck
+    if impl(ghc >= 9.8)
+      ghc-options: -Wno-x-partial
+
+Test-Suite test-quickcheck-strictness
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: Strictness.hs
+    build-depends: base, QuickCheck, containers
+    if !flag(templateHaskell) || !impl(ghc >= 7.10)
+        buildable: False
 
 Test-Suite test-quickcheck-misc
     type: exitcode-stdio-1.0
     Default-language: Haskell2010
     hs-source-dirs: tests
     main-is: Misc.hs
-    build-depends: base, QuickCheck
-    if !flag(templateHaskell) || !impl(ghc >= 7.10) || impl(haste)
+    build-depends: base, QuickCheck, containers
+    if !flag(templateHaskell) || !impl(ghc >= 7.10)
         buildable: False
+
+Test-Suite test-quickcheck-discard
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: DiscardRatio.hs
+    build-depends: base, QuickCheck
+
+Test-Suite test-quickcheck-monoids
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: Monoids.hs
+    build-depends: base, QuickCheck
+    if !impl(ghc >= 8.4)
+      cpp-options: -DNO_SEMIGROUP_SUPERCLASS
+    if !impl(ghc >= 8.0)
+      cpp-options: -DNO_SEMIGROUP_CLASS
+
+Test-Suite test-quickcheck-withprogress
+    type: exitcode-stdio-1.0
+    Default-language: Haskell2010
+    hs-source-dirs: tests
+    main-is: WithProgress.hs
+    build-depends: base, QuickCheck

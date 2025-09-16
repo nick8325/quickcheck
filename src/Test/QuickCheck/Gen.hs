@@ -15,11 +15,12 @@ module Test.QuickCheck.Gen where
 --------------------------------------------------------------------------
 -- imports
 
+import Test.QuickCheck.Exception
+
 import System.Random
   ( Random
   , random
   , randomR
-  , split
   )
 
 import Control.Monad
@@ -45,6 +46,12 @@ import Data.Word
 import Data.Int
 import Data.Bits
 import Control.Applicative
+#ifndef NO_CALLSTACK
+import GHC.Stack
+#define WITHCALLSTACK(ty) HasCallStack => ty
+#else
+#define WITHCALLSTACK(ty) ty
+#endif
 
 --------------------------------------------------------------------------
 -- ** Generator type
@@ -57,7 +64,7 @@ import Control.Applicative
 -- <http://hackage.haskell.org/package/quickcheck-transformer quickcheck-transformer>
 -- provide monad transformer versions of @Gen@.
 newtype Gen a = MkGen{
-  unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed.
+  unGen :: QCGen -> Int -> a -- ^ Run the generator on a particular seed and size.
                              -- If you just want to get a random value out, consider using 'generate'.
   }
 
@@ -81,7 +88,7 @@ instance Monad Gen where
 
   MkGen m >>= k =
     MkGen (\r n ->
-      case split r of
+      case splitImpl r of
         (r1, r2) ->
           let MkGen m' = k (m r1 n)
           in m' r2 n
@@ -134,7 +141,7 @@ getSize = sized pure
 
 -- | Overrides the size parameter. Returns a generator which uses
 -- the given size instead of the runtime-size parameter.
-resize :: Int -> Gen a -> Gen a
+resize :: WITHCALLSTACK(Int -> Gen a -> Gen a)
 resize n _ | n < 0 = error "Test.QuickCheck.resize: negative size"
 resize n (MkGen g) = MkGen (\r _ -> g r n)
 
@@ -149,7 +156,7 @@ scale f g = sized (\n -> resize (f n) g)
 choose :: Random a => (a,a) -> Gen a
 choose rng = MkGen (\r _ -> let (x,_) = randomR rng r in x)
 
--- | Generates a random element over the natural range of `a`.
+-- | Generates a random element over the natural range of @a@.
 chooseAny :: Random a => Gen a
 chooseAny = MkGen (\r _ -> let (x,_) = random r in x)
 
@@ -236,11 +243,17 @@ sample' :: Gen a -> IO [a]
 sample' g =
   generate (sequence [ resize n g | n <- [0,2..20] ])
 
--- | Generates some example values and prints them to 'stdout'.
+-- | Generates some example values and prints them to 'System.IO.stdout'.
 sample :: Show a => Gen a -> IO ()
 sample g =
-  do cases <- sample' g
-     mapM_ print cases
+  sequence_ [ do r <- newQCGen
+                 munit <- tryEvaluateIO (print $ unGen g r n)
+                 case munit of
+                  Left e
+                    | isDiscard e -> putStrLn "<DISCARDED>"
+                    | otherwise -> error $ unlines $ "Uncaught exception in sample: " : map ("  " ++) (lines $ show e)
+                  Right () -> return ()
+            | n <- [0,2..20] ]
 
 --------------------------------------------------------------------------
 -- ** Floating point
@@ -289,13 +302,13 @@ gen `suchThatMaybe` p = sized (\n -> try n (2*n))
 
 -- | Randomly uses one of the given generators. The input list
 -- must be non-empty.
-oneof :: [Gen a] -> Gen a
+oneof :: WITHCALLSTACK([Gen a] -> Gen a)
 oneof [] = error "QuickCheck.oneof used with empty list"
 oneof gs = chooseInt (0,length gs - 1) >>= (gs !!)
 
 -- | Chooses one of the given generators, with a weighted random distribution.
 -- The input list must be non-empty.
-frequency :: [(Int, Gen a)] -> Gen a
+frequency :: WITHCALLSTACK([(Int, Gen a)] -> Gen a)
 frequency [] = error "QuickCheck.frequency used with empty list"
 frequency xs
   | any (< 0) (map fst xs) =
@@ -312,7 +325,7 @@ frequency xs0 = chooseInt (1, tot) >>= (`pick` xs0)
   pick _ _  = error "QuickCheck.pick used with empty list"
 
 -- | Generates one of the given values. The input list must be non-empty.
-elements :: [a] -> Gen a
+elements :: WITHCALLSTACK([a] -> Gen a)
 elements [] = error "QuickCheck.elements used with empty list"
 elements xs = (xs !!) `fmap` chooseInt (0, length xs - 1)
 
@@ -330,7 +343,7 @@ shuffle xs = do
 -- among an initial segment of the list. The size of this initial
 -- segment increases with the size parameter.
 -- The input list must be non-empty.
-growingElements :: [a] -> Gen a
+growingElements :: WITHCALLSTACK([a] -> Gen a)
 growingElements [] = error "QuickCheck.growingElements used with empty list"
 growingElements xs = sized $ \n -> elements (take (1 `max` size n) xs)
   where

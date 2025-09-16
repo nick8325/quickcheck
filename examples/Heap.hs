@@ -148,20 +148,17 @@ main = $quickCheckAll
 
 --------------------------------------------------------------------------
 -- the end.
-{-
-  shrink Empty          = []
-  shrink (Node x h1 h2) =
-       [ h1, h2 ]
-    ++ [ Node x  h1' h2  | h1' <- shrink h1, x  <=? h1' ]
-    ++ [ Node x  h1  h2' | h2' <- shrink h2, x  <=? h2' ]
-    ++ [ Node x' h1  h2  | x'  <- shrink x,  x' <=? h1, x' <=? h2 ]
--}
+
+-- shrink Empty          = []
+-- shrink (Node x h1 h2) =
+--      [ h1, h2 ]
+--   ++ [ Node x  h1' h2  | h1' <- shrink h1, x  <=? h1' ]
+--   ++ [ Node x  h1  h2' | h2' <- shrink h2, x  <=? h2' ]
+--   ++ [ Node x' h1  h2  | x'  <- shrink x,  x' <=? h1, x' <=? h2 ]
 
 -- toSortedList (Node x h1 h2) = x : toSortedList (h1 `merge` h2)
 
-{-
-prop_HeapIsNotSorted (h :: Heap Int) =
-  expectFailure $
-    toList h == toSortedList h
--}
+-- prop_HeapIsNotSorted (h :: Heap Int) =
+--   expectFailure $
+--     toList h == toSortedList h
 

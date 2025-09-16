@@ -1,0 +1,23 @@
+name: Hugs-CI
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+  schedule:
+    - cron: 0 0 * * *
+jobs:
+  linux:
+    name: Hugs-CI - Linux
+    runs-on: ubuntu-24.04
+    steps:
+      - name: apt
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y hugs libhugs-time-bundled cpphs
+      - name: checkout
+        uses: actions/checkout@v4
+      - name: build and test
+        run: ./test-hugs

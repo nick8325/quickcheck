@@ -3,6 +3,7 @@
 {-# LANGUAGE CPP #-}
 #ifndef NO_TYPEABLE
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE ExistentialQuantification #-}
 #endif
 #ifndef NO_SAFE_HASKELL
 {-# LANGUAGE Safe #-}
@@ -17,13 +18,16 @@ import Test.QuickCheck.Gen.Unsafe
 import Test.QuickCheck.Arbitrary
 import Test.QuickCheck.Text( isOneLine, putLine )
 import Test.QuickCheck.Exception
-import Test.QuickCheck.State( State(terminal), Confidence(..) )
+import Test.QuickCheck.State( State(terminal, numSuccessTests, numDiscardedTests, maxSuccessTests, numSuccessShrinks, numTryShrinks, numTotTryShrinks), Confidence(..), TestProgress(..) )
 
 #ifndef NO_TIMEOUT
 import System.Timeout(timeout)
 #endif
 import Data.Maybe
 import Control.Applicative
+#if MIN_VERSION_base(4,8,0)
+import Control.Exception (displayException)
+#endif
 import Control.Monad
 import qualified Data.Map as Map
 import Data.Map(Map)
@@ -33,7 +37,7 @@ import Data.Set(Set)
 import Control.DeepSeq
 #endif
 #ifndef NO_TYPEABLE
-import Data.Typeable (Typeable)
+import Data.Typeable (Typeable, cast)
 #endif
 import Data.Maybe
 
@@ -254,35 +258,61 @@ data Callback
 data CallbackKind = Counterexample    -- ^ Affected by the 'verbose' combinator
                   | NotCounterexample -- ^ Not affected by the 'verbose' combinator
 
+#ifndef NO_TYPEABLE
+data Witness = forall a. (Typeable a, Show a) => Wit a
+
+instance Show Witness where
+  show (Wit a) = show a
+
+coerceWitness :: Typeable a => Witness -> a
+coerceWitness (Wit a) = case cast a of
+  Nothing -> error $ "Can't coerceWitness " ++ show a
+  Just a -> a
+
+castWitness :: Typeable a => Witness -> Maybe a
+castWitness (Wit a) = cast a
+
+#define WITNESSES(a) , theWitnesses a
+#else
+#define WITNESSES(a)
+#endif
+
 -- | The result of a single test.
 data Result
   = MkResult
-  { ok                 :: Maybe Bool
+  { ok                  :: Maybe Bool
     -- ^ result of the test case; Nothing = discard
-  , expect             :: Bool
+  , expect              :: Bool
     -- ^ indicates what the expected result of the property is
-  , reason             :: String
+  , reason              :: String
     -- ^ a message indicating what went wrong
-  , theException       :: Maybe AnException
+  , theException        :: Maybe AnException
     -- ^ the exception thrown, if any
-  , abort              :: Bool
+  , abort               :: Bool
     -- ^ if True, the test should not be repeated
-  , maybeNumTests      :: Maybe Int
+  , maybeNumTests       :: Maybe Int
     -- ^ stop after this many tests
-  , maybeCheckCoverage :: Maybe Confidence
+  , maybeCheckCoverage  :: Maybe Confidence
     -- ^ required coverage confidence
-  , labels             :: [String]
+  , maybeDiscardedRatio :: Maybe Int
+    -- ^ maximum number of discarded tests per successful test
+  , maybeMaxShrinks     :: Maybe Int
+    -- ^ maximum number of shrinks
+  , maybeMaxTestSize    :: Maybe Int
+    -- ^ maximum test size
+  , labels              :: [String]
     -- ^ test case labels
-  , classes            :: [String]
+  , classes             :: [(String, Bool)]
     -- ^ test case classes
-  , tables             :: [(String, String)]
+  , tables              :: [(String, String)]
     -- ^ test case tables
-  , requiredCoverage   :: [(Maybe String, String, Double)]
+  , requiredCoverage    :: [(Maybe String, String, Double)]
     -- ^ required coverage
-  , callbacks          :: [Callback]
+  , callbacks           :: [Callback]
     -- ^ the callbacks for this test case
-  , testCase           :: [String]
+  , testCase            :: [String]
     -- ^ the generated test case
+  WITNESSES(:: [Witness])
   }
 
 exception :: String -> AnException -> Result
@@ -292,7 +322,11 @@ exception msg err
                         theException = Just err }
 
 formatException :: String -> AnException -> String
+#if MIN_VERSION_base(4,8,0)
+formatException msg err = msg ++ ":" ++ format (displayException err)
+#else
 formatException msg err = msg ++ ":" ++ format (show err)
+#endif
   where format xs | isOneLine xs = " '" ++ xs ++ "'"
                   | otherwise = "\n" ++ unlines [ "  " ++ l | l <- lines xs ]
 
@@ -307,19 +341,23 @@ succeeded, failed, rejected :: Result
   where
     result =
       MkResult
-      { ok                 = undefined
-      , expect             = True
-      , reason             = ""
-      , theException       = Nothing
-      , abort              = False
-      , maybeNumTests      = Nothing
-      , maybeCheckCoverage = Nothing
-      , labels             = []
-      , classes            = []
-      , tables             = []
-      , requiredCoverage   = []
-      , callbacks          = []
-      , testCase           = []
+      { ok                  = undefined
+      , expect              = True
+      , reason              = ""
+      , theException        = Nothing
+      , abort               = False
+      , maybeNumTests       = Nothing
+      , maybeCheckCoverage  = Nothing
+      , maybeDiscardedRatio = Nothing
+      , maybeMaxShrinks     = Nothing
+      , maybeMaxTestSize    = Nothing
+      , labels              = []
+      , classes             = []
+      , tables              = []
+      , requiredCoverage    = []
+      , callbacks           = []
+      , testCase            = []
+      WITNESSES(= [])
       }
 
 --------------------------------------------------------------------------
@@ -412,6 +450,25 @@ whenFail' m =
       then m
       else return ()
 
+-- | Performs an IO action every time a property is tested, after every test.
+-- The IO action is allowed to depend on @TestProgress@, which contains information
+-- regarding how testing is progressing.
+--
+-- Note: QC invokes callbacks before the internal state has been updated to reflect the
+-- most recent test. The means that e.g. @currentPassed@ will, after the first test has
+-- been executed, still show 0.
+withProgress :: Testable prop => (TestProgress -> IO ()) -> prop -> Property
+withProgress m =
+  callback $ PostTest NotCounterexample $ \st _r ->
+    let tp = TestProgress { currentPassed        = numSuccessTests st
+                          , currentDiscarded     = numDiscardedTests st
+                          , maxTests             = maxSuccessTests st
+                          , currentShrinks       = numSuccessShrinks st
+                          , currentFailedShrinks = numTryShrinks st
+                          , currentTotalShrinks  = numTotTryShrinks st
+                          }
+    in m tp
+
 -- | Prints out the generated test case every time the property is tested.
 -- Only variables quantified over /inside/ the 'verbose' are printed.
 --
@@ -479,6 +536,48 @@ withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n }
 -- will test @p@ up to 1000 times.
 withNumTests :: Testable prop => Int -> prop -> Property
 withNumTests n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+
+-- | Configures how many times a property is allowed to be discarded before failing.
+--
+-- For example,
+--
+-- > quickCheck (withDiscardRatio 10 p)
+--
+-- will allow @p@ to fail up to 10 times per successful test.
+withDiscardRatio :: Testable prop => Int -> prop -> Property
+withDiscardRatio n = n `seq` mapTotalResult (\res -> res{ maybeDiscardedRatio = Just n })
+
+-- | Configure the maximum number of times a property will be shrunk.
+--
+-- For example,
+--
+-- > quickCheck (withMaxShrinks 100 p)
+--
+-- will cause @p@ to only attempt 100 shrinks on failure.
+withMaxShrinks :: Testable prop => Int -> prop -> Property
+withMaxShrinks n = n `seq` mapTotalResult (\res -> res{ maybeMaxShrinks = Just n })
+
+-- | Configure the maximum size a property will be tested at.
+withMaxSize :: Testable prop => Int -> prop -> Property
+withMaxSize n = n `seq` mapTotalResult (\res -> res{ maybeMaxTestSize = Just n })
+
+#ifndef NO_TYPEABLE
+-- | Return a value in the 'Test.QuickCheck.witnesses' field of the 'Result'
+-- returned by 'Test.QuickCheck.quickCheckResult'. Witnesses are returned
+-- outer-most first.
+--
+-- In ghci, for example:
+--
+-- >>> [Wit x] <- fmap witnesses . quickCheckResult $ \ x -> witness x $ x == (0 :: Int)
+-- *** Failed! Falsified (after 2 tests):
+-- 1
+-- >>> x
+-- 1
+-- >>> :t x
+-- x :: Int
+witness :: (Typeable a, Show a, Testable prop) => a -> prop -> Property
+witness a = a `seq` mapTotalResult (\res -> res{ theWitnesses = Wit a : theWitnesses res })
+#endif
 
 -- | Check that all coverage requirements defined by 'cover' and 'coverTable'
 -- are met, using a statistically sound test, and fail if they are not met.
@@ -594,13 +693,13 @@ classify :: Testable prop =>
             Bool    -- ^ @True@ if the test case should be labelled.
          -> String  -- ^ Label.
          -> prop -> Property
-classify False _ = property
-classify True s =
+classify b s =
 #ifndef NO_DEEPSEQ
   s `deepseq`
 #endif
+  b `seq`
   mapTotalResult $
-    \res -> res { classes = s:classes res }
+    \res -> res { classes = (s, b):classes res }
 
 -- | Checks that at least the given proportion of /successful/ test
 -- cases belong to the given class. Discarded tests (i.e. ones
@@ -705,15 +804,16 @@ tabulate key values =
   mapTotalResult $
     \res -> res { tables = [(key, value) | value <- values] ++ tables res }
 
--- | Checks that the values in a given 'table' appear a certain proportion of
+-- | Checks that the values in a given @table@ appear a certain proportion of
 -- the time. A call to 'coverTable' @table@ @[(x1, p1), ..., (xn, pn)]@ asserts
 -- that of the values in @table@, @x1@ should appear at least @p1@ percent of
--- the time, @x2@ at least @p2@ percent of the time, and so on.
+-- the time that @table@ appears, @x2@ at least @p2@ percent of the time that
+-- @table@ appears, and so on.
 --
 -- __Note:__ If the coverage check fails, QuickCheck prints out a warning, but
 -- the property does /not/ fail. To make the property fail, use 'checkCoverage'.
 --
--- Continuing the example from the 'tabular' combinator...
+-- Continuing the example from the 'tabulate' combinator...
 --
 -- > data Command = LogIn | LogOut | SendMessage String deriving (Data, Show)
 -- > prop_chatroom :: [Command] -> Property
@@ -847,8 +947,8 @@ forAllShrinkBlind gen shrinker pf =
     unProperty $
     shrinking shrinker x pf
 
--- | Nondeterministic choice: 'p1' '.&.' 'p2' picks randomly one of
--- 'p1' and 'p2' to test. If you test the property 100 times it
+-- | Nondeterministic choice: @p1@ '.&.' @p2@ picks randomly one of
+-- @p1@ and @p2@ to test. If you test the property 100 times it
 -- makes 100 random choices.
 (.&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&. p2 =
@@ -858,7 +958,7 @@ p1 .&. p2 =
     counterexample (if b then "LHS" else "RHS") $
       if b then property p1 else property p2
 
--- | Conjunction: 'p1' '.&&.' 'p2' passes if both 'p1' and 'p2' pass.
+-- | Conjunction: @p1@ '.&&.' @p2@ passes if both @p1@ and @p2@ pass.
 (.&&.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .&&. p2 = conjoin [property p1, property p2]
 
@@ -896,7 +996,7 @@ conjoin ps =
         classes = classes result ++ classes r,
         tables = tables result ++ tables r }
 
--- | Disjunction: 'p1' '.||.' 'p2' passes unless 'p1' and 'p2' simultaneously fail.
+-- | Disjunction: @p1@ '.||.' @p2@ passes unless @p1@ and @p2@ simultaneously fail.
 (.||.) :: (Testable prop1, Testable prop2) => prop1 -> prop2 -> Property
 p1 .||. p2 = disjoin [property p1, property p2]
 
@@ -929,6 +1029,9 @@ disjoin ps =
                    abort = False,
                    maybeNumTests = Nothing,
                    maybeCheckCoverage = Nothing,
+                   maybeDiscardedRatio = Nothing,
+                   maybeMaxShrinks = Nothing,
+                   maybeMaxTestSize = Nothing,
                    labels = [],
                    classes = [],
                    tables = [],
@@ -939,7 +1042,9 @@ disjoin ps =
                      callbacks result2,
                    testCase =
                      testCase result1 ++
-                     testCase result2 }
+                     testCase result2
+                   WITNESSES(= theWitnesses result1 ++ theWitnesses result2)
+                   }
                Nothing -> result2
          -- The "obvious" semantics of .||. has:
          --   discard .||. true = true

@@ -25,12 +25,14 @@ data State
   , maxDiscardedRatio         :: Int
     -- ^ maximum number of discarded tests per successful test
   , coverageConfidence        :: Maybe Confidence
-    -- ^ required coverage confidence
-  , computeSize               :: Int -> Int -> Int
     -- ^ how to compute the size of test cases from
     --   #tests and #discarded tests
   , numTotMaxShrinks          :: !Int
     -- ^ How many shrinks to try before giving up
+  , replayStartSize           :: Maybe Int
+    -- ^ Size to start at when replaying
+  , maxTestSize               :: !Int
+    -- ^ Maximum size of test
 
     -- dynamic
   , numSuccessTests           :: !Int
@@ -61,35 +63,49 @@ data State
     -- ^ total number of failed shrinking steps
   }
 
--- | The statistical parameters used by 'checkCoverage'.
+-- | The statistical parameters used by 'Test.QuickCheck.checkCoverage'.
 data Confidence =
   Confidence {
     certainty :: Integer,
-    -- ^ How certain 'checkCoverage' must be before the property fails.
-    -- If the coverage requirement is met, and the certainty parameter is @n@,
-    -- then you should get a false positive at most one in @n@ runs of QuickCheck.
-    -- The default value is @10^9@.
-    -- 
-    -- Lower values will speed up 'checkCoverage' at the cost of false
-    -- positives.
+    -- ^ How certain 'Test.QuickCheck.checkCoverage' must be before the property
+    -- fails. If the coverage requirement is met, and the certainty parameter is
+    -- @n@, then you should get a false positive at most one in @n@ runs of
+    -- QuickCheck. The default value is @10^9@.
     --
-    -- If you are using 'checkCoverage' as part of a test suite, you should
-    -- be careful not to set @certainty@ too low. If you want, say, a 1% chance
-    -- of a false positive during a project's lifetime, then @certainty@ should
-    -- be set to at least @100 * m * n@, where @m@ is the number of uses of
-    -- 'cover' in the test suite, and @n@ is the number of times you expect the
-    -- test suite to be run during the project's lifetime. The default value
-    -- is chosen to be big enough for most projects.
+    -- Lower values will speed up 'Test.QuickCheck.checkCoverage' at the cost of
+    -- false positives.
+    --
+    -- If you are using 'Test.QuickCheck.checkCoverage' as part of a test suite,
+    -- you should be careful not to set @certainty@ too low. If you want, say, a
+    -- 1% chance of a false positive during a project's lifetime, then
+    -- certainty@ should be set to at least @100 * m * n@, where @m@ is the
+    -- number of uses of 'Test.QuickCheck.cover' in the test suite, and @n@ is
+    -- the number of times you expect the test suite to be run during the
+    -- project's lifetime. The default value is chosen to be big enough for most
+    -- projects.
     tolerance :: Double
-    -- ^ For statistical reasons, 'checkCoverage' will not reject coverage
-    -- levels that are only slightly below the required levels.
+    -- ^ For statistical reasons, 'Test.QuickCheck.checkCoverage' will not
+    -- reject coverage levels that are only slightly below the required levels.
     -- If the required level is @p@ then an actual level of @tolerance * p@
     -- will be accepted. The default value is @0.9@.
     --
-    -- Lower values will speed up 'checkCoverage' at the cost of not detecting
-    -- minor coverage violations.
+    -- Lower values will speed up 'Test.QuickCheck.checkCoverage' at the cost of
+    -- not detecting minor coverage violations.
     }
   deriving Show
+
+-- | TestProgress, contains information that might be interesting to external
+-- libraries, e.g. Tasty. From this it is possible to install your own callbacks
+-- that reports e.g. progress.
+data TestProgress
+  = TestProgress
+  { currentPassed        :: Int -- ^ Number of tests passed so far
+  , currentDiscarded     :: Int -- ^ Number of discared tests so far
+  , maxTests             :: Int -- ^ Number of tests to execute
+  , currentShrinks       :: Int -- ^ Number of successful shrinking steps
+  , currentFailedShrinks :: Int -- ^ Number of failed shrinking steps since last successful one
+  , currentTotalShrinks  :: Int -- ^ Total number of failed shrinking steps
+  } deriving Show
 
 --------------------------------------------------------------------------
 -- the end.
