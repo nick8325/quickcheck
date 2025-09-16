@@ -89,7 +89,13 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
+#if defined(MIN_VERSION_random)
+#if MIN_VERSION_random(1,3,0)
 import System.Random(Random, uniformByteArray)
+#endif
+#else
+import System.Random(Random)
+#endif
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
