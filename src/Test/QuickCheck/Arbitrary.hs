@@ -89,7 +89,11 @@ module Test.QuickCheck.Arbitrary
 
 import Control.Applicative
 import Data.Foldable(toList)
+#if MIN_VERSION_random(1,3,0)
+import System.Random(Random, uniformByteArray)
+#else
 import System.Random(Random)
+#endif
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
@@ -136,15 +140,24 @@ import Data.List
   , nub
   )
 
+
 import Data.Version (Version (..))
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
+import Numeric.Natural
+
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
+
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
+  , SeekMode(..)
+  , BufferMode(..)
+  , TextEncoding
+  , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
+  , IOMode(..)
   )
-#endif
 #endif
 
 import Control.Monad
@@ -175,7 +188,6 @@ import qualified Data.IntMap as IntMap
 #endif
 import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
-import Data.Bits
 
 import qualified Data.Monoid as Monoid
 
@@ -185,6 +197,30 @@ import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
 #endif
+
+#if defined(MIN_VERSION_base)
+#if MIN_VERSION_base(4,16,0)
+import Data.Type.Ord
+#endif
+
+import qualified Data.Semigroup as Semigroup
+import Data.Ord
+
+import System.Console.GetOpt
+    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
+
+import Data.Functor.Contravariant
+
+import Data.Array.Byte
+import qualified GHC.Exts as Exts
+
+#if MIN_VERSION_base(4,16,0)
+import Data.Tuple
+#endif
+#endif
+
+import Data.Bits
+import Text.Printf
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -493,13 +529,15 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
     xs1 = take k xs
     xs2 = drop k xs
 
-{-
-  -- "standard" definition for lists:
-  shrink []     = []
-  shrink (x:xs) = [ xs ]
-               ++ [ x:xs' | xs' <- shrink xs ]
-               ++ [ x':xs | x'  <- shrink x ]
--}
+#if defined(MIN_VERSION_base)
+instance Arbitrary1 NonEmpty where
+  liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
+  liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
+
+instance Arbitrary a => Arbitrary (NonEmpty a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
+#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
@@ -513,7 +551,8 @@ instance Integral a => Arbitrary (Ratio a) where
     pure $ fromI numer % fromI denom
   shrink = shrinkRealFrac
 
-#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+
+#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Complex a) where
 #else
 instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
@@ -644,6 +683,12 @@ instance ( Arbitrary a, Arbitrary b, Arbitrary c, Arbitrary d, Arbitrary e
 instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
+
+#if defined(MIN_VERSION_base)
+instance Arbitrary Natural where
+  arbitrary = arbitrarySizedNatural
+  shrink    = shrinkIntegral
+#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -1020,7 +1065,6 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(3,0,0)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -1028,13 +1072,164 @@ instance Arbitrary a => Arbitrary (Monoid.First a) where
 instance Arbitrary a => Arbitrary (Monoid.Last a) where
   arbitrary = fmap Monoid.Last arbitrary
   shrink = map Monoid.Last . shrink . Monoid.getLast
-#endif
 
-#if MIN_VERSION_base(4,8,0)
 instance Arbitrary (f a) => Arbitrary (Monoid.Alt f a) where
   arbitrary = fmap Monoid.Alt arbitrary
   shrink = map Monoid.Alt . shrink . Monoid.getAlt
+
+instance Arbitrary a => Arbitrary (Semigroup.Min a) where
+  arbitrary = fmap Semigroup.Min arbitrary
+  shrink = map Semigroup.Min . shrink . Semigroup.getMin
+
+instance Arbitrary a => Arbitrary (Semigroup.Max a) where
+  arbitrary = fmap Semigroup.Max arbitrary
+  shrink = map Semigroup.Max . shrink . Semigroup.getMax
+
+instance Arbitrary a => Arbitrary (Semigroup.First a) where
+  arbitrary = fmap Semigroup.First arbitrary
+  shrink = map Semigroup.First . shrink . Semigroup.getFirst
+
+instance Arbitrary a => Arbitrary (Semigroup.Last a) where
+  arbitrary = fmap Semigroup.Last arbitrary
+  shrink = map Semigroup.Last . shrink . Semigroup.getLast
+
+instance (Arbitrary a, Arbitrary b) => Arbitrary (Semigroup.Arg a b) where
+  arbitrary = Semigroup.Arg <$> arbitrary <*> arbitrary
+  shrink (Semigroup.Arg a b) = uncurry Semigroup.Arg <$> shrink (a, b)
+
+instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
+  arbitrary = Semigroup.WrapMonoid <$> arbitrary
+  shrink = map Semigroup.WrapMonoid . shrink . Semigroup.unwrapMonoid
+
+#if !MIN_VERSION_base(4,15,0)
+instance Arbitrary a => Arbitrary (Semigroup.Option a) where
+  arbitrary = Semigroup.Option <$> arbitrary
+  shrink = map Semigroup.Option . shrink . Semigroup.getOption
 #endif
+
+#if MIN_VERSION_base(4,16,0)
+instance Arbitrary a => Arbitrary (Iff a) where
+  arbitrary = Iff <$> arbitrary
+  shrink = map Iff . shrink . getIff
+
+instance Arbitrary a => Arbitrary (Ior a) where
+  arbitrary = Ior <$> arbitrary
+  shrink = map Ior . shrink . getIor
+
+instance Arbitrary a => Arbitrary (Xor a) where
+  arbitrary = Xor <$> arbitrary
+  shrink = map Xor . shrink . getXor
+
+instance Arbitrary a => Arbitrary (And a) where
+  arbitrary = And <$> arbitrary
+  shrink = map And . shrink . getAnd
+#endif
+
+instance Arbitrary ByteArray where
+#if MIN_VERSION_random(1,3,0)
+  arbitrary = do
+    pin <- arbitrary
+    len <- abs <$> arbitrary
+    MkGen $ \ qcGen _ -> fst $ uniformByteArray pin len qcGen
+#else
+  arbitrary = Exts.fromList <$> arbitrary
+#endif
+  shrink = map Exts.fromList . shrink . Exts.toList
+
+#if MIN_VERSION_base(4,16,0)
+
+#if !MIN_VERSION_base(4,18,0)
+
+getSolo :: Solo a -> a
+getSolo (Solo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = Solo
+
+#elif !MIN_VERSION_base(4,19,0)
+
+getSolo :: Solo a -> a
+getSolo (MkSolo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#else
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#endif
+
+instance Arbitrary a => Arbitrary (Solo a) where
+  arbitrary = mkSolo <$> arbitrary
+  shrink = map mkSolo . shrink . getSolo
+#endif
+
+instance Arbitrary a => Arbitrary (Down a) where
+  arbitrary = fmap Down arbitrary
+  shrink = map Down . shrink . getDown
+#endif
+
+#ifdef __GLASGOW_HASKELL__
+
+instance Arbitrary a => Arbitrary (ArgDescr a) where
+  arbitrary = oneof [ NoArg <$> arbitrary
+                    , ReqArg <$> arbitrary <*> arbitrary
+                    , OptArg <$> arbitrary <*> arbitrary
+                    ]
+
+  shrink (NoArg i) = [ NoArg i' | i' <- shrink i ]
+  shrink (ReqArg a1 a2) = [ ReqArg a1' a2 | a1' <- shrink a1 ] ++
+                          [ ReqArg a1 a2' | a2' <- shrink a2 ]
+  shrink (OptArg a1 a2) = [ OptArg a1' a2 | a1' <- shrink a1 ] ++
+                          [ OptArg a1 a2' | a2' <- shrink a2 ]
+
+instance Arbitrary a => Arbitrary (ArgOrder a) where
+  arbitrary = oneof [ return RequireOrder
+                    , return Permute
+                    , ReturnInOrder <$> arbitrary
+                    ]
+
+  shrink RequireOrder      = []
+  shrink Permute           = []
+  shrink (ReturnInOrder a) = [ ReturnInOrder a' | a' <- shrink a ]
+
+instance Arbitrary a => Arbitrary (OptDescr a) where
+  arbitrary = Option
+                <$> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+                <*> arbitrary
+
+  shrink (Option a b c d) = [ Option a' b c d | a' <- shrink a ] ++
+                            [ Option a b' c d | b' <- shrink b ] ++
+                            [ Option a b c' d | c' <- shrink c ] ++
+                            [ Option a b c d' | d' <- shrink d ]
+
+-- Data.Functor.Contravariant
+
+-- can maybe use Arbitrary1/2 for these
+instance CoArbitrary a => Arbitrary (Predicate a) where
+  arbitrary = Predicate <$> arbitrary
+
+  shrink (Predicate p) = [ Predicate p' | p' <- shrink p ]
+
+instance (Arbitrary a, CoArbitrary b) => Arbitrary (Op a b) where
+  arbitrary = Op <$> arbitrary
+
+  shrink (Op f) = [ Op f' | f' <- shrink f ]
+
+instance CoArbitrary a => Arbitrary (Equivalence a) where
+  arbitrary = Equivalence <$> arbitrary
+
+  shrink (Equivalence e) = [ Equivalence e' | e' <- shrink e ]
+
+instance CoArbitrary a => Arbitrary (Comparison a) where
+  arbitrary = Comparison <$> arbitrary
+
+  shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
+
 #endif
 
 -- | Generates 'Version' with non-empty non-negative @versionBranch@, and empty @versionTags@
@@ -1065,7 +1260,6 @@ instance Arbitrary ExitCode where
   shrink _        = []
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1081,7 +1275,52 @@ instance Arbitrary NewlineMode where
   arbitrary = NewlineMode <$> arbitrary <*> arbitrary
 
   shrink (NewlineMode inNL outNL) = [NewlineMode inNL' outNL' | (inNL', outNL') <- shrink (inNL, outNL)]
-#endif
+
+instance Arbitrary GeneralCategory where
+  arbitrary = arbitraryBoundedEnum
+  shrink = shrinkBoundedEnum
+
+instance Arbitrary SeekMode where
+  arbitrary = elements [ AbsoluteSeek, RelativeSeek, SeekFromEnd ]
+  shrink x = takeWhile (x /=) [ AbsoluteSeek, RelativeSeek, SeekFromEnd ]
+
+instance Arbitrary TextEncoding where
+  arbitrary = elements [ latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8 ]
+
+instance Arbitrary BufferMode where
+  arbitrary = oneof [ pure NoBuffering, pure LineBuffering, BlockBuffering <$> arbitrary ]
+  shrink NoBuffering = []
+  shrink LineBuffering = [ NoBuffering ]
+  shrink (BlockBuffering m) = [ NoBuffering, LineBuffering ] ++ map BlockBuffering (shrink m)
+
+instance Arbitrary IOMode where
+  arbitrary = elements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+  shrink x = takeWhile (/=x) [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+
+instance Arbitrary FormatSign where
+  arbitrary = elements [SignPlus, SignSpace]
+  shrink SignPlus = []
+  shrink SignSpace = [SignPlus]
+
+instance Arbitrary FormatAdjustment where
+  arbitrary = elements [LeftAdjust, ZeroPad]
+  shrink LeftAdjust = []
+  shrink ZeroPad = [LeftAdjust]
+
+instance Arbitrary FormatParse where
+  arbitrary = FormatParse <$> arbitrary <*> arbitrary <*> arbitrary
+  shrink (FormatParse a b c) = [ FormatParse a' b' c' | (a', b', c') <- shrink (a, b, c) ]
+
+instance Arbitrary FieldFormat where
+  arbitrary = FieldFormat <$> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+                          <*> arbitrary
+  shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
+
 #endif
 
 -- ** Helper functions for implementing arbitrary
@@ -1433,7 +1672,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-#if defined(MIN_VERSION_base) && MIN_VERSION_base(4,4,0)
+#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Complex a) where
 #else
 instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
@@ -1565,32 +1804,26 @@ instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(3,0,0)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
 instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
   coarbitrary = coarbitrary . Monoid.getLast
-#endif
 
-#if MIN_VERSION_base(4,8,0)
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
-#endif
 #endif
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance CoArbitrary Newline where
   coarbitrary LF = variant 0
   coarbitrary CRLF = variant 1
 
 instance CoArbitrary NewlineMode where
   coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
-#endif
 #endif
 
 -- ** Helpers for implementing coarbitrary
