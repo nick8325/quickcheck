@@ -1,3 +1,6 @@
+UNRELEASED
+	* Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
+
 QuickCheck 2.16
 	* Add a `Safe` declaration to `Test.QuickCheck.Monoids`
 	* Fix `Test.QuickCheck.Features` to not depend on the internal testing loop
