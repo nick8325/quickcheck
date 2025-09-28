@@ -10,7 +10,7 @@
 #endif
 module Test.QuickCheck.Exception where
 
-#if !defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 700)
+#if (!defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 700)) && !defined(__MHS__)
 #define OLD_EXCEPTIONS
 #endif
 

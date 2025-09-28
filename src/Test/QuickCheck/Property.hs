@@ -886,7 +886,8 @@ onTimeout :: Testable prop => Result -> Int -> prop -> Property
 onTimeout timeoutResult n = mapRoseResult f
   where
     f rose = ioRose $ do
-      let m `orError` x = fmap (fromMaybe x) m
+      let orError :: IO (Maybe a) -> a -> IO a
+          m `orError` x = fmap (fromMaybe x) m
       MkRose res roses <- timeout n (reduceRose rose) `orError`
         return timeoutResult
       res' <- timeout n (protectResult (return res)) `orError`

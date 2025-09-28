@@ -135,7 +135,14 @@ showFunction p md =
 
 -- turning a concrete function into an abstract function (with a default result)
 abstract :: (a :-> c) -> c -> (a -> c)
+#if defined(__MHS__)
+{- This is a temporary fix for a deficiency in the MicroHs type checker. -}
+abstract (Pair p)    d xy    =
+  case xy of
+    (x,y) -> abstract (fmap (\q -> abstract q d y) p) d x
+#else
 abstract (Pair p)    d (x,y) = abstract (fmap (\q -> abstract q d y) p) d x
+#endif
 abstract (p :+: q)   d exy   = either (abstract p d) (abstract q d) exy
 abstract (Unit c)    _ _     = c
 abstract Nil         d _     = d
@@ -516,6 +523,7 @@ shrinkFun shr (Table xys) =
  where
   shrXy (x,y) = [(x,y') | y' <- shr y]
 
+  table :: Eq aa => [(aa,cc)] -> (aa :-> cc) -- MicroHs needs this
   table []  = Nil
   table xys = Table xys
 
