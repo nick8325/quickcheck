@@ -97,6 +97,12 @@ import System.Random(Random)
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
+#if defined(__MHS__)
+-- These two are not exported by Control.Applicative.
+-- Why should they be?  They are just bloat.
+import Data.ZipList
+import Control.WrappedMonad
+#endif
 
 {-
 import Data.Generics
@@ -200,7 +206,7 @@ import Data.Functor.Product
 
 #if defined(MIN_VERSION_base)
 #if MIN_VERSION_base(4,16,0)
-import Data.Type.Ord
+--import Data.Type.Ord
 #endif
 
 import qualified Data.Semigroup as Semigroup
@@ -1125,6 +1131,7 @@ instance Arbitrary a => Arbitrary (And a) where
   shrink = map And . shrink . getAnd
 #endif
 
+#if !defined(__MHS__)
 instance Arbitrary ByteArray where
 #if MIN_VERSION_random(1,3,0)
   arbitrary = do
@@ -1135,6 +1142,9 @@ instance Arbitrary ByteArray where
   arbitrary = Exts.fromList <$> arbitrary
 #endif
   shrink = map Exts.fromList . shrink . Exts.toList
+#else
+-- MicroHs does not have Exts.fromList
+#endif /* !defined(__MHS__) */
 
 #if MIN_VERSION_base(4,16,0)
 

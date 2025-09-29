@@ -112,7 +112,7 @@ library
     Test.QuickCheck.Features
 
   -- GHC-specific modules.
-  if impl(ghc)
+  if impl(ghc) || impl(mhs)
     Exposed-Modules: Test.QuickCheck.Function
     Build-depends: transformers >= 0.3, deepseq >= 1.1.0.0
 
@@ -123,7 +123,7 @@ library
   else
     cpp-options: -DNO_TEMPLATE_HASKELL
 
-  if !impl(ghc)
+  if !impl(ghc) && !impl(mhs)
     cpp-options: -DNO_CALLSTACK
                  -DNO_SEMIGROUP
                  -DNO_CTYPES_CONSTRUCTORS
@@ -146,7 +146,7 @@ library
     Build-depends: data-array-byte
 
   -- Switch off most optional features on non-GHC systems.
-  if !impl(ghc)
+  if !impl(ghc) && !impl(mhs)
     -- If your Haskell compiler can cope without some of these, please
     -- send a message to the QuickCheck mailing list!
     cpp-options: -DNO_TIMEOUT -DNO_NEWTYPE_DERIVING -DNO_GENERICS
@@ -154,6 +154,10 @@ library
       -DNO_EXTRA_METHODS_IN_APPLICATIVE -DOLD_RANDOM -DNO_CALLSTACK
     if !impl(hugs) && !impl(uhc)
       cpp-options: -DNO_ST_MONAD -DNO_MULTI_PARAM_TYPE_CLASSES
+
+  if impl(mhs)
+    cpp-options: -DNO_GENERICS -DNO_TEMPLATE_HASKELL -DNO_CTYPES_CONSTRUCTORS
+                 -DNO_EXISTENTIAL_FIELD_SELECTORS
 
   -- LANGUAGE pragmas don't have any effect in Hugs.
   if impl(hugs)
