@@ -17,11 +17,14 @@ jobs:
     - name: checkout mhs repo
       uses: actions/checkout@v4
       with:
+        repository: augustss/MicroHs
         path: mhs
     - name: make and install mhs
       run: |
         cd mhs
         make minstall
+    - name: checkout QuickCheck repo
+      uses: actions/checkout@v4
     - name: build QuickCheck
       run: |
         PATH="$HOME/.mcabal/bin:$PATH"
