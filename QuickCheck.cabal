@@ -49,6 +49,7 @@ extra-source-files:
   examples/Simple.hs
   make-hugs
   test-hugs
+  test-mhs
 
 source-repository head
   type:     git
