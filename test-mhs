@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+mcabal -r install
+
+die() {
+    echo "TEST FAILED"
+    exit 1
+}
+
+dotest() {
+  cat >Main.hs <<EOF
+import $1
+main = $2
+EOF
+  mhs Main.hs -oMain && ./Main | tee mhs.output
+  grep -q "$3" mhs.output || die
+}
+
+# Simple tests
+dotest Test.QuickCheck 'quickCheck $ \xs -> reverse (reverse xs) === (xs :: [Int])' "OK, passed 100 tests."
+dotest Test.QuickCheck 'quickCheck $ \xs -> reverse xs === (xs :: [Int])' "\[0,1\]"
+echo
+echo 'All tests passed!'
