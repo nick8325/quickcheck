@@ -99,7 +99,7 @@ import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
 #if defined(__MHS__)
 -- These two are not exported by Control.Applicative.
--- Why should the be?  They are just bloat.
+-- Why should they be?  They are just bloat.
 import Data.ZipList
 import Control.WrappedMonad
 #endif

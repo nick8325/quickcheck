@@ -1,0 +1,28 @@
+name: MicroHs-CI
+on:
+  push:
+    branches:
+      - 'master'
+  pull_request:
+    branches:
+      - 'master'
+  schedule:
+    - cron: 0 0 * * *
+jobs:
+  linux:
+    name: MicroHs-CI - Linux
+    runs-on: ubuntu-24.04
+    steps:
+    # mhs
+    - name: checkout mhs repo
+      uses: actions/checkout@v4
+      with:
+        path: mhs
+    - name: make and install mhs
+      run: |
+        cd mhs
+        make minstall
+    - name: build QuickCheck
+      run: |
+        PATH="$HOME/.mcabal/bin:$PATH"
+        mcabal -r build
