@@ -30,5 +30,6 @@ jobs:
         PATH="$HOME/.mcabal/bin:$PATH"
         mcabal -r build
     - name: test QuickCheck
+      run: |
         PATH="$HOME/.mcabal/bin:$PATH"
         ./test-mhs
