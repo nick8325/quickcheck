@@ -1,3 +1,10 @@
+QuickCheck 2.17
+	* Lower the memory use of `arbitrary` for `Double` and `Float` (thanks
+	ChickenProp)
+	* BREAKING: Remove `Gen.Class`
+	* BREAKING: Add `Arbitrary` instances for most of the types in `base`
+	* Add microHS support (thanks Lennart)
+
 QuickCheck 2.16
 	* Add a `Safe` declaration to `Test.QuickCheck.Monoids`
 	* Fix `Test.QuickCheck.Features` to not depend on the internal testing loop
