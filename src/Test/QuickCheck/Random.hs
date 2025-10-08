@@ -38,7 +38,7 @@ splitImpl (QCGen g) =
 #endif
 
 instance RandomGen QCGen where
-#ifdef OLD_RANDOM
+#if !MIN_VERSION_random(1,3,0)
   split = splitImpl
 #endif
 #ifdef NO_SPLITMIX
@@ -55,11 +55,13 @@ instance RandomGen QCGen where
   genWord64 = wrapQCGen genWord64
   genWord32R r = wrapQCGen (genWord32R r)
   genWord64R r = wrapQCGen (genWord64R r)
+#if MIN_VERSION_random(1,3,0)
   genShortByteString n = wrapQCGen (uniformShortByteString n)
 #endif
 #endif
+#endif
 
-#ifndef OLD_RANDOM
+#if MIN_VERSION_random(1,3,0)
 instance SplitGen QCGen where
   splitGen = splitImpl
 #endif
