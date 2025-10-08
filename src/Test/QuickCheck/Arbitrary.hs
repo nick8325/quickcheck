@@ -1298,10 +1298,14 @@ instance Arbitrary TextEncoding where
   arbitrary = elements [ latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8 ]
 
 instance Arbitrary BufferMode where
-  arbitrary = oneof [ pure NoBuffering, pure LineBuffering, BlockBuffering <$> arbitrary ]
+  arbitrary = oneof [ pure NoBuffering
+                    , pure LineBuffering
+                    , pure $ BlockBuffering Nothing
+                    , BlockBuffering . Just . (+1) . fromIntegral <$> (arbitrary :: Gen Natural)
+                    ]
   shrink NoBuffering = []
   shrink LineBuffering = [ NoBuffering ]
-  shrink (BlockBuffering m) = [ NoBuffering, LineBuffering ] ++ map BlockBuffering (shrink m)
+  shrink (BlockBuffering m) = [ NoBuffering, LineBuffering ] ++ map BlockBuffering (filter (maybe True (>0)) $ shrink m)
 
 instance Arbitrary IOMode where
   arbitrary = elements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
