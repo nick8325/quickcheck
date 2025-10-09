@@ -286,8 +286,8 @@ class Arbitrary a where
   -- > shrink (Branch x l r) =
   -- >   -- shrink Branch to Nil
   -- >   [Nil] ++
-  -- >   -- shrink to subterms
-  -- >   [l, r] ++
+  -- >   -- shrink to non-Nil subterms
+  -- >   [t | t@Branch{} <- [l, r]] ++
   -- >   -- recursively shrink subterms
   -- >   [Branch x' l' r' | (x', l', r') <- shrink (x, l, r)]
   --
