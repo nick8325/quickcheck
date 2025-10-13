@@ -1,3 +1,7 @@
+QuickCheck 2.17.1
+	* Fix random-1.2 support (thanks bodigrim)
+	* Update docs (thanks effectfully)
+
 QuickCheck 2.17
 	* Lower the memory use of `arbitrary` for `Double` and `Float` (thanks
 	ChickenProp)
