@@ -46,3 +46,40 @@ jobs:
         with:
           key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
+
+  stack:
+    name: Haskell-CI - Stack - ${{ matrix.ghc-version }}
+
+    strategy:
+      matrix:
+        include:
+          - {"resolver": nightly, "ghc-version": latest}
+          - {"resolver": 24.15, "ghc-version": "9.10.3"}
+          - {"resolver": 23.28, "ghc-version": "9.8.4"}
+          - {"resolver": 22.44, "ghc-version": "9.6.7"}
+          - {"resolver": 21.25, "ghc-version": "9.4.8"}
+          - {"resolver": 20.26, "ghc-version": "9.2.8"}
+          - {"resolver": 19.33, "ghc-version": "9.0.2"}
+          - {"resolver": 18.28, "ghc-version": "8.10.7"}
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        id: setup-haskell-stack
+        with:
+          ghc-version: ${{matrix.ghc-version}}
+          enable-stack: true
+      - run: |
+          printf "snapshot: lts-${{ matrix.resolver }}\npackages:\n- .\nsystem-ghc: true" > stack.yaml
+          cat stack.yaml
+      - uses: actions/cache/restore@v4
+        with:
+          key: ${{ runner.os }}-stack-${{matrix.resolver}}-${{ github.sha }}
+          path: |
+            .stack-work
+            ${{ steps.setup-haskell-stack.outputs.stack-root }}
+          restore-keys: ${{ runner.os }}-stack-${{matrix.resolver}}-
+      - run: stack test
