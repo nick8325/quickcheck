@@ -54,13 +54,13 @@ jobs:
       matrix:
         include:
           - {"resolver": nightly, "ghc-version": latest}
-          - {"resolver": 24.15, "ghc-version": "9.10.3"}
-          - {"resolver": 23.28, "ghc-version": "9.8.4"}
-          - {"resolver": 22.44, "ghc-version": "9.6.7"}
-          - {"resolver": 21.25, "ghc-version": "9.4.8"}
-          - {"resolver": 20.26, "ghc-version": "9.2.8"}
-          - {"resolver": 19.33, "ghc-version": "9.0.2"}
-          - {"resolver": 18.28, "ghc-version": "8.10.7"}
+          - {"resolver": lts-24.15, "ghc-version": "9.10.3"}
+          - {"resolver": lts-23.28, "ghc-version": "9.8.4"}
+          - {"resolver": lts-22.44, "ghc-version": "9.6.7"}
+          - {"resolver": lts-21.25, "ghc-version": "9.4.8"}
+          - {"resolver": lts-20.26, "ghc-version": "9.2.8"}
+          - {"resolver": lts-19.33, "ghc-version": "9.0.2"}
+          - {"resolver": lts-18.28, "ghc-version": "8.10.7"}
       fail-fast: false
 
     runs-on: ubuntu-latest
@@ -73,7 +73,7 @@ jobs:
           ghc-version: ${{matrix.ghc-version}}
           enable-stack: true
       - run: |
-          printf "snapshot: lts-${{ matrix.resolver }}\npackages:\n- .\nsystem-ghc: true" > stack.yaml
+          printf "snapshot: ${{ matrix.resolver }}\npackages:\n- .\nsystem-ghc: true" > stack.yaml
           cat stack.yaml
       - uses: actions/cache/restore@v4
         with:
