@@ -72,7 +72,7 @@ jobs:
           ghc-version: ${{matrix.ghc-version}}
           enable-stack: true
       - run: |
-          printf "snapshot: ${{ matrix.resolver }}\npackages:\n- .\nsystem-ghc: true" > stack.yaml
+          printf "snapshot: ${{ matrix.resolver }}\npackages: [.]\nextra-deps: [data-array-byte-0.1.0.1]\nsystem-ghc: true" > stack.yaml
           cat stack.yaml
       - uses: actions/cache/restore@v4
         with:
