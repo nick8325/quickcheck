@@ -53,7 +53,6 @@ jobs:
     strategy:
       matrix:
         include:
-          - {"resolver": nightly, "ghc-version": latest}
           - {"resolver": lts-24.15, "ghc-version": "9.10.3"}
           - {"resolver": lts-23.28, "ghc-version": "9.8.4"}
           - {"resolver": lts-22.44, "ghc-version": "9.6.7"}
