@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   linux:
-    name: Haskell-CI - Linux - ${{ matrix.ghc-version }}
+    name: Haskell-CI - Cabal - ${{ matrix.ghc-version }}
 
     strategy:
       matrix:
@@ -24,10 +24,9 @@ jobs:
                       "9.12", "9.10", "9.8", "9.6",
                       "9.4", "9.2", "9.0", "8.10"
                       ]
-        os: [ubuntu-24.04]
       fail-fast: false
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -36,9 +35,9 @@ jobs:
           ghc-version: ${{matrix.ghc-version}}
       - uses: actions/cache@v4
         with:
-          key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
+          key: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
-          restore-keys: ${{ matrix.os }}-${{ matrix.ghc-version }}-
+          restore-keys: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-
       - run: cabal build all
       - run: cabal test all
       - run: cabal haddock all
