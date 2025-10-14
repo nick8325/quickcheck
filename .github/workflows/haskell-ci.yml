@@ -33,13 +33,17 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: ${{matrix.ghc-version}}
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           key: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
           restore-keys: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-
       - run: cabal build all
       - run: cabal test all
+      - uses: actions/cache/save@v4
+        with:
+          key: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-${{ github.sha }}
+          path: ~/.cabal/store
       - run: cabal haddock all
 
   stack:
