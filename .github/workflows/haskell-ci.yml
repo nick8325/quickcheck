@@ -34,7 +34,7 @@ jobs:
       - uses: haskell-actions/setup@v2
         with:
           ghc-version: ${{matrix.ghc-version}}
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache@v4
         with:
           key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
@@ -42,10 +42,6 @@ jobs:
       - run: cabal build all
       - run: cabal test all
       - run: cabal haddock all
-      - uses: actions/cache/save@v4
-        with:
-          key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
-          path: ~/.cabal/store
 
   stack:
     name: Haskell-CI - Stack - ${{ matrix.ghc-version }}
@@ -74,7 +70,7 @@ jobs:
       - run: |
           printf "snapshot: ${{ matrix.resolver }}\npackages: [.]\nextra-deps: [data-array-byte-0.1.0.1]\nsystem-ghc: true" > stack.yaml
           cat stack.yaml
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache@v4
         with:
           key: ${{ runner.os }}-stack-${{matrix.resolver}}-${{ github.sha }}
           path: |
