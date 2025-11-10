@@ -25,7 +25,7 @@ import System.Timeout(timeout)
 #endif
 import Data.Maybe
 import Control.Applicative
-#if MIN_VERSION_base(4,8,0)
+#if defined(MIN_VERSION_base)
 import Control.Exception (displayException)
 #endif
 import Control.Monad
@@ -322,7 +322,7 @@ exception msg err
                         theException = Just err }
 
 formatException :: String -> AnException -> String
-#if MIN_VERSION_base(4,8,0)
+#if defined(MIN_VERSION_base)
 formatException msg err = msg ++ ":" ++ format (displayException err)
 #else
 formatException msg err = msg ++ ":" ++ format (show err)
@@ -897,7 +897,8 @@ onTimeout :: Testable prop => Result -> Int -> prop -> Property
 onTimeout timeoutResult n = mapRoseResult f
   where
     f rose = ioRose $ do
-      let m `orError` x = fmap (fromMaybe x) m
+      let orError :: IO (Maybe a) -> a -> IO a
+          m `orError` x = fmap (fromMaybe x) m
       MkRose res roses <- timeout n (reduceRose rose) `orError`
         return timeoutResult
       res' <- timeout n (protectResult (return res)) `orError`

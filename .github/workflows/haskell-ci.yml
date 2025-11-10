@@ -16,27 +16,17 @@ concurrency:
 
 jobs:
   linux:
-    name: Haskell-CI - Linux - ${{ matrix.ghc-version }}
+    name: Haskell-CI - Cabal - ${{ matrix.ghc-version }}
 
     strategy:
       matrix:
         ghc-version: [latest,
-                      9.10.1,
-                      9.8.4, 9.8.2, 9.8.1,
-                      9.6.6, 9.6.5, 9.6.4, 9.6.3, 9.6.2, 9.6.1,
-                      9.4.8, 9.4.7, 9.4.6, 9.4.5, 9.4.4, 9.4.3, 9.4.2, 9.4.1,
-                      9.2.8, 9.2.7, 9.2.6, 9.2.5, 9.2.4, 9.2.3, 9.2.2, 9.2.1,
-                      9.0.2, 9.0.1,
-                      8.10.7, 8.10.6, 8.10.5, 8.10.4, 8.10.3, 8.10.2, 8.10.1,
-                      8.8.4, 8.8.3, 8.8.2, 8.8.1,
-                      8.6.5, 8.6.4, 8.6.3, 8.6.2, 8.6.1,
-                      8.4.4, 8.4.3, 8.4.2, 8.4.1,
-                      8.2.2,
-                      8.0.2]
-        os: [ubuntu-24.04]
+                      "9.12", "9.10", "9.8", "9.6",
+                      "9.4", "9.2", "9.0", "8.10"
+                      ]
       fail-fast: false
 
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -45,13 +35,49 @@ jobs:
           ghc-version: ${{matrix.ghc-version}}
       - uses: actions/cache/restore@v4
         with:
-          key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
+          key: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
-          restore-keys: ${{ matrix.os }}-${{ matrix.ghc-version }}-
+          restore-keys: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-
       - run: cabal build all
       - run: cabal test all
-      - run: cabal haddock all
       - uses: actions/cache/save@v4
         with:
-          key: ${{ matrix.os }}-${{ matrix.ghc-version }}-${{ github.sha }}
+          key: ${{ runner.os }}-cabal-${{ matrix.ghc-version }}-${{ github.sha }}
           path: ~/.cabal/store
+      - run: cabal haddock all
+
+  stack:
+    name: Haskell-CI - Stack - ${{ matrix.ghc-version }}
+
+    strategy:
+      matrix:
+        include:
+          - {"resolver": lts-24.15, "ghc-version": "9.10.3"}
+          - {"resolver": lts-23.28, "ghc-version": "9.8.4"}
+          - {"resolver": lts-22.44, "ghc-version": "9.6.7"}
+          - {"resolver": lts-21.25, "ghc-version": "9.4.8"}
+          - {"resolver": lts-20.26, "ghc-version": "9.2.8"}
+          - {"resolver": lts-19.33, "ghc-version": "9.0.2"}
+          - {"resolver": lts-18.28, "ghc-version": "8.10.7"}
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        id: setup-haskell-stack
+        with:
+          ghc-version: ${{matrix.ghc-version}}
+          enable-stack: true
+      - run: |
+          printf "snapshot: ${{ matrix.resolver }}\npackages: [.]\nextra-deps: [data-array-byte-0.1.0.1]\nsystem-ghc: true" > stack.yaml
+          cat stack.yaml
+      - uses: actions/cache@v4
+        with:
+          key: ${{ runner.os }}-stack-${{matrix.resolver}}-${{ github.sha }}
+          path: |
+            .stack-work
+            ${{ steps.setup-haskell-stack.outputs.stack-root }}
+          restore-keys: ${{ runner.os }}-stack-${{matrix.resolver}}-
+      - run: stack test

@@ -10,7 +10,7 @@
 #endif
 module Test.QuickCheck.Exception where
 
-#if !defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 700)
+#if (!defined(__GLASGOW_HASKELL__) || (__GLASGOW_HASKELL__ < 700)) && !defined(__MHS__)
 #define OLD_EXCEPTIONS
 #endif
 
@@ -63,7 +63,7 @@ tryEvaluateIO :: IO a -> IO (Either AnException a)
 tryEvaluateIO m = E.tryJust notAsync (m >>= E.evaluate)
   where
     notAsync :: AnException -> Maybe AnException
-#if MIN_VERSION_base(4,7,0)
+#if defined(MIN_VERSION_base)
     notAsync e = case E.fromException e of
         Just (E.SomeAsyncException _) -> Nothing
         Nothing                       -> Just e

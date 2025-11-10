@@ -20,6 +20,7 @@ module Test.QuickCheck.All(
   verboseCheckAll,
   forAllProperties,
   allProperties,
+  runQuickCheckAll,
   -- ** Testing polymorphic properties
   polyQuickCheck,
   polyVerboseCheck,

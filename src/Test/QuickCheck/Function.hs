@@ -86,12 +86,10 @@ import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
   )
-#endif
 #endif
 
 #ifndef NO_FIXED
@@ -137,7 +135,14 @@ showFunction p md =
 
 -- turning a concrete function into an abstract function (with a default result)
 abstract :: (a :-> c) -> c -> (a -> c)
+#if defined(__MHS__)
+{- This is a temporary fix for a deficiency in the MicroHs type checker. -}
+abstract (Pair p)    d xy    =
+  case xy of
+    (x,y) -> abstract (fmap (\q -> abstract q d y) p) d x
+#else
 abstract (Pair p)    d (x,y) = abstract (fmap (\q -> abstract q d y) p) d x
+#endif
 abstract (p :+: q)   d exy   = either (abstract p d) (abstract q d) exy
 abstract (Unit c)    _ _     = c
 abstract Nil         d _     = d
@@ -383,7 +388,6 @@ instance Function Word64 where
   function = functionIntegral
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,2,0)
 instance Function Newline where
   function = functionMap g h
     where
@@ -398,7 +402,6 @@ instance Function NewlineMode where
     where
       g (NewlineMode inNL outNL) = (inNL,outNL)
       h (inNL,outNL) = NewlineMode inNL outNL
-#endif
 #endif
 
 -- instances for Data.Monoid newtypes
@@ -424,10 +427,8 @@ instance Function a => Function (Monoid.First a) where
 instance Function a => Function (Monoid.Last a) where
   function = functionMap Monoid.getLast Monoid.Last
 
-#if MIN_VERSION_base(4,8,0)
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
-#endif
 
 -- poly instances
 
@@ -522,6 +523,7 @@ shrinkFun shr (Table xys) =
  where
   shrXy (x,y) = [(x,y') | y' <- shr y]
 
+  table :: Eq aa => [(aa,cc)] -> (aa :-> cc) -- MicroHs needs this
   table []  = Nil
   table xys = Table xys
 
