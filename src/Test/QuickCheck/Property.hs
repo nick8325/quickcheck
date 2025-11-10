@@ -525,7 +525,7 @@ again = mapTotalResult (\res -> res{ abort = False })
 -- will test @p@ up to 1000 times.
 {-# DEPRECATED withMaxSuccess "Use withNumTests instead" #-}
 withMaxSuccess :: Testable prop => Int -> prop -> Property
-withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+withMaxSuccess = withNumTests
 
 -- | Configures how many times a property will be tested.
 --
