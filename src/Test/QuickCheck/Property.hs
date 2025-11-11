@@ -523,8 +523,19 @@ again = mapTotalResult (\res -> res{ abort = False })
 -- > quickCheck (withMaxSuccess 1000 p)
 --
 -- will test @p@ up to 1000 times.
+{-# DEPRECATED withMaxSuccess "Use withNumTests instead" #-}
 withMaxSuccess :: Testable prop => Int -> prop -> Property
-withMaxSuccess n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
+withMaxSuccess = withNumTests
+
+-- | Configures how many times a property will be tested.
+--
+-- For example,
+--
+-- > quickCheck (withNumTests 1000 p)
+--
+-- will test @p@ up to 1000 times.
+withNumTests :: Testable prop => Int -> prop -> Property
+withNumTests n = n `seq` mapTotalResult (\res -> res{ maybeNumTests = Just n })
 
 -- | Configures how many times a property is allowed to be discarded before failing.
 --

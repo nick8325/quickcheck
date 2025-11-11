@@ -63,7 +63,7 @@ format xs = format1 [] [] xs
 -- * Anything written to stderr (presumably by putTemp) is erased
 prop_terminal :: [Command] -> Property
 prop_terminal cmds =
-  withMaxSuccess 1000 $ ioProperty $
+  withNumTests 1000 $ ioProperty $
   withPipe $ \stdout_read stdout_write ->
   withPipe $ \stderr_read stderr_write -> do
     out <- withHandleTerminal stdout_write (Just stderr_write) $ \tm -> do

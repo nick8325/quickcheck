@@ -26,7 +26,7 @@ prop_maxSize :: Property
 prop_maxSize = withMaxSize 10 (forAll (arbitrary :: Gen Int) $ \ x -> abs x < 10)
 
 prop_cover :: Property
-prop_cover = withMaxSuccess 1000
+prop_cover = withNumTests 1000
            $ checkCoverage
            $ forAll (arbitrary :: Gen Int)
            $ \ x -> cover 5 (x > 0) "positive" True

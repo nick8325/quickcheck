@@ -179,7 +179,7 @@ stdArgs = Args
 -- | Tests a property and prints the results to 'System.IO.stdout'.
 --
 -- By default up to 100 tests are performed, which may not be enough
--- to find all bugs. To run more tests, use 'withMaxSuccess'.
+-- to find all bugs. To run more tests, use 'withNumTests'.
 --
 -- If you want to get the counterexample as a Haskell value,
 -- rather than just printing it, try the

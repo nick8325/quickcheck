@@ -29,7 +29,7 @@ path :: (a -> Bool) -> Path a -> Bool
 path p (Path xs) = all p xs
 
 somePath :: (a -> Bool) -> Path a -> Property
-somePath p = expectFailure . withMaxSuccess 1000 . path (not . p)
+somePath p = expectFailure . withNumTests 1000 . path (not . p)
 
 newtype Extremal a = Extremal { getExtremal :: a } deriving (Show, Eq, Ord, Num, Enum, Real, Integral)
 
@@ -139,7 +139,7 @@ prop_nonpositive_bound = somePathInt True getNonPositive (== 0)
 
 reachesBound :: (Bounded a, Integral a, Arbitrary a) =>
   a -> Property
-reachesBound x = withMaxSuccess 1000 (expectFailure (x < 3 * (maxBound `div` 4)))
+reachesBound x = withNumTests 1000 (expectFailure (x < 3 * (maxBound `div` 4)))
 
 prop_reachesBound_Int8 = reachesBound :: Int8 -> Property
 prop_reachesBound_Int16 = reachesBound :: Int16 -> Property

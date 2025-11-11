@@ -1,3 +1,6 @@
+UNRELEASED
+	* Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
+
 QuickCheck 2.17.1
 	* Fix random-1.2 support (thanks bodigrim)
 	* Update docs (thanks effectfully)
