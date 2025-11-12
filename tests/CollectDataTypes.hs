@@ -16,6 +16,7 @@ import Text.Printf
 import Data.Either
 import Data.Char
 import Data.Function
+import Test.QuickCheck
 
 data DataType =
   DataType {
@@ -90,9 +91,13 @@ createProperty dt = do
         Just int <- lookupTypeName "Int"
         Just gen <- lookupTypeName "Gen"
         nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
+        nmCo <- newName ("prop_co_" ++ filter isAlphaNum (haskellName dt))
         let propName = pure $ VarP nm
-        let ty = pure $ AppT (ConT gen) $ foldl AppT (ConT name) $ replicate arity (ConT int)
-        map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: $ty) (\ x -> x `seq` True) |]
+        let propNameCo = pure $ VarP nmCo
+        let ty = pure $ foldl AppT (ConT name) $ replicate arity (ConT int)
+        dArbitrary <- map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: Gen $ty) (\ x -> x `seq` True) |]
+        dCoArbitrary <- map (nmCo,) <$> [d| $propNameCo = forAllBlind (arbitrary :: Gen ($ty -> Integer)) (\ x -> x `seq` True) |]
+        return $ dArbitrary ++ dCoArbitrary
 
 typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
