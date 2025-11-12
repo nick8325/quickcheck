@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift, TupleSections, CPP #-}
+{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift, TupleSections, CPP, TypeOperators #-}
 module CollectDataTypes where
 
 import Language.Haskell.TH
@@ -17,6 +17,7 @@ import Data.Either
 import Data.Char
 import Data.Function
 import Test.QuickCheck
+import Test.QuickCheck.Function
 
 data DataType =
   DataType {
@@ -92,12 +93,15 @@ createProperty dt = do
         Just gen <- lookupTypeName "Gen"
         nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
         nmCo <- newName ("prop_co_" ++ filter isAlphaNum (haskellName dt))
+        nmFunction <- newName ("prop_function_" ++ filter isAlphaNum (haskellName dt))
         let propName = pure $ VarP nm
         let propNameCo = pure $ VarP nmCo
+        let propNameFunction = pure $ VarP nmFunction
         let ty = pure $ foldl AppT (ConT name) $ replicate arity (ConT int)
         dArbitrary <- map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: Gen $ty) (\ x -> x `seq` True) |]
         dCoArbitrary <- map (nmCo,) <$> [d| $propNameCo = forAllBlind (arbitrary :: Gen ($ty -> Integer)) (\ x -> x `seq` True) |]
-        return $ dArbitrary ++ dCoArbitrary
+        dFunction <- map (nmFunction,) <$> [d| $propNameFunction = forAllBlind (arbitrary :: Gen ($ty :-> Integer)) (\ x -> x `seq` True) |]
+        return $ dArbitrary ++ dCoArbitrary ++ dFunction
 
 typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
