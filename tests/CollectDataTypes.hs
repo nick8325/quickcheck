@@ -90,7 +90,6 @@ createProperty dt = do
       Just arity -> do
         Just name <- lookupTypeName (haskellName dt)
         Just int <- lookupTypeName "Int"
-        Just gen <- lookupTypeName "Gen"
         nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
         nmCo <- newName ("prop_co_" ++ filter isAlphaNum (haskellName dt))
         nmFunction <- newName ("prop_function_" ++ filter isAlphaNum (haskellName dt))
@@ -127,6 +126,8 @@ typeBlacklist = [ "Prelude.IO"
                 , "System.IO.Handle"
                 , "Text.Printf.FieldFormatter" -- This is a function type and it
                                                -- requires an annoying coarbitrary instance
+                , "Text.Printf.ModifierParser"
+                , "Text.Show.ShowS"
                 ] ++
                 -- These are phantom types used for indexing
                 [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ] ++

@@ -84,6 +84,13 @@ import Data.Complex
 import Data.Foldable(toList)
 import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
+import qualified Data.Semigroup as Semigroup
+import qualified Data.List.NonEmpty as NonEmpty
+import Numeric.Natural
+import qualified Data.Bits as Bits
+import Data.Tuple
+import Data.Ord
+import Data.Functor.Contravariant
 
 #if defined(MIN_VERSION_base)
 import System.IO
@@ -241,6 +248,9 @@ functionEitherWith func1 func2 f = func1 (f . Left) :+: func2 (f . Right)
 
 -- tuple convenience instances
 
+instance Function a => Function (Solo a) where
+  function = functionMap getSolo MkSolo
+
 instance (Function a, Function b, Function c) => Function (a,b,c) where
   function = functionMap (\(a,b,c) -> (a,(b,c))) (\(a,(b,c)) -> (a,b,c))
 
@@ -266,6 +276,12 @@ instance Function a => Function [a] where
 
     h (Left _)       = []
     h (Right (x,xs)) = x:xs
+
+instance Function a => Function (NonEmpty.NonEmpty a) where
+  function = functionMap (\(a NonEmpty.:| as) -> (a, as)) (\(a, as) -> a NonEmpty.:| as)
+
+instance Function a => Function (ZipList a) where
+  function = functionMap getZipList ZipList
 
 instance Function a => Function (Maybe a) where
   function = functionMap g h
@@ -314,6 +330,9 @@ instance Function Float where
 
 instance Function Double where
   function = functionRealFrac
+
+instance Function Natural where
+  function = functionIntegral
 
 -- instances for assorted types in the base package
 
@@ -429,6 +448,39 @@ instance Function a => Function (Monoid.Last a) where
 
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
+
+instance Function a => Function (Semigroup.Min a) where
+  function = functionMap Semigroup.getMin Semigroup.Min
+
+instance Function a => Function (Semigroup.Max a) where
+  function = functionMap Semigroup.getMax Semigroup.Max
+
+instance Function a => Function (Semigroup.Last a) where
+  function = functionMap Semigroup.getLast Semigroup.Last
+
+instance Function a => Function (Semigroup.First a) where
+  function = functionMap Semigroup.getFirst Semigroup.First
+
+instance Function a => Function (Semigroup.WrappedMonoid a) where
+  function = functionMap Semigroup.unwrapMonoid Semigroup.WrapMonoid
+
+instance (Function a, Function b) => Function (Semigroup.Arg a b) where
+  function = functionMap (\(Semigroup.Arg a b) -> (a, b)) (uncurry Semigroup.Arg)
+
+instance Function a => Function (Down a) where
+  function = functionMap getDown Down
+
+instance Function a => Function (Bits.And a) where
+  function = functionMap Bits.getAnd Bits.And
+
+instance Function a => Function (Bits.Ior a) where
+  function = functionMap Bits.getIor Bits.Ior
+
+instance Function a => Function (Bits.Xor a) where
+  function = functionMap Bits.getXor Bits.Xor
+
+instance Function a => Function (Bits.Iff a) where
+  function = functionMap Bits.getIff Bits.Iff
 
 -- poly instances
 
