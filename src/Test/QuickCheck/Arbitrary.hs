@@ -1883,7 +1883,14 @@ instance CoArbitrary SeekMode where
   coarbitrary = coarbitrary . fromEnum
 
 instance CoArbitrary IOMode where
+#if !defined(__MHS__)
   coarbitrary = coarbitrary . fromEnum
+#else
+  coarbitrary ReadMode = coarbitrary (0 :: Int)
+  coarbitrary WriteMode = coarbitrary (1 :: Int)
+  coarbitrary AppendMode = coarbitrary (2 :: Int)
+  coarbitrary ReadWriteMode = coarbitrary (3 :: Int)
+#endif
 
 instance CoArbitrary FieldFormat where
   coarbitrary ff = coarbitrary (fmtWidth ff)
