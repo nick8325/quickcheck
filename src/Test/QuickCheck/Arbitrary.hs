@@ -1886,10 +1886,10 @@ instance CoArbitrary IOMode where
 #if !defined(__MHS__)
   coarbitrary = coarbitrary . fromEnum
 #else
-  coarbitrary ReadMode = coarbitrary (0 :: Int)
-  coarbitrary WriteMode = coarbitrary (1 :: Int)
-  coarbitrary AppendMode = coarbitrary (2 :: Int)
-  coarbitrary ReadWriteMode = coarbitrary (3 :: Int)
+  coarbitrary ReadMode = variant 0
+  coarbitrary WriteMode = variant 1
+  coarbitrary AppendMode = variant 2
+  coarbitrary ReadWriteMode = variant 3
 #endif
 
 instance CoArbitrary FieldFormat where
