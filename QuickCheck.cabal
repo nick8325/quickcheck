@@ -97,7 +97,7 @@ library
   -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
-    Test.QuickCheck.Compat
+    Test.QuickCheck.Compat,
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Gen,
     Test.QuickCheck.Gen.Unsafe,
