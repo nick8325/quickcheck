@@ -1120,6 +1120,18 @@ instance Arbitrary a => Arbitrary (Xor a) where
 instance Arbitrary a => Arbitrary (And a) where
   arbitrary = And <$> arbitrary
   shrink = map And . shrink . getAnd
+
+instance CoArbitrary a => CoArbitrary (And a) where
+  coarbitrary = coarbitrary . getAnd
+
+instance CoArbitrary a => CoArbitrary (Iff a) where
+  coarbitrary = coarbitrary . getIff
+
+instance CoArbitrary a => CoArbitrary (Ior a) where
+  coarbitrary = coarbitrary . getIor
+
+instance CoArbitrary a => CoArbitrary (Xor a) where
+  coarbitrary = coarbitrary . getXor
 #endif
 
 #if !defined(__MHS__)
@@ -1854,18 +1866,6 @@ instance CoArbitrary Newline where
 
 instance CoArbitrary NewlineMode where
   coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
-
-instance CoArbitrary a => CoArbitrary (And a) where
-  coarbitrary = coarbitrary . getAnd
-
-instance CoArbitrary a => CoArbitrary (Iff a) where
-  coarbitrary = coarbitrary . getIff
-
-instance CoArbitrary a => CoArbitrary (Ior a) where
-  coarbitrary = coarbitrary . getIor
-
-instance CoArbitrary a => CoArbitrary (Xor a) where
-  coarbitrary = coarbitrary . getXor
 
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Semigroup.Arg a b) where
   coarbitrary (Semigroup.Arg a b) = coarbitrary (a, b)
