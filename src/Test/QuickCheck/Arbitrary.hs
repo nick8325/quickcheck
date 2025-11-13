@@ -1925,8 +1925,10 @@ instance CoArbitrary ExitCode where
     where embed ExitSuccess = Nothing
           embed (ExitFailure i) = Just i
 
+#if !defined(__MHS__)
 instance CoArbitrary TextEncoding where
   coarbitrary = coarbitrary . show -- No other way as far as I can tell :(
+#endif
 
 instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
   coarbitrary = coarbitrary . Semigroup.unwrapMonoid
