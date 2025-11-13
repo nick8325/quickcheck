@@ -13,7 +13,11 @@ jobs:
     name: MicroHs-CI - Linux
     runs-on: ubuntu-24.04
     steps:
-    # mhs
+    - uses: actions/cache@v4
+      with:
+        key: ${{ runner.os }}-mcabal-${{ github.sha }}
+        path: ~/.mcabal/mhs-*
+        restore-keys: ${{ runner.os }}-mcabal
     - name: checkout mhs repo
       uses: actions/checkout@v4
       with:
@@ -25,11 +29,6 @@ jobs:
         make minstall
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        key: ${{ runner.os }}-mcabal-${{ github.sha }}
-        path: ~/.mcabal/mhs-*
-        restore-keys: ${{ runner.os }}-mcabal
     - name: build QuickCheck
       run: |
         PATH="$HOME/.mcabal/bin:$PATH"
