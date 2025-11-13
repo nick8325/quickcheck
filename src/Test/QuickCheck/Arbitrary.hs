@@ -1149,6 +1149,10 @@ instance Arbitrary ByteArray where
 #endif
   shrink = map Exts.fromList . shrink . Exts.toList
 #else
+
+instance CoArbitrary ByteArray where
+  coarbitrary = coarbitrary . Exts.toList
+
 -- MicroHs does not have Exts.fromList
 #endif /* !defined(__MHS__) */
 
@@ -1872,11 +1876,6 @@ instance CoArbitrary NewlineMode where
 
 instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Semigroup.Arg a b) where
   coarbitrary (Semigroup.Arg a b) = coarbitrary (a, b)
-
-#if !defined(__MHS__)
-instance CoArbitrary ByteArray where
-  coarbitrary = coarbitrary . Exts.toList
-#endif
 
 instance CoArbitrary GeneralCategory where
   coarbitrary = coarbitrary . fromEnum
