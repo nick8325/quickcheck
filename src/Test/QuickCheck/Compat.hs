@@ -1,5 +1,4 @@
-{- This module provides tools to simplify compat code across different
-   compiler and library versions -}
+-- This module provides tools to simplify compat code across different compiler and library versions
 {-# LANGUAGE CPP #-}
 module Test.QuickCheck.Compat where
 
