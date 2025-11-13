@@ -196,6 +196,9 @@ import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 
 import qualified Data.Monoid as Monoid
+#if defined(MIN_VERSION_base)
+import qualified Data.Semigroup as Semigroup
+#endif
 
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
@@ -1231,14 +1234,13 @@ instance (Arbitrary a, CoArbitrary b) => Arbitrary (Op a b) where
   shrink (Op f) = [ Op f' | f' <- shrink f ]
 
 instance CoArbitrary a => Arbitrary (Equivalence a) where
-  arbitrary = Equivalence <$> arbitrary
-
-  shrink (Equivalence e) = [ Equivalence e' | e' <- shrink e ]
+  arbitrary = do
+    Comparison cmp <- arbitrary
+    return $ Equivalence (\x y -> cmp x y == EQ)
 
 instance CoArbitrary a => Arbitrary (Comparison a) where
-  arbitrary = Comparison <$> arbitrary
-
-  shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
+  arbitrary = do
+    Comparison . comparing <$> (liftArbitrary arbitrary :: Gen (a -> Integer))
 
 #endif
 
@@ -1767,6 +1769,11 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
+#if defined(MIN_VERSION_base)
+instance CoArbitrary Natural where
+  coarbitrary = coarbitraryIntegral
+#endif
+
 -- Coarbitrary instances for container types
 instance CoArbitrary a => CoArbitrary (Set.Set a) where
   coarbitrary = coarbitrary. Set.toList
@@ -1784,6 +1791,12 @@ instance CoArbitrary a => CoArbitrary (Tree.Tree a) where
 -- CoArbitrary instance for Ziplist
 instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for NonEmpty
+#if defined(MIN_VERSION_base)
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (a NonEmpty.:| as) = coarbitrary (a, as)
+#endif
 
 #ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
@@ -1826,19 +1839,102 @@ instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
 
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
-#endif
 
-instance CoArbitrary Version where
-  coarbitrary (Version a b) = coarbitrary (a, b)
+instance CoArbitrary a => CoArbitrary (Semigroup.Max a) where
+  coarbitrary = coarbitrary . Semigroup.getMax
 
-#if defined(MIN_VERSION_base)
+instance CoArbitrary a => CoArbitrary (Semigroup.Min a) where
+  coarbitrary = coarbitrary . Semigroup.getMin
+
+instance CoArbitrary a => CoArbitrary (Semigroup.First a) where
+  coarbitrary = coarbitrary . Semigroup.getFirst
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Last a) where
+  coarbitrary = coarbitrary . Semigroup.getLast
+
 instance CoArbitrary Newline where
   coarbitrary LF = variant 0
   coarbitrary CRLF = variant 1
 
 instance CoArbitrary NewlineMode where
   coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
+
+instance CoArbitrary a => CoArbitrary (And a) where
+  coarbitrary = coarbitrary . getAnd
+
+instance CoArbitrary a => CoArbitrary (Iff a) where
+  coarbitrary = coarbitrary . getIff
+
+instance CoArbitrary a => CoArbitrary (Ior a) where
+  coarbitrary = coarbitrary . getIor
+
+instance CoArbitrary a => CoArbitrary (Xor a) where
+  coarbitrary = coarbitrary . getXor
+
+instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Semigroup.Arg a b) where
+  coarbitrary (Semigroup.Arg a b) = coarbitrary (a, b)
+
+#if !defined(__MHS__)
+instance CoArbitrary ByteArray where
+  coarbitrary = coarbitrary . Exts.toList
 #endif
+
+instance CoArbitrary GeneralCategory where
+  coarbitrary = coarbitrary . fromEnum
+
+instance CoArbitrary SeekMode where
+  coarbitrary = coarbitrary . fromEnum
+
+instance CoArbitrary IOMode where
+  coarbitrary = coarbitrary . fromEnum
+
+instance CoArbitrary FieldFormat where
+  coarbitrary ff = coarbitrary (fmtWidth ff)
+                 . coarbitrary (fmtPrecision ff)
+                 . coarbitrary (fmtAdjust ff)
+                 . coarbitrary (fmtSign ff)
+                 . coarbitrary (fmtAlternate ff)
+                 . coarbitrary (fmtModifiers ff)
+                 . coarbitrary (fmtChar ff)
+
+instance CoArbitrary FormatParse where
+  coarbitrary fp = coarbitrary (fpModifiers fp)
+                 . coarbitrary (fpChar fp)
+                 . coarbitrary (fpRest fp)
+
+instance CoArbitrary FormatAdjustment where
+  coarbitrary LeftAdjust = coarbitrary 0
+  coarbitrary ZeroPad = coarbitrary 1
+
+instance CoArbitrary FormatSign where
+  coarbitrary SignPlus = coarbitrary 0
+  coarbitrary SignSpace = coarbitrary 1
+
+instance CoArbitrary BufferMode where
+  coarbitrary NoBuffering = coarbitrary 0
+  coarbitrary LineBuffering = coarbitrary 1
+  coarbitrary (BlockBuffering m) = coarbitrary m
+
+instance CoArbitrary ExitCode where
+  coarbitrary ExitSuccess = coarbitrary 0
+  coarbitrary (ExitFailure i) = coarbitrary (i + 1) -- This should never be 0, but lets play it safe
+
+instance CoArbitrary TextEncoding where
+  coarbitrary = coarbitrary . show -- No other way as far as I can tell :(
+
+instance CoArbitrary a => CoArbitrary (Down a) where
+  coarbitrary = coarbitrary . getDown
+
+instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
+  coarbitrary = coarbitrary . Semigroup.unwrapMonoid
+
+instance CoArbitrary a => CoArbitrary (Solo a) where
+  coarbitrary = coarbitrary . getSolo
+
+#endif
+
+instance CoArbitrary Version where
+  coarbitrary (Version a b) = coarbitrary (a, b)
 
 -- ** Helpers for implementing coarbitrary
 

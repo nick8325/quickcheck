@@ -136,7 +136,12 @@ typeBlacklist = [ "Prelude.IO"
                 [ "Data.Semigroup.Option" ] ++
 #endif
                 -- TODO: Some controversial ones?
-                [ "System.IO.Error.IOErrorType" ]
+                [ "System.IO.Error.IOErrorType" ] ++
+                -- Some higher order types we ignore for the sake of CoArbitrary and Function issues
+                [ "System.Console.GetOpt.OptDescr"
+                , "System.Console.GetOpt.ArgOrder"
+                , "System.Console.GetOpt.ArgDescr"
+                ]
 
 
 modulePrefixBlacklist :: [String]
@@ -179,6 +184,9 @@ modulePrefixBlacklist = [ "GHC"
                         -- useful work you can do with it and it should be OK
                         -- not to provide instances for it
                         , "Text.ParserCombinators.ReadP"
+                        -- Slightly controversial, but this is only ignored for
+                        -- the sake of CoArbitrary and Function
+                        , "Data.Functor.Contravariant"
                         ]
 
 isValidModule :: String -> Bool
