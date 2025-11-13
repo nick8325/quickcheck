@@ -25,6 +25,11 @@ jobs:
         make minstall
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
+    - uses: actions/cache
+        with:
+          key: ${{ runner.os }}-mcabal-${{ github.sha }}
+          path: ~/.mcabal/mhs-*
+          restore-keys: ${{ runner.os }}-mcabal
     - name: build QuickCheck
       run: |
         PATH="$HOME/.mcabal/bin:$PATH"
