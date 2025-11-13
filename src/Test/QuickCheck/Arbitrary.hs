@@ -1102,6 +1102,9 @@ instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
 instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   arbitrary = Semigroup.Option <$> arbitrary
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Option a) where
+  coarbitrary = coarbitrary . Semigroup.getOption
 #endif
 
 #if MIN_VERSION_base(4,16,0)

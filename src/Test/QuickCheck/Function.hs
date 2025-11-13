@@ -574,6 +574,10 @@ instance Function a => Function (Solo a) where
 instance Function a => Function (Down a) where
   function = functionMap getDown Down
 
+#if !MIN_VERSION_base(4,15,0)
+instance Function a => Function (Semigroup.Option a) where
+  function = functionMap Semigroup.getOption Semigroup.Option
+#endif
 
 -- poly instances
 
