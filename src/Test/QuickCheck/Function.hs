@@ -98,6 +98,11 @@ import Data.Version
 import Data.Array.Byte
 import qualified GHC.Exts as Exts
 
+#if defined(__MHS__)
+import Data.ZipList
+import Control.WrappedMonad
+#endif
+
 #if defined(MIN_VERSION_base)
 import System.IO
   ( Newline(..)
@@ -538,8 +543,10 @@ instance Function Version where
     where to (Version a b) = (a, b)
           from (a, b) = Version a b
 
+#if !defined(__MHS__)
 instance Function ByteArray where
   function = functionMap Exts.toList Exts.fromList
+#endif
 
 #if MIN_VERSION_base(4,16,0)
 

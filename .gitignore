@@ -1,5 +1,6 @@
 /dist/
 /dist-newstyle/
+/dist-mcabal/
 .ghc.environment.*
 *.hi
 *.o
