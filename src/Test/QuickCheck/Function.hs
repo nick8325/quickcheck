@@ -118,6 +118,8 @@ import Data.Fixed
 import GHC.Generics hiding (C)
 #endif
 
+import Test.QuickCheck.Compat
+
 --------------------------------------------------------------------------
 -- concrete functions
 
@@ -549,33 +551,8 @@ instance Function ByteArray where
 #endif
 
 #if MIN_VERSION_base(4,16,0)
-
-#if !MIN_VERSION_base(4,18,0)
-
-getSolo :: Solo a -> a
-getSolo (Solo a) = a
-
-mkSolo :: a -> Solo a
-mkSolo = Solo
-
-#elif !MIN_VERSION_base(4,19,0)
-
-getSolo :: Solo a -> a
-getSolo (MkSolo a) = a
-
-mkSolo :: a -> Solo a
-mkSolo = MkSolo
-
-#else
-
-mkSolo :: a -> Solo a
-mkSolo = MkSolo
-
-#endif
-
 instance Function a => Function (Solo a) where
   function = functionMap getSolo mkSolo
-
 #endif
 
 instance Function a => Function (Down a) where
