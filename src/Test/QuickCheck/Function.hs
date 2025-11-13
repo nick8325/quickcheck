@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators, GADTs, CPP, Rank2Types #-}
 #ifndef NO_SAFE_HASKELL
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
@@ -91,6 +91,12 @@ import qualified Data.Bits as Bits
 import Data.Tuple
 import Data.Ord
 import Data.Functor.Contravariant
+import Text.Printf
+import System.IO
+import System.Exit
+import Data.Version
+import Data.Array.Byte
+import qualified GHC.Exts as Exts
 
 #if defined(MIN_VERSION_base)
 import System.IO
@@ -481,6 +487,63 @@ instance Function a => Function (Bits.Xor a) where
 
 instance Function a => Function (Bits.Iff a) where
   function = functionMap Bits.getIff Bits.Iff
+
+instance Function FormatSign where
+  function = functionMap (\x -> case x of SignPlus -> True; _ -> False) (\b -> if b then SignPlus else SignSpace)
+
+instance Function FormatAdjustment where
+  function = functionMap (\x -> case x of LeftAdjust -> True; _ -> False) (\b -> if b then LeftAdjust else ZeroPad)
+
+instance Function FormatParse where
+  function = functionMap to from
+    where to fp = (fpModifiers fp, fpChar fp, fpRest fp)
+          from (a, b, c) = FormatParse a b c
+
+instance Function FieldFormat where
+  function = functionMap to from
+    where to ff = ( fmtWidth ff
+                  , fmtPrecision ff
+                  , fmtAdjust ff
+                  , fmtSign ff
+                  , fmtAlternate ff
+                  , fmtModifiers ff
+                  , fmtChar ff)
+          from (a, b, c, d, e, f, g) = FieldFormat a b c d e f g
+
+instance Function GeneralCategory where
+  function = functionBoundedEnum
+
+instance Function SeekMode where
+  function = functionElements [AbsoluteSeek, RelativeSeek, SeekFromEnd]
+
+instance Function IOMode where
+  function = functionElements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+
+instance Function BufferMode where
+  function = functionMap to from
+    where to NoBuffering = Left True
+          to LineBuffering = Left False
+          to (BlockBuffering m) = Right m
+
+          from (Left True) = NoBuffering
+          from (Left False) = LineBuffering
+          from (Right m)    = BlockBuffering m
+
+instance Function ExitCode where
+  function = functionMap to from
+    where to ExitSuccess = Nothing
+          to (ExitFailure c) = Just c
+
+          from Nothing = ExitSuccess
+          from (Just c) = ExitFailure c
+
+instance Function Version where
+  function = functionMap to from
+    where to (Version a b) = (a, b)
+          from (a, b) = Version a b
+
+instance Function ByteArray where
+  function = functionMap Exts.toList Exts.fromList
 
 -- poly instances
 

@@ -141,7 +141,10 @@ typeBlacklist = [ "Prelude.IO"
                 [ "System.Console.GetOpt.OptDescr"
                 , "System.Console.GetOpt.ArgOrder"
                 , "System.Console.GetOpt.ArgDescr"
-                ]
+                ] ++
+                -- System specific and, likewise, not easily doable in Function
+                [ "System.IO.TextEncoding" ]
+
 
 
 modulePrefixBlacklist :: [String]

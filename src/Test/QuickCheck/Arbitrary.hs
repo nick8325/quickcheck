@@ -208,10 +208,6 @@ import Data.Functor.Product
 #endif
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,16,0)
---import Data.Type.Ord
-#endif
-
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
