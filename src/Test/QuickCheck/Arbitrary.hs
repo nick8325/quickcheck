@@ -104,14 +104,6 @@ import Data.ZipList
 import Control.WrappedMonad
 #endif
 
-{-
-import Data.Generics
-  ( (:*:)(..)
-  , (:+:)(..)
-  , Unit(..)
-  )
--}
-
 import Data.Char
   ( ord
   , isLower
@@ -196,6 +188,9 @@ import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 
 import qualified Data.Monoid as Monoid
+#if defined(MIN_VERSION_base)
+import qualified Data.Semigroup as Semigroup
+#endif
 
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
@@ -205,10 +200,6 @@ import Data.Functor.Product
 #endif
 
 #if defined(MIN_VERSION_base)
-#if MIN_VERSION_base(4,16,0)
---import Data.Type.Ord
-#endif
-
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
@@ -227,6 +218,8 @@ import Data.Tuple
 
 import Data.Bits
 import Text.Printf
+
+import Test.QuickCheck.Compat
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -1111,6 +1104,9 @@ instance Arbitrary a => Arbitrary (Semigroup.WrappedMonoid a) where
 instance Arbitrary a => Arbitrary (Semigroup.Option a) where
   arbitrary = Semigroup.Option <$> arbitrary
   shrink = map Semigroup.Option . shrink . Semigroup.getOption
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Option a) where
+  coarbitrary = coarbitrary . Semigroup.getOption
 #endif
 
 #if MIN_VERSION_base(4,16,0)
@@ -1129,6 +1125,18 @@ instance Arbitrary a => Arbitrary (Xor a) where
 instance Arbitrary a => Arbitrary (And a) where
   arbitrary = And <$> arbitrary
   shrink = map And . shrink . getAnd
+
+instance CoArbitrary a => CoArbitrary (And a) where
+  coarbitrary = coarbitrary . getAnd
+
+instance CoArbitrary a => CoArbitrary (Iff a) where
+  coarbitrary = coarbitrary . getIff
+
+instance CoArbitrary a => CoArbitrary (Ior a) where
+  coarbitrary = coarbitrary . getIor
+
+instance CoArbitrary a => CoArbitrary (Xor a) where
+  coarbitrary = coarbitrary . getXor
 #endif
 
 #if !defined(__MHS__)
@@ -1142,43 +1150,31 @@ instance Arbitrary ByteArray where
   arbitrary = Exts.fromList <$> arbitrary
 #endif
   shrink = map Exts.fromList . shrink . Exts.toList
-#else
+
+instance CoArbitrary ByteArray where
+  coarbitrary = coarbitrary . Exts.toList
+
 -- MicroHs does not have Exts.fromList
 #endif /* !defined(__MHS__) */
 
 #if MIN_VERSION_base(4,16,0)
 
-#if !MIN_VERSION_base(4,18,0)
-
-getSolo :: Solo a -> a
-getSolo (Solo a) = a
-
-mkSolo :: a -> Solo a
-mkSolo = Solo
-
-#elif !MIN_VERSION_base(4,19,0)
-
-getSolo :: Solo a -> a
-getSolo (MkSolo a) = a
-
-mkSolo :: a -> Solo a
-mkSolo = MkSolo
-
-#else
-
-mkSolo :: a -> Solo a
-mkSolo = MkSolo
-
-#endif
-
 instance Arbitrary a => Arbitrary (Solo a) where
   arbitrary = mkSolo <$> arbitrary
   shrink = map mkSolo . shrink . getSolo
+
+instance CoArbitrary a => CoArbitrary (Solo a) where
+  coarbitrary = coarbitrary . getSolo
+
 #endif
 
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . getDown
+
+instance CoArbitrary a => CoArbitrary (Down a) where
+  coarbitrary = coarbitrary . getDown
+
 #endif
 
 #ifdef __GLASGOW_HASKELL__
@@ -1231,14 +1227,13 @@ instance (Arbitrary a, CoArbitrary b) => Arbitrary (Op a b) where
   shrink (Op f) = [ Op f' | f' <- shrink f ]
 
 instance CoArbitrary a => Arbitrary (Equivalence a) where
-  arbitrary = Equivalence <$> arbitrary
-
-  shrink (Equivalence e) = [ Equivalence e' | e' <- shrink e ]
+  arbitrary = do
+    Comparison cmp <- arbitrary
+    return $ Equivalence (\x y -> cmp x y == EQ)
 
 instance CoArbitrary a => Arbitrary (Comparison a) where
-  arbitrary = Comparison <$> arbitrary
-
-  shrink (Comparison c) = [ Comparison c' | c' <- shrink c ]
+  arbitrary = do
+    Comparison . comparing <$> (liftArbitrary arbitrary :: Gen (a -> Integer))
 
 #endif
 
@@ -1767,6 +1762,11 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
+#if defined(MIN_VERSION_base)
+instance CoArbitrary Natural where
+  coarbitrary = coarbitraryIntegral
+#endif
+
 -- Coarbitrary instances for container types
 instance CoArbitrary a => CoArbitrary (Set.Set a) where
   coarbitrary = coarbitrary. Set.toList
@@ -1784,6 +1784,12 @@ instance CoArbitrary a => CoArbitrary (Tree.Tree a) where
 -- CoArbitrary instance for Ziplist
 instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
+
+-- CoArbitrary instance for NonEmpty
+#if defined(MIN_VERSION_base)
+instance CoArbitrary a => CoArbitrary (NonEmpty a) where
+  coarbitrary (a NonEmpty.:| as) = coarbitrary (a, as)
+#endif
 
 #ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
@@ -1826,19 +1832,90 @@ instance CoArbitrary a => CoArbitrary (Monoid.Last a) where
 
 instance CoArbitrary (f a) => CoArbitrary (Monoid.Alt f a) where
   coarbitrary = coarbitrary . Monoid.getAlt
-#endif
 
-instance CoArbitrary Version where
-  coarbitrary (Version a b) = coarbitrary (a, b)
+instance CoArbitrary a => CoArbitrary (Semigroup.Max a) where
+  coarbitrary = coarbitrary . Semigroup.getMax
 
-#if defined(MIN_VERSION_base)
+instance CoArbitrary a => CoArbitrary (Semigroup.Min a) where
+  coarbitrary = coarbitrary . Semigroup.getMin
+
+instance CoArbitrary a => CoArbitrary (Semigroup.First a) where
+  coarbitrary = coarbitrary . Semigroup.getFirst
+
+instance CoArbitrary a => CoArbitrary (Semigroup.Last a) where
+  coarbitrary = coarbitrary . Semigroup.getLast
+
 instance CoArbitrary Newline where
   coarbitrary LF = variant 0
   coarbitrary CRLF = variant 1
 
 instance CoArbitrary NewlineMode where
   coarbitrary (NewlineMode inNL outNL) = coarbitrary inNL . coarbitrary outNL
+
+instance (CoArbitrary a, CoArbitrary b) => CoArbitrary (Semigroup.Arg a b) where
+  coarbitrary (Semigroup.Arg a b) = coarbitrary (a, b)
+
+instance CoArbitrary GeneralCategory where
+  coarbitrary = coarbitrary . fromEnum
+
+instance CoArbitrary SeekMode where
+  coarbitrary = coarbitrary . fromEnum
+
+instance CoArbitrary IOMode where
+#if !defined(__MHS__)
+  coarbitrary = coarbitrary . fromEnum
+#else
+  coarbitrary ReadMode = variant 0
+  coarbitrary WriteMode = variant 1
+  coarbitrary AppendMode = variant 2
+  coarbitrary ReadWriteMode = variant 3
 #endif
+
+instance CoArbitrary FieldFormat where
+  coarbitrary ff = coarbitrary (fmtWidth ff)
+                 . coarbitrary (fmtPrecision ff)
+                 . coarbitrary (fmtAdjust ff)
+                 . coarbitrary (fmtSign ff)
+                 . coarbitrary (fmtAlternate ff)
+                 . coarbitrary (fmtModifiers ff)
+                 . coarbitrary (fmtChar ff)
+
+instance CoArbitrary FormatParse where
+  coarbitrary fp = coarbitrary (fpModifiers fp)
+                 . coarbitrary (fpChar fp)
+                 . coarbitrary (fpRest fp)
+
+instance CoArbitrary FormatAdjustment where
+  coarbitrary LeftAdjust = coarbitrary True
+  coarbitrary ZeroPad = coarbitrary False
+
+instance CoArbitrary FormatSign where
+  coarbitrary SignPlus = coarbitrary True
+  coarbitrary SignSpace = coarbitrary False
+
+instance CoArbitrary BufferMode where
+  coarbitrary = coarbitrary . embed
+    where embed NoBuffering = Left True
+          embed LineBuffering = Left False
+          embed (BlockBuffering m) = Right m
+
+instance CoArbitrary ExitCode where
+  coarbitrary = coarbitrary . embed
+    where embed ExitSuccess = Nothing
+          embed (ExitFailure i) = Just i
+
+#if !defined(__MHS__)
+instance CoArbitrary TextEncoding where
+  coarbitrary = coarbitrary . show -- No other way as far as I can tell :(
+#endif
+
+instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
+  coarbitrary = coarbitrary . Semigroup.unwrapMonoid
+
+#endif
+
+instance CoArbitrary Version where
+  coarbitrary (Version a b) = coarbitrary (a, b)
 
 -- ** Helpers for implementing coarbitrary
 
