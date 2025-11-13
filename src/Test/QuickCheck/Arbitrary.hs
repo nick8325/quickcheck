@@ -104,14 +104,6 @@ import Data.ZipList
 import Control.WrappedMonad
 #endif
 
-{-
-import Data.Generics
-  ( (:*:)(..)
-  , (:+:)(..)
-  , Unit(..)
-  )
--}
-
 import Data.Char
   ( ord
   , isLower
@@ -1173,11 +1165,19 @@ mkSolo = MkSolo
 instance Arbitrary a => Arbitrary (Solo a) where
   arbitrary = mkSolo <$> arbitrary
   shrink = map mkSolo . shrink . getSolo
+
+instance CoArbitrary a => CoArbitrary (Solo a) where
+  coarbitrary = coarbitrary . getSolo
+
 #endif
 
 instance Arbitrary a => Arbitrary (Down a) where
   arbitrary = fmap Down arbitrary
   shrink = map Down . shrink . getDown
+
+instance CoArbitrary a => CoArbitrary (Down a) where
+  coarbitrary = coarbitrary . getDown
+
 #endif
 
 #ifdef __GLASGOW_HASKELL__
@@ -1920,14 +1920,8 @@ instance CoArbitrary ExitCode where
 instance CoArbitrary TextEncoding where
   coarbitrary = coarbitrary . show -- No other way as far as I can tell :(
 
-instance CoArbitrary a => CoArbitrary (Down a) where
-  coarbitrary = coarbitrary . getDown
-
 instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
   coarbitrary = coarbitrary . Semigroup.unwrapMonoid
-
-instance CoArbitrary a => CoArbitrary (Solo a) where
-  coarbitrary = coarbitrary . getSolo
 
 #endif
 

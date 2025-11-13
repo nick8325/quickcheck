@@ -254,9 +254,6 @@ functionEitherWith func1 func2 f = func1 (f . Left) :+: func2 (f . Right)
 
 -- tuple convenience instances
 
-instance Function a => Function (Solo a) where
-  function = functionMap getSolo MkSolo
-
 instance (Function a, Function b, Function c) => Function (a,b,c) where
   function = functionMap (\(a,b,c) -> (a,(b,c))) (\(a,(b,c)) -> (a,b,c))
 
@@ -473,9 +470,6 @@ instance Function a => Function (Semigroup.WrappedMonoid a) where
 instance (Function a, Function b) => Function (Semigroup.Arg a b) where
   function = functionMap (\(Semigroup.Arg a b) -> (a, b)) (uncurry Semigroup.Arg)
 
-instance Function a => Function (Down a) where
-  function = functionMap getDown Down
-
 instance Function a => Function (Bits.And a) where
   function = functionMap Bits.getAnd Bits.And
 
@@ -544,6 +538,40 @@ instance Function Version where
 
 instance Function ByteArray where
   function = functionMap Exts.toList Exts.fromList
+
+#if MIN_VERSION_base(4,16,0)
+
+#if !MIN_VERSION_base(4,18,0)
+
+getSolo :: Solo a -> a
+getSolo (Solo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = Solo
+
+#elif !MIN_VERSION_base(4,19,0)
+
+getSolo :: Solo a -> a
+getSolo (MkSolo a) = a
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#else
+
+mkSolo :: a -> Solo a
+mkSolo = MkSolo
+
+#endif
+
+instance Function a => Function (Solo a) where
+  function = functionMap getSolo mkSolo
+
+#endif
+
+instance Function a => Function (Down a) where
+  function = functionMap getDown Down
+
 
 -- poly instances
 
