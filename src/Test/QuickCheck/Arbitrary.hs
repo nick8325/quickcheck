@@ -1899,21 +1899,23 @@ instance CoArbitrary FormatParse where
                  . coarbitrary (fpRest fp)
 
 instance CoArbitrary FormatAdjustment where
-  coarbitrary LeftAdjust = coarbitrary 0
-  coarbitrary ZeroPad = coarbitrary 1
+  coarbitrary LeftAdjust = coarbitrary True
+  coarbitrary ZeroPad = coarbitrary False
 
 instance CoArbitrary FormatSign where
-  coarbitrary SignPlus = coarbitrary 0
-  coarbitrary SignSpace = coarbitrary 1
+  coarbitrary SignPlus = coarbitrary True
+  coarbitrary SignSpace = coarbitrary False
 
 instance CoArbitrary BufferMode where
-  coarbitrary NoBuffering = coarbitrary 0
-  coarbitrary LineBuffering = coarbitrary 1
-  coarbitrary (BlockBuffering m) = coarbitrary m
+  coarbitrary = coarbitrary . embed
+    where embed NoBuffering = Left True
+          embed LineBuffering = Left False
+          embed (BlockBuffering m) = Right m
 
 instance CoArbitrary ExitCode where
-  coarbitrary ExitSuccess = coarbitrary 0
-  coarbitrary (ExitFailure i) = coarbitrary (i + 1) -- This should never be 0, but lets play it safe
+  coarbitrary = coarbitrary . embed
+    where embed ExitSuccess = Nothing
+          embed (ExitFailure i) = Just i
 
 instance CoArbitrary TextEncoding where
   coarbitrary = coarbitrary . show -- No other way as far as I can tell :(
