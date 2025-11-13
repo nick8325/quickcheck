@@ -1148,7 +1148,6 @@ instance Arbitrary ByteArray where
   arbitrary = Exts.fromList <$> arbitrary
 #endif
   shrink = map Exts.fromList . shrink . Exts.toList
-#else
 
 instance CoArbitrary ByteArray where
   coarbitrary = coarbitrary . Exts.toList
