@@ -470,6 +470,7 @@ instance Function a => Function (Semigroup.WrappedMonoid a) where
 instance (Function a, Function b) => Function (Semigroup.Arg a b) where
   function = functionMap (\(Semigroup.Arg a b) -> (a, b)) (uncurry Semigroup.Arg)
 
+#if MIN_VERSION_base(4,16,0)
 instance Function a => Function (Bits.And a) where
   function = functionMap Bits.getAnd Bits.And
 
@@ -481,6 +482,7 @@ instance Function a => Function (Bits.Xor a) where
 
 instance Function a => Function (Bits.Iff a) where
   function = functionMap Bits.getIff Bits.Iff
+#endif
 
 instance Function FormatSign where
   function = functionMap (\x -> case x of SignPlus -> True; _ -> False) (\b -> if b then SignPlus else SignSpace)
