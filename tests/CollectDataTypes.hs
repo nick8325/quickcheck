@@ -143,7 +143,10 @@ typeBlacklist = [ "Prelude.IO"
                 , "System.Console.GetOpt.ArgDescr"
                 ] ++
                 -- System specific and, likewise, not easily doable in Function
-                [ "System.IO.TextEncoding" ]
+                [ "System.IO.TextEncoding" ] ++
+                -- Ignored for `Function` because the test monomorphises to `Int`. fixme.
+                [ "Data.Complex.Complex" ]
+
 
 
 
