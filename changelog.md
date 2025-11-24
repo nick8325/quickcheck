@@ -4,18 +4,18 @@
 * `Test.QuickCheck.Function` marked as `Trustworthy` not `Safe`
 
 
-## QuickCheck 2.17.1
+## QuickCheck 2.17.1.0 (released 2025-10-13)
 * Fix random-1.2 support (thanks bodigrim)
 * Update docs (thanks effectfully)
 
-## QuickCheck 2.17
+## QuickCheck 2.17.0.0 (released 2025-10-07)
 * Lower the memory use of `arbitrary` for `Double` and `Float` (thanks
 ChickenProp)
 * BREAKING: Remove `Gen.Class`
 * BREAKING: Add `Arbitrary` instances for most of the types in `base`
 * Add microHS support (thanks Lennart)
 
-## QuickCheck 2.16
+## QuickCheck 2.16.0.0 (released 2025-06-17)
 * Add a `Safe` declaration to `Test.QuickCheck.Monoids`
 * Fix `Test.QuickCheck.Features` to not depend on the internal testing loop
 * Add `withProgress` to install common callbacks for downstream tools
@@ -26,7 +26,7 @@ Andreas Abel)
 * Added helper monoids `Every` and `Some` for predicates (thanks
 Marcin)
 
-## QuickCheck 2.15
+## QuickCheck 2.15 (released 2024-04-22)
 * BREAKING: properties without quantification are no longer implicitly
   wrapped in once
 * Add witness property modifier and witnesses field in result on
@@ -429,13 +429,13 @@ user-side in sample
     * 'morallyDubiousIOProperty' is deprecated - its new name is
       'ioProperty', no moral judgement involved :)
 
-## QuickCheck 2.6, released 2013-03-07
+## QuickCheck 2.6 (released 2013-03-07)
 
 * Add convenience Function instances for up to 7-tuples
 * Make stderr line buffered to reduce console I/O.
 * Return a flag to say whether the test case was interrupted.
 
-## QuickCheck 2.5, released 2012-06-18
+## QuickCheck 2.5 (released 2012-06-18)
 
 * Replace maxDiscard with maxDiscardRatio
 * Remove Testable () instance.
