@@ -39,7 +39,7 @@ Description:
 
 extra-source-files:
   README
-  changelog
+  changelog.md
   examples/Heap.hs
   examples/Heap_Program.hs
   examples/Heap_ProgramAlgebraic.hs
