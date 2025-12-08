@@ -8,13 +8,12 @@ on:
       - 'master'
   schedule:
     - cron: 0 0 * * *
-
 jobs:
   linux:
     name: MicroHs-CI - Linux
     runs-on: ubuntu-24.04
     steps:
-    - uses: sol/setup-MicroHs@add-setup-action
+    - uses: sol/setup-MicroHs@nightly
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
     - name: build QuickCheck
