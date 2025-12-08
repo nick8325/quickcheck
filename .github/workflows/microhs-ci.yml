@@ -13,7 +13,7 @@ jobs:
     name: MicroHs-CI - Linux
     runs-on: ubuntu-24.04
     steps:
-    - uses: sol/MicroHs@setup-action
+    - uses: sol/setup-MicroHs@add-setup-action
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
     - name: build QuickCheck
