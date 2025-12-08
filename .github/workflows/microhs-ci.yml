@@ -8,6 +8,7 @@ on:
       - 'master'
   schedule:
     - cron: 0 0 * * *
+
 jobs:
   linux:
     name: MicroHs-CI - Linux
