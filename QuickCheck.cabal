@@ -39,7 +39,7 @@ Description:
 
 extra-source-files:
   README
-  changelog
+  changelog.md
   examples/Heap.hs
   examples/Heap_Program.hs
   examples/Heap_ProgramAlgebraic.hs
@@ -97,6 +97,7 @@ library
   -- Modules that are always built.
   Exposed-Modules:
     Test.QuickCheck,
+    Test.QuickCheck.Compat,
     Test.QuickCheck.Arbitrary,
     Test.QuickCheck.Gen,
     Test.QuickCheck.Gen.Unsafe,

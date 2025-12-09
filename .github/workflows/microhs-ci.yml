@@ -18,22 +18,10 @@ jobs:
         key: ${{ runner.os }}-mcabal-${{ github.sha }}
         path: ~/.mcabal/mhs-*
         restore-keys: ${{ runner.os }}-mcabal
-    - name: checkout mhs repo
-      uses: actions/checkout@v4
-      with:
-        repository: augustss/MicroHs
-        path: mhs
-    - name: make and install mhs
-      run: |
-        cd mhs
-        make minstall
+    - uses: sol/setup-MicroHs@nightly
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
     - name: build QuickCheck
-      run: |
-        PATH="$HOME/.mcabal/bin:$PATH"
-        mcabal -r build
+      run: mcabal -r build
     - name: test QuickCheck
-      run: |
-        PATH="$HOME/.mcabal/bin:$PATH"
-        ./test-mhs
+      run: ./test-mhs

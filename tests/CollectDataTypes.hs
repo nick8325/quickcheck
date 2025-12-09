@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift, TupleSections, CPP #-}
+{-# LANGUAGE TemplateHaskell, RecordWildCards, DeriveLift, TupleSections, CPP, TypeOperators #-}
 module CollectDataTypes where
 
 import Language.Haskell.TH
@@ -16,6 +16,8 @@ import Text.Printf
 import Data.Either
 import Data.Char
 import Data.Function
+import Test.QuickCheck
+import Test.QuickCheck.Function
 
 data DataType =
   DataType {
@@ -88,11 +90,17 @@ createProperty dt = do
       Just arity -> do
         Just name <- lookupTypeName (haskellName dt)
         Just int <- lookupTypeName "Int"
-        Just gen <- lookupTypeName "Gen"
         nm <- newName ("prop_" ++ filter isAlphaNum (haskellName dt))
+        nmCo <- newName ("prop_co_" ++ filter isAlphaNum (haskellName dt))
+        nmFunction <- newName ("prop_function_" ++ filter isAlphaNum (haskellName dt))
         let propName = pure $ VarP nm
-        let ty = pure $ AppT (ConT gen) $ foldl AppT (ConT name) $ replicate arity (ConT int)
-        map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: $ty) (\ x -> x `seq` True) |]
+        let propNameCo = pure $ VarP nmCo
+        let propNameFunction = pure $ VarP nmFunction
+        let ty = pure $ foldl AppT (ConT name) $ replicate arity (ConT int)
+        dArbitrary <- map (nm,) <$> [d| $propName = forAllBlind (arbitrary :: Gen $ty) (\ x -> x `seq` True) |]
+        dCoArbitrary <- map (nmCo,) <$> [d| $propNameCo = forAllBlind (arbitrary :: Gen ($ty -> Integer)) (\ x -> x `seq` True) |]
+        dFunction <- map (nmFunction,) <$> [d| $propNameFunction = forAllBlind (arbitrary :: Gen ($ty :-> Integer)) (\ x -> x `seq` True) |]
+        return $ dArbitrary ++ dCoArbitrary ++ dFunction
 
 typeBlacklist :: [String]
 typeBlacklist = [ "Prelude.IO"
@@ -118,6 +126,8 @@ typeBlacklist = [ "Prelude.IO"
                 , "System.IO.Handle"
                 , "Text.Printf.FieldFormatter" -- This is a function type and it
                                                -- requires an annoying coarbitrary instance
+                , "Text.Printf.ModifierParser"
+                , "Text.Show.ShowS"
                 ] ++
                 -- These are phantom types used for indexing
                 [ "Data.Fixed.E" ++ show i | i <- [0,1,2,3,6,9,12] ] ++
@@ -126,7 +136,18 @@ typeBlacklist = [ "Prelude.IO"
                 [ "Data.Semigroup.Option" ] ++
 #endif
                 -- TODO: Some controversial ones?
-                [ "System.IO.Error.IOErrorType" ]
+                [ "System.IO.Error.IOErrorType" ] ++
+                -- Some higher order types we ignore for the sake of CoArbitrary and Function issues
+                [ "System.Console.GetOpt.OptDescr"
+                , "System.Console.GetOpt.ArgOrder"
+                , "System.Console.GetOpt.ArgDescr"
+                ] ++
+                -- System specific and, likewise, not easily doable in Function
+                [ "System.IO.TextEncoding" ] ++
+                -- Ignored for `Function` because the test monomorphises to `Int`. fixme.
+                [ "Data.Complex.Complex" ]
+
+
 
 
 modulePrefixBlacklist :: [String]
@@ -169,6 +190,9 @@ modulePrefixBlacklist = [ "GHC"
                         -- useful work you can do with it and it should be OK
                         -- not to provide instances for it
                         , "Text.ParserCombinators.ReadP"
+                        -- Slightly controversial, but this is only ignored for
+                        -- the sake of CoArbitrary and Function
+                        , "Data.Functor.Contravariant"
                         ]
 
 isValidModule :: String -> Bool

@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeOperators, GADTs, CPP, Rank2Types #-}
 #ifndef NO_SAFE_HASKELL
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 #endif
 #if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE PatternSynonyms, ViewPatterns #-}
@@ -84,6 +84,24 @@ import Data.Complex
 import Data.Foldable(toList)
 import Data.Functor.Identity
 import qualified Data.Monoid as Monoid
+import qualified Data.Semigroup as Semigroup
+import qualified Data.List.NonEmpty as NonEmpty
+import Numeric.Natural
+import qualified Data.Bits as Bits
+import Data.Tuple
+import Data.Ord
+import Data.Functor.Contravariant
+import Text.Printf
+import System.IO
+import System.Exit
+import Data.Version
+import Data.Array.Byte
+import qualified GHC.Exts as Exts
+
+#if defined(__MHS__)
+import Data.ZipList
+import Control.WrappedMonad
+#endif
 
 #if defined(MIN_VERSION_base)
 import System.IO
@@ -99,6 +117,8 @@ import Data.Fixed
 #ifndef NO_GENERICS
 import GHC.Generics hiding (C)
 #endif
+
+import Test.QuickCheck.Compat
 
 --------------------------------------------------------------------------
 -- concrete functions
@@ -267,6 +287,12 @@ instance Function a => Function [a] where
     h (Left _)       = []
     h (Right (x,xs)) = x:xs
 
+instance Function a => Function (NonEmpty.NonEmpty a) where
+  function = functionMap (\(a NonEmpty.:| as) -> (a, as)) (\(a, as) -> a NonEmpty.:| as)
+
+instance Function a => Function (ZipList a) where
+  function = functionMap getZipList ZipList
+
 instance Function a => Function (Maybe a) where
   function = functionMap g h
    where
@@ -314,6 +340,9 @@ instance Function Float where
 
 instance Function Double where
   function = functionRealFrac
+
+instance Function Natural where
+  function = functionIntegral
 
 -- instances for assorted types in the base package
 
@@ -429,6 +458,110 @@ instance Function a => Function (Monoid.Last a) where
 
 instance Function (f a) => Function (Monoid.Alt f a) where
   function = functionMap Monoid.getAlt Monoid.Alt
+
+instance Function a => Function (Semigroup.Min a) where
+  function = functionMap Semigroup.getMin Semigroup.Min
+
+instance Function a => Function (Semigroup.Max a) where
+  function = functionMap Semigroup.getMax Semigroup.Max
+
+instance Function a => Function (Semigroup.Last a) where
+  function = functionMap Semigroup.getLast Semigroup.Last
+
+instance Function a => Function (Semigroup.First a) where
+  function = functionMap Semigroup.getFirst Semigroup.First
+
+instance Function a => Function (Semigroup.WrappedMonoid a) where
+  function = functionMap Semigroup.unwrapMonoid Semigroup.WrapMonoid
+
+instance (Function a, Function b) => Function (Semigroup.Arg a b) where
+  function = functionMap (\(Semigroup.Arg a b) -> (a, b)) (uncurry Semigroup.Arg)
+
+#if MIN_VERSION_base(4,16,0)
+instance Function a => Function (Bits.And a) where
+  function = functionMap Bits.getAnd Bits.And
+
+instance Function a => Function (Bits.Ior a) where
+  function = functionMap Bits.getIor Bits.Ior
+
+instance Function a => Function (Bits.Xor a) where
+  function = functionMap Bits.getXor Bits.Xor
+
+instance Function a => Function (Bits.Iff a) where
+  function = functionMap Bits.getIff Bits.Iff
+#endif
+
+instance Function FormatSign where
+  function = functionMap (\x -> case x of SignPlus -> True; _ -> False) (\b -> if b then SignPlus else SignSpace)
+
+instance Function FormatAdjustment where
+  function = functionMap (\x -> case x of LeftAdjust -> True; _ -> False) (\b -> if b then LeftAdjust else ZeroPad)
+
+instance Function FormatParse where
+  function = functionMap to from
+    where to fp = (fpModifiers fp, fpChar fp, fpRest fp)
+          from (a, b, c) = FormatParse a b c
+
+instance Function FieldFormat where
+  function = functionMap to from
+    where to ff = ( fmtWidth ff
+                  , fmtPrecision ff
+                  , fmtAdjust ff
+                  , fmtSign ff
+                  , fmtAlternate ff
+                  , fmtModifiers ff
+                  , fmtChar ff)
+          from (a, b, c, d, e, f, g) = FieldFormat a b c d e f g
+
+instance Function GeneralCategory where
+  function = functionBoundedEnum
+
+instance Function SeekMode where
+  function = functionElements [AbsoluteSeek, RelativeSeek, SeekFromEnd]
+
+instance Function IOMode where
+  function = functionElements [ReadMode, WriteMode, AppendMode, ReadWriteMode]
+
+instance Function BufferMode where
+  function = functionMap to from
+    where to NoBuffering = Left True
+          to LineBuffering = Left False
+          to (BlockBuffering m) = Right m
+
+          from (Left True) = NoBuffering
+          from (Left False) = LineBuffering
+          from (Right m)    = BlockBuffering m
+
+instance Function ExitCode where
+  function = functionMap to from
+    where to ExitSuccess = Nothing
+          to (ExitFailure c) = Just c
+
+          from Nothing = ExitSuccess
+          from (Just c) = ExitFailure c
+
+instance Function Version where
+  function = functionMap to from
+    where to (Version a b) = (a, b)
+          from (a, b) = Version a b
+
+#if !defined(__MHS__)
+instance Function ByteArray where
+  function = functionMap Exts.toList Exts.fromList
+#endif
+
+#if MIN_VERSION_base(4,16,0)
+instance Function a => Function (Solo a) where
+  function = functionMap getSolo mkSolo
+#endif
+
+instance Function a => Function (Down a) where
+  function = functionMap getDown Down
+
+#if !MIN_VERSION_base(4,15,0)
+instance Function a => Function (Semigroup.Option a) where
+  function = functionMap Semigroup.getOption Semigroup.Option
+#endif
 
 -- poly instances
 
