@@ -16,7 +16,5 @@ jobs:
     - uses: sol/setup-MicroHs@nightly
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
-    - name: build QuickCheck
-      run: mcabal -r build
     - name: test QuickCheck
       run: ./test-mhs
