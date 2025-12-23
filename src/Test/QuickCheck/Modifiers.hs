@@ -165,14 +165,13 @@ newtype NonEmptyList a = NonEmpty {getNonEmpty :: [a]}
 instance Functor NonEmptyList where
   fmap f (NonEmpty x) = NonEmpty (map f x)
 
-instance Arbitrary a => Arbitrary (NonEmptyList a) where
-  arbitrary = NonEmpty `fmap` (arbitrary `suchThat` (not . null))
+instance Arbitrary1 NonEmptyList where
+  liftArbitrary = fmap NonEmpty . listOf1
+  liftShrink shr = map NonEmpty . filter (not . null) . shrinkList shr . getNonEmpty
 
-  shrink (NonEmpty xs) =
-    [ NonEmpty xs'
-    | xs' <- shrink xs
-    , not (null xs')
-    ]
+instance Arbitrary a => Arbitrary (NonEmptyList a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 ----------------------------------------------------------------------
 -- | @InfiniteList xs _@: guarantees that xs is an infinite list.
