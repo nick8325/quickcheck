@@ -208,8 +208,10 @@ import System.Console.GetOpt
 
 import Data.Functor.Contravariant
 
+#if MIN_VERSION_base(4,17,0)
 import Data.Array.Byte
 import qualified GHC.Exts as Exts
+#endif
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
@@ -1140,6 +1142,7 @@ instance CoArbitrary a => CoArbitrary (Xor a) where
 #endif
 
 #if !defined(__MHS__)
+#if MIN_VERSION_base(4, 17, 0)
 instance Arbitrary ByteArray where
 #if MIN_VERSION_random(1,3,0)
   arbitrary = do
@@ -1153,6 +1156,7 @@ instance Arbitrary ByteArray where
 
 instance CoArbitrary ByteArray where
   coarbitrary = coarbitrary . Exts.toList
+#endif
 
 -- MicroHs does not have Exts.fromList
 #endif /* !defined(__MHS__) */
