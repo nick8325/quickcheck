@@ -107,13 +107,32 @@ instance MonadFix Gen where
       in a
 
 #ifndef OLD_RANDOM
+-- | A monadic adapter that can be passed to stateful generators to make them 
+-- use @Gen@ as the generator monad.
+--
+-- The stateful generator interface can be used as follows
+-- > -- 1. Define a stateful generator
+-- > myGen :: StatefulGen g m => g -> m (Int, String)
+-- > myGen g = do
+-- >   l <- uniformRM (0, 5) g
+-- >   s <- replicateM l (uniformM g)
+-- >   pure (l, s)
+-- >
+-- > -- 2. Pass QC to the stateful generator to turn it into a QuickCheck generator
+-- > myQCGen :: Gen (Int, String)
+-- > myQCGen = myGen QC
 data QC = QC
 
 instance StatefulGen QC Gen where
   uniformWord32 QC = MkGen (\r _n -> runStateGen_ r uniformWord32)
   uniformWord64 QC = MkGen (\r _n -> runStateGen_ r uniformWord64)
+#if MIN_VERSION_random(1,3,0)
+  uniformByteArrayM pinned sz QC = 
+    MkGen (\r _n -> runStateGen_ r (uniformByteArrayM pinned sz))
+#else
   uniformShortByteString k QC =
     MkGen (\r _n -> runStateGen_ r (uniformShortByteString k))
+#endif
 #endif
 --------------------------------------------------------------------------
 -- ** Primitive generator combinators
