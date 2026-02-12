@@ -72,7 +72,7 @@ toList h = toList' [h]
 
 toSortedList :: Ord a => Heap a -> [a]
 toSortedList Empty          = []
-toSortedList (Node x h1 h2) = x : toList (h1 `merge` h2)
+toSortedList (Node x h1 h2) = x : toSortedList (h1 `merge` h2)
 
 --------------------------------------------------------------------------
 -- specification
@@ -144,7 +144,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
 -- main
 
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.

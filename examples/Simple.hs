@@ -40,7 +40,7 @@ prop_conj = counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson) .
 prop_disj = counterexample "reverse" $(monomorphic 'prop_Reverse) .||.
             counterexample "Simon Thompson" $(monomorphic 'prop_SimonThompson)
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.

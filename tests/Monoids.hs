@@ -142,5 +142,5 @@ prop_some_mconcat_law :: Blind Some -> Blind Some -> Property
 prop_some_mconcat_law = check_mconcat_law
 
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
 
