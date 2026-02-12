@@ -201,7 +201,7 @@ prop_FromList' (xs :: [Int]) =
 -- main
 
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.

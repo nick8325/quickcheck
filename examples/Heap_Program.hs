@@ -187,7 +187,7 @@ prop_ToSortedList (HeapPP _ h) =
 -- main
 
 return []
-main = $(quickCheckAll)
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.

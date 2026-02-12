@@ -144,7 +144,7 @@ instance (Ord a, Arbitrary a) => Arbitrary (Heap a) where
 -- main
 
 return []
-main = $quickCheckAll
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.

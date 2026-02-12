@@ -245,7 +245,7 @@ prop_ToSortedList (HeapPP _ (h :: Heap OrdA)) =
 -- main
 
 return []
-main = $(quickCheckAll)
+main = do True <- $quickCheckAll; return ()
 
 --------------------------------------------------------------------------
 -- the end.
