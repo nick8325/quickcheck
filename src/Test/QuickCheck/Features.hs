@@ -86,11 +86,11 @@ labelledExamplesResult prop = labelledExamplesWithResult stdArgs prop
 
 -- | A variant of 'labelledExamples' that takes test arguments and returns a result.
 labelledExamplesWithResult :: Testable prop => Args -> prop -> IO Result
-labelledExamplesWithResult args prop = loop Set.empty Nothing
+labelledExamplesWithResult args prop = loop Set.empty $ replay args
   where
     loop :: Set String -> Maybe (QCGen, Int) -> IO Result
     loop feats replay = withNullTerminal $ \nullterm -> do
-      res <- quickCheckWithResult stdArgs{chatty = False, replay = replay} (prop_noNewFeatures feats prop)
+      res <- quickCheckWithResult args{chatty = False, replay = replay} (prop_noNewFeatures feats prop)
       let feats' = features (failingLabels res) (failingClasses res)
       case res of
         Failure{reason = "New feature found"} -> do
