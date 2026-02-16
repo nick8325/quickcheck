@@ -132,6 +132,11 @@ module Test.QuickCheck
   , choose
   , chooseInt
   , chooseInteger
+#ifndef NO_SPLITMIX
+  , chooseWord64
+  , chooseInt64
+  , chooseUpTo
+#endif
   , chooseBoundedIntegral
   , chooseEnum
   , chooseAny
