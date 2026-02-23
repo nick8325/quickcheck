@@ -1221,9 +1221,13 @@ instance CoArbitrary ByteArray where
 
 #if MIN_VERSION_base(4,16,0)
 
+instance Arbitrary1 Solo where
+  liftArbitrary arb = mkSolo <$> arb
+  liftShrink shr s = mkSolo <$> shr (getSolo s)
+
 instance Arbitrary a => Arbitrary (Solo a) where
-  arbitrary = mkSolo <$> arbitrary
-  shrink = map mkSolo . shrink . getSolo
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 instance CoArbitrary a => CoArbitrary (Solo a) where
   coarbitrary = coarbitrary . getSolo
