@@ -215,6 +215,83 @@ import Text.Printf
 
 import Test.QuickCheck.Compat
 
+{-
+Module Map
+
+This module is long and hard to read.
+Here is an attempt at organising what instances are where within the module, and
+what conditions it is compiled.
+
+The prefix for each line is what instances are defined for those types.
+`a`: Arbitrary
+`c`: CoArbitrary
+`1`: Arbitrary1
+`2`: Arbitrary2
+
+class definitions for Arbitrary0..2
+if generics allowed: Generics classes and instances
+
+a1  (->)
+a   (), Bool, Ordering
+a1  Maybe
+a12 Either
+a1  []
+a1  NonEmpty
+a   Ratio, Complex
+if fixed allowed: a Fixed
+a?  Tuple instances
+a   Integer, Natural
+a   Int($ -> 64)
+a   Word($ -> 64)
+a   Char, Float, Double
+a   CChar, CSChar, CUChar, CShort, CUShort, CInt, CUInt, CLong, CULong, CPtrdiff, CSize, CWchar, CSigAtomic, CLLong, CULLong, CIntPtr, CUIntPtr, CIntMax, CUIntMax
+if c type constructors allowed: a CClock, CTime
+  if foreign c unsigned seconds: a CUSeconds, CSUSeconds
+a   CFloat, CDouble
+a   Set
+a1  Map
+a   IntSet
+a1  IntMap, Seq, Tree, ZipList
+if transformers allowed: a1 Identity, a12 Constant, a1 Functor.Product, a1 Compose
+a12 Const
+a   WrappedMonad, WrappedArrow
+a   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+a   Semigroup.Min, Semigroup.Max, Semigroup.First, Semigroup.Last, Semigroup.Arg, Semigroup.WrappedMonoid
+if base version < 4.15: ac Semigroup.Option
+if base version >= 4.16: ac Iff, Ior, Xor, And, Iff
+if not MHS: ac ByteArray (defined conditionally with `random`)
+if base version >= 4.16: ac1 Solo
+ac  Down
+if GHC: a ArgDescr, ArgOrder, OptDescr, Predicate, Op, Equivalence, Comparison
+a   Version
+a   QCGen
+a   ExitCode
+a   Newline, NewlineMode, GeneralCategory, SeekMode, TextEncoding, BufferMode, IOMode
+a   FormatSign, FormatAdjustment, FormatParse, FieldFormat
+class definition CoArbitrary
+if generics allowed: Generics coarbitrary classes and instances
+c   (->), (), Bool, Ordering, Maybe, Either, [], Ratio
+if fixed allowed: c Fixed
+c   Complex
+c   Tuple instances
+c   Integer
+c   Int($ -> 64)
+c   Word($ -> 64)
+c   Char, Float, Double, Natural
+c   Set, Map, IntSet, IntMap, Seq, Tree, ZipList, NonEmpty
+if transformers allowed: c Identity, Constant
+c   Const
+c   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+c   Semigroup.Max, Semigroup.Min, Semigroup.First, Semigroup.Last
+c   Newline, NewlineMode
+c   Semigroup.Arg
+c   GeneralCategory, SeekMode, IOMode
+c   FieldFormat, FormatParse, FormatAdjustment, FormatSign
+c   BufferMode, ExitCode
+if not MHS: c TextEncoding
+c   Semigroup.WrappedMonoid
+-}
+
 --------------------------------------------------------------------------
 -- ** class Arbitrary
 
