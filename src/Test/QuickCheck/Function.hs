@@ -95,8 +95,10 @@ import Text.Printf
 import System.IO
 import System.Exit
 import Data.Version
+#if MIN_VERSION_base(4, 17, 0)
 import Data.Array.Byte
 import qualified GHC.Exts as Exts
+#endif
 
 #if defined(__MHS__)
 import Data.ZipList
@@ -546,8 +548,10 @@ instance Function Version where
           from (a, b) = Version a b
 
 #if !defined(__MHS__)
+#if MIN_VERSION_base(4, 17, 0)
 instance Function ByteArray where
   function = functionMap Exts.toList Exts.fromList
+#endif
 #endif
 
 #if MIN_VERSION_base(4,16,0)
