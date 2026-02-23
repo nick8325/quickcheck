@@ -141,7 +141,6 @@ import Data.List
 
 import Data.Version (Version (..))
 
-#if defined(MIN_VERSION_base)
 import Numeric.Natural
 
 import Data.List.NonEmpty (NonEmpty)
@@ -156,7 +155,6 @@ import System.IO
   , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
   , IOMode(..)
   )
-#endif
 
 import Control.Monad
   ( liftM
@@ -188,9 +186,7 @@ import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 
 import qualified Data.Monoid as Monoid
-#if defined(MIN_VERSION_base)
 import qualified Data.Semigroup as Semigroup
-#endif
 
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
@@ -199,7 +195,6 @@ import Data.Functor.Compose
 import Data.Functor.Product
 #endif
 
-#if defined(MIN_VERSION_base)
 import qualified Data.Semigroup as Semigroup
 import Data.Ord
 
@@ -213,7 +208,6 @@ import qualified GHC.Exts as Exts
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
-#endif
 #endif
 
 import Data.Bits
@@ -528,7 +522,6 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
     xs1 = take k xs
     xs2 = drop k xs
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary1 NonEmpty where
   liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
   liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
@@ -536,7 +529,6 @@ instance Arbitrary1 NonEmpty where
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
   shrink = shrink1
-#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
@@ -551,11 +543,7 @@ instance Integral a => Arbitrary (Ratio a) where
   shrink = shrinkRealFrac
 
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Complex a) where
-#else
-instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
-#endif
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -683,11 +671,9 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Natural where
   arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
-#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -1063,7 +1049,6 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   arbitrary = fmap Monoid.Product  arbitrary
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -1175,8 +1160,6 @@ instance Arbitrary a => Arbitrary (Down a) where
 instance CoArbitrary a => CoArbitrary (Down a) where
   coarbitrary = coarbitrary . getDown
 
-#endif
-
 #ifdef __GLASGOW_HASKELL__
 
 instance Arbitrary a => Arbitrary (ArgDescr a) where
@@ -1264,7 +1247,6 @@ instance Arbitrary ExitCode where
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1329,8 +1311,6 @@ instance Arbitrary FieldFormat where
                           <*> arbitrary
                           <*> arbitrary
   shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
-
-#endif
 
 -- ** Helper functions for implementing arbitrary
 
@@ -1681,11 +1661,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Complex a) where
-#else
-instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
-#endif
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
@@ -1762,10 +1738,8 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary Natural where
   coarbitrary = coarbitraryIntegral
-#endif
 
 -- Coarbitrary instances for container types
 instance CoArbitrary a => CoArbitrary (Set.Set a) where
@@ -1786,10 +1760,8 @@ instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
 
 -- CoArbitrary instance for NonEmpty
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (NonEmpty a) where
   coarbitrary (a NonEmpty.:| as) = coarbitrary (a, as)
-#endif
 
 #ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
@@ -1823,7 +1795,6 @@ instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
@@ -1911,8 +1882,6 @@ instance CoArbitrary TextEncoding where
 
 instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
   coarbitrary = coarbitrary . Semigroup.unwrapMonoid
-
-#endif
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
