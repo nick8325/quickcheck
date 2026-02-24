@@ -1,6 +1,6 @@
 ## UNRELEASED
 * Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
-* Added a number of `CoArbitrary` and `Function` instances for types in `base`
+* Added a number of `Arbitrary1`, `CoArbitrary`, and `Function` instances for types in `base`
 * `Test.QuickCheck.Function` marked as `Trustworthy` not `Safe`
 
 
