@@ -204,7 +204,10 @@ import System.Console.GetOpt
 import Data.Functor.Contravariant
 
 import Data.Array.Byte
+
+#ifdef __GLASGOW_HASKELL__
 import qualified GHC.Exts as Exts
+#endif
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
