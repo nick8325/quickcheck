@@ -1,12 +1,9 @@
 -- This module provides tools to simplify compat code across different compiler and library versions
 {-# LANGUAGE CPP #-}
-module Test.QuickCheck.Compat where
+module Test.QuickCheck.Compat (Solo, getSolo, mkSolo) where
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
-#endif
-
-#if MIN_VERSION_base(4,16,0)
 
 #if !MIN_VERSION_base(4,18,0)
 
@@ -30,5 +27,4 @@ mkSolo :: a -> Solo a
 mkSolo = MkSolo
 
 #endif
-
 #endif
