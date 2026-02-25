@@ -87,23 +87,34 @@ module Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
-import Control.Applicative
-import Data.Foldable(toList)
-#if MIN_VERSION_random(1,3,0)
-import System.Random(Random, uniformByteArray)
-#else
-import System.Random(Random)
-#endif
+-- quickcheck
+import Test.QuickCheck.Compat
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
-#if defined(__MHS__)
--- These two are not exported by Control.Applicative.
--- Why should they be?  They are just bloat.
-import Data.ZipList
-import Control.WrappedMonad
-#endif
 
+-- control
+import Control.Applicative
+import Control.Monad
+  ( liftM
+  , liftM2
+  , liftM3
+  , liftM4
+  , liftM5
+  )
+import Data.Functor.Contravariant
+
+-- base containers
+import Data.Array.Byte
+import Data.Foldable(toList)
+import Data.List
+  ( sort
+  , nub
+  )
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
+
+-- basic types
 import Data.Char
   ( ord
   , isLower
@@ -115,38 +126,22 @@ import Data.Char
   , generalCategory
   , GeneralCategory(..)
   )
-
-#ifndef NO_FIXED
-import Data.Fixed
-  ( Fixed
-  , HasResolution
-  )
-#endif
-
+import Data.Bits
+import Data.Complex
+  ( Complex((:+)) )
+import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Ratio
   ( Ratio
   , (%)
   , numerator
   , denominator
   )
-
-import Data.Complex
-  ( Complex((:+)) )
-
-import Data.List
-  ( sort
-  , nub
-  )
-
-
-import Data.Version (Version (..))
-
-#if defined(MIN_VERSION_base)
+import Data.Word(Word, Word8, Word16, Word32, Word64)
 import Numeric.Natural
 
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
-
+-- system types
+import System.Console.GetOpt
+    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -156,27 +151,43 @@ import System.IO
   , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
   , IOMode(..)
   )
-#endif
-
-import Control.Monad
-  ( liftM
-  , liftM2
-  , liftM3
-  , liftM4
-  , liftM5
-  )
-
-import Data.Int(Int8, Int16, Int32, Int64)
-import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
+
+-- misc types
+import Data.Ord
+import Data.Version (Version (..))
+import Text.Printf
 import Foreign.C.Types
 
+-- containers
+import qualified Data.Set as Set
+import qualified Data.IntSet as IntSet
+import qualified Data.Sequence as Sequence
+import qualified Data.Tree as Tree
+
+-- monoid-semigroup
+import qualified Data.Monoid as Monoid
+import qualified Data.Semigroup as Semigroup
+
+-- CPP'd modules
+#if MIN_VERSION_random(1,3,0)
+import System.Random(Random, uniformByteArray)
+#else
+import System.Random(Random)
+#endif
+#if defined(__MHS__)
+import Data.ZipList
+import Control.WrappedMonad
+#endif
+#ifndef NO_FIXED
+import Data.Fixed
+  ( Fixed
+  , HasResolution
+  )
+#endif
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
-
-import qualified Data.Set as Set
-import qualified Data.IntSet as IntSet
 #if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
@@ -184,42 +195,92 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
 #endif
-import qualified Data.Sequence as Sequence
-import qualified Data.Tree as Tree
-
-import qualified Data.Monoid as Monoid
-#if defined(MIN_VERSION_base)
-import qualified Data.Semigroup as Semigroup
-#endif
-
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
 #endif
-
-#if defined(MIN_VERSION_base)
-import qualified Data.Semigroup as Semigroup
-import Data.Ord
-
-import System.Console.GetOpt
-    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
-
-import Data.Functor.Contravariant
-
-import Data.Array.Byte
+#ifdef __GLASGOW_HASKELL__
 import qualified GHC.Exts as Exts
-
-#if MIN_VERSION_base(4,16,0)
-import Data.Tuple
-#endif
 #endif
 
-import Data.Bits
-import Text.Printf
+{-
+Module Map
 
-import Test.QuickCheck.Compat
+This module is long and hard to read.
+Here is an attempt at organising what instances are where within the module, and
+what conditions it is compiled.
+
+The prefix for each line is what instances are defined for those types.
+`a`: Arbitrary
+`c`: CoArbitrary
+`1`: Arbitrary1
+`2`: Arbitrary2
+
+class definitions for Arbitrary0..2
+if generics allowed: Generics classes and instances
+
+a1  (->)
+a   (), Bool, Ordering
+a1  Maybe
+a12 Either
+a1  []
+a1  NonEmpty
+a   Ratio, Complex
+if fixed allowed: a Fixed
+a?  Tuple instances
+a   Integer, Natural
+a   Int($ -> 64)
+a   Word($ -> 64)
+a   Char, Float, Double
+a   CChar, CSChar, CUChar, CShort, CUShort, CInt, CUInt, CLong, CULong, CPtrdiff, CSize, CWchar, CSigAtomic, CLLong, CULLong, CIntPtr, CUIntPtr, CIntMax, CUIntMax
+if c type constructors allowed: a CClock, CTime
+  if foreign c unsigned seconds: a CUSeconds, CSUSeconds
+a   CFloat, CDouble
+a   Set
+a1  Map
+a   IntSet
+a1  IntMap, Seq, Tree, ZipList
+if transformers allowed: a1 Identity, a12 Constant, a1 Functor.Product, a1 Compose
+a12 Const
+a   WrappedMonad, WrappedArrow
+a   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+a   Semigroup.Min, Semigroup.Max, Semigroup.First, Semigroup.Last, Semigroup.Arg, Semigroup.WrappedMonoid
+if base version < 4.15: ac Semigroup.Option
+if base version >= 4.16: ac Iff, Ior, Xor, And, Iff
+if not MHS: ac ByteArray (defined conditionally with `random`)
+if base version >= 4.16: ac1 Solo
+ac  Down
+if GHC: a ArgDescr, ArgOrder, OptDescr, Predicate, Op, Equivalence, Comparison
+a   Version
+a   QCGen
+a   ExitCode
+a   Newline, NewlineMode, GeneralCategory, SeekMode, TextEncoding, BufferMode, IOMode
+a   FormatSign, FormatAdjustment, FormatParse, FieldFormat
+class definition CoArbitrary
+if generics allowed: Generics coarbitrary classes and instances
+c   (->), (), Bool, Ordering, Maybe, Either, [], Ratio
+if fixed allowed: c Fixed
+c   Complex
+c   Tuple instances
+c   Integer
+c   Int($ -> 64)
+c   Word($ -> 64)
+c   Char, Float, Double, Natural
+c   Set, Map, IntSet, IntMap, Seq, Tree, ZipList, NonEmpty
+if transformers allowed: c Identity, Constant
+c   Const
+c   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+c   Semigroup.Max, Semigroup.Min, Semigroup.First, Semigroup.Last
+c   Newline, NewlineMode
+c   Semigroup.Arg
+c   GeneralCategory, SeekMode, IOMode
+c   FieldFormat, FormatParse, FormatAdjustment, FormatSign
+c   BufferMode, ExitCode
+if not MHS: c TextEncoding
+c   Semigroup.WrappedMonoid
+-}
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -528,7 +589,6 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
     xs1 = take k xs
     xs2 = drop k xs
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary1 NonEmpty where
   liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
   liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
@@ -536,7 +596,6 @@ instance Arbitrary1 NonEmpty where
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
   shrink = shrink1
-#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do
@@ -551,11 +610,7 @@ instance Integral a => Arbitrary (Ratio a) where
   shrink = shrinkRealFrac
 
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Complex a) where
-#else
-instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
-#endif
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -683,11 +738,9 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Natural where
   arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
-#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -1063,7 +1116,6 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   arbitrary = fmap Monoid.Product  arbitrary
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -1159,9 +1211,13 @@ instance CoArbitrary ByteArray where
 
 #if MIN_VERSION_base(4,16,0)
 
+instance Arbitrary1 Solo where
+  liftArbitrary arb = mkSolo <$> arb
+  liftShrink shr s = mkSolo <$> shr (getSolo s)
+
 instance Arbitrary a => Arbitrary (Solo a) where
-  arbitrary = mkSolo <$> arbitrary
-  shrink = map mkSolo . shrink . getSolo
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 instance CoArbitrary a => CoArbitrary (Solo a) where
   coarbitrary = coarbitrary . getSolo
@@ -1174,8 +1230,6 @@ instance Arbitrary a => Arbitrary (Down a) where
 
 instance CoArbitrary a => CoArbitrary (Down a) where
   coarbitrary = coarbitrary . getDown
-
-#endif
 
 #ifdef __GLASGOW_HASKELL__
 
@@ -1264,7 +1318,6 @@ instance Arbitrary ExitCode where
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1329,8 +1382,6 @@ instance Arbitrary FieldFormat where
                           <*> arbitrary
                           <*> arbitrary
   shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
-
-#endif
 
 -- ** Helper functions for implementing arbitrary
 
@@ -1669,11 +1720,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Complex a) where
-#else
-instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
-#endif
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
@@ -1750,10 +1797,8 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary Natural where
   coarbitrary = coarbitraryIntegral
-#endif
 
 -- Coarbitrary instances for container types
 instance CoArbitrary a => CoArbitrary (Set.Set a) where
@@ -1774,10 +1819,8 @@ instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
 
 -- CoArbitrary instance for NonEmpty
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (NonEmpty a) where
   coarbitrary (a NonEmpty.:| as) = coarbitrary (a, as)
-#endif
 
 #ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
@@ -1811,7 +1854,6 @@ instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
@@ -1899,8 +1941,6 @@ instance CoArbitrary TextEncoding where
 
 instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
   coarbitrary = coarbitrary . Semigroup.unwrapMonoid
-
-#endif
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)
