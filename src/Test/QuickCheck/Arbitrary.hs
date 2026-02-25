@@ -87,23 +87,34 @@ module Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
-import Control.Applicative
-import Data.Foldable(toList)
-#if MIN_VERSION_random(1,3,0)
-import System.Random(Random, uniformByteArray)
-#else
-import System.Random(Random)
-#endif
+-- quickcheck
+import Test.QuickCheck.Compat
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
-#if defined(__MHS__)
--- These two are not exported by Control.Applicative.
--- Why should they be?  They are just bloat.
-import Data.ZipList
-import Control.WrappedMonad
-#endif
 
+-- control
+import Control.Applicative
+import Control.Monad
+  ( liftM
+  , liftM2
+  , liftM3
+  , liftM4
+  , liftM5
+  )
+import Data.Functor.Contravariant
+
+-- base containers
+import Data.Array.Byte
+import Data.Foldable(toList)
+import Data.List
+  ( sort
+  , nub
+  )
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
+
+-- basic types
 import Data.Char
   ( ord
   , isLower
@@ -115,37 +126,22 @@ import Data.Char
   , generalCategory
   , GeneralCategory(..)
   )
-
-#ifndef NO_FIXED
-import Data.Fixed
-  ( Fixed
-  , HasResolution
-  )
-#endif
-
+import Data.Bits
+import Data.Complex
+  ( Complex((:+)) )
+import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Ratio
   ( Ratio
   , (%)
   , numerator
   , denominator
   )
-
-import Data.Complex
-  ( Complex((:+)) )
-
-import Data.List
-  ( sort
-  , nub
-  )
-
-
-import Data.Version (Version (..))
-
+import Data.Word(Word, Word8, Word16, Word32, Word64)
 import Numeric.Natural
 
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
-
+-- system types
+import System.Console.GetOpt
+    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -155,26 +151,45 @@ import System.IO
   , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
   , IOMode(..)
   )
-
-import Control.Monad
-  ( liftM
-  , liftM2
-  , liftM3
-  , liftM4
-  , liftM5
-  )
-
-import Data.Int(Int8, Int16, Int32, Int64)
-import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
+
+-- misc types
+import Data.Ord
+import Data.Version (Version (..))
+import Text.Printf
 import Foreign.C.Types
 
+-- containers
+import qualified Data.Set as Set
+import qualified Data.IntSet as IntSet
+import qualified Data.Sequence as Sequence
+import qualified Data.Tree as Tree
+
+-- monoid-semigroup
+import qualified Data.Monoid as Monoid
+import qualified Data.Semigroup as Semigroup
+
+-- CPP'd modules
+#if MIN_VERSION_random(1,3,0)
+import System.Random(Random, uniformByteArray)
+#else
+import System.Random(Random)
+#endif
+#if defined(__MHS__)
+-- These two are not exported by Control.Applicative.
+-- Why should they be?  They are just bloat.
+import Data.ZipList
+import Control.WrappedMonad
+#endif
+#ifndef NO_FIXED
+import Data.Fixed
+  ( Fixed
+  , HasResolution
+  )
+#endif
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
-
-import qualified Data.Set as Set
-import qualified Data.IntSet as IntSet
 #if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
@@ -182,41 +197,15 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
 #endif
-import qualified Data.Sequence as Sequence
-import qualified Data.Tree as Tree
-
-import qualified Data.Monoid as Monoid
-import qualified Data.Semigroup as Semigroup
-
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
 import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
 #endif
-
-import qualified Data.Semigroup as Semigroup
-import Data.Ord
-
-import System.Console.GetOpt
-    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
-
-import Data.Functor.Contravariant
-
-import Data.Array.Byte
-
 #ifdef __GLASGOW_HASKELL__
 import qualified GHC.Exts as Exts
 #endif
-
-#if MIN_VERSION_base(4,16,0)
-import Data.Tuple
-#endif
-
-import Data.Bits
-import Text.Printf
-
-import Test.QuickCheck.Compat
 
 {-
 Module Map
