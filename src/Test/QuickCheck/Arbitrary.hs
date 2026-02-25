@@ -1482,20 +1482,8 @@ shrinkMapBy f g shr = map f . shr . g
 -- | Shrink an integral number.
 shrinkIntegral :: Integral a => a -> [a]
 shrinkIntegral x =
-  nub $
-  [ -x
-  | x < 0, -x > x
-  ] ++
-  [ x'
-  | x' <- takeWhile (<< x) (0:[ x - i | i <- tail (iterate (`quot` 2) x) ])
-  ]
- where
-   -- a << b is "morally" abs a < abs b, but taking care of overflow.
-   a << b = case (a >= 0, b >= 0) of
-            (True,  True)  -> a < b
-            (False, False) -> a > b
-            (True,  False) -> a + b < 0
-            (False, True)  -> a + b > 0
+  [ -x | x < 0, -x > x ] ++
+  [ x - i | i <- takeWhile (/= 0) (iterate (`quot` 2) x)]
 
 -- | Shrink an element of a bounded enumeration.
 --
