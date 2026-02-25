@@ -176,8 +176,6 @@ import System.Random(Random, uniformByteArray)
 import System.Random(Random)
 #endif
 #if defined(__MHS__)
--- These two are not exported by Control.Applicative.
--- Why should they be?  They are just bloat.
 import Data.ZipList
 import Control.WrappedMonad
 #endif
