@@ -138,6 +138,7 @@ import Data.Ratio
   )
 import Data.Word(Word, Word8, Word16, Word32, Word64)
 import Numeric.Natural
+import qualified Data.Monoid as Monoid
 
 -- system types
 import System.Console.GetOpt
@@ -165,15 +166,9 @@ import qualified Data.IntSet as IntSet
 import qualified Data.Sequence as Sequence
 import qualified Data.Tree as Tree
 
--- monoid-semigroup
-import qualified Data.Monoid as Monoid
-import qualified Data.Semigroup as Semigroup
-
 -- CPP'd modules
-#if MIN_VERSION_random(1,3,0)
-import System.Random(Random, uniformByteArray)
-#else
-import System.Random(Random)
+#ifdef __GLASGOW_HASKELL__
+import qualified GHC.Exts as Exts
 #endif
 #if defined(__MHS__)
 import Data.ZipList
@@ -188,12 +183,8 @@ import Data.Fixed
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
-#if MIN_VERSION_containers(0,5,0)
-import qualified Data.Map.Strict as Map
-import qualified Data.IntMap.Strict as IntMap
-#else
-import qualified Data.Map as Map
-import qualified Data.IntMap as IntMap
+#ifndef NO_SEMIGROUP
+import qualified Data.Semigroup as Semigroup
 #endif
 #ifndef NO_TRANSFORMERS
 import Data.Functor.Identity
@@ -201,8 +192,17 @@ import Data.Functor.Constant
 import Data.Functor.Compose
 import Data.Functor.Product
 #endif
-#ifdef __GLASGOW_HASKELL__
-import qualified GHC.Exts as Exts
+#if MIN_VERSION_containers(0,5,0)
+import qualified Data.Map.Strict as Map
+import qualified Data.IntMap.Strict as IntMap
+#else
+import qualified Data.Map as Map
+import qualified Data.IntMap as IntMap
+#endif
+#if MIN_VERSION_random(1,3,0)
+import System.Random(Random, uniformByteArray)
+#else
+import System.Random(Random)
 #endif
 
 {-
