@@ -1,6 +1,10 @@
 -- This module provides tools to simplify compat code across different compiler and library versions
 {-# LANGUAGE CPP #-}
-module Test.QuickCheck.Compat (Solo, getSolo, mkSolo) where
+module Test.QuickCheck.Compat
+#if MIN_VERSION_base(4,16,0)
+  (Solo, getSolo, mkSolo)
+#endif
+  where
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
