@@ -1,8 +1,13 @@
 ## UNRELEASED
-* Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
-* Added a number of `CoArbitrary` and `Function` instances for types in `base`
-* `Test.QuickCheck.Function` marked as `Trustworthy` not `Safe`
 
+## QuickCheck 2.18.0.0 (released 2026-02-26)
+* BREAKING: Added a number of `CoArbitrary` and `Function` instances for types in `base`
+* Improve implementation of `shrinkIntegral` (thanks tom93)
+* Improve implementation of `Arbitrary NonEmptyList` (thanks konsumlamm)
+* Convert changelog to markdown (thanks Artem)
+* Deprecate `withMaxSuccess` in favour of the renamed `withNumTests`
+* `Test.QuickCheck.Function` marked as `Trustworthy` not `Safe`
+* Fix bug in heap example
 
 ## QuickCheck 2.17.1.0 (released 2025-10-13)
 * Fix random-1.2 support (thanks bodigrim)
