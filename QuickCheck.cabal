@@ -130,20 +130,22 @@ library
     cpp-options: -DNO_TEMPLATE_HASKELL
 
   if !impl(ghc) && !impl(mhs)
-    cpp-options: -DNO_CALLSTACK
-                 -DNO_SEMIGROUP
-                 -DNO_CTYPES_CONSTRUCTORS
-                 -DNO_FOREIGN_C_USECONDS
-                 -DNO_POLYKINDS
-                 -DNO_MONADFAIL
-                 -DNO_TRANSFORMERS
-                 -DNO_DEEPSEQ
-                 -DNO_ARRAY
-                 -DNO_BYTESTRING
+    cpp-options:
+      -DNO_CALLSTACK
+      -DNO_SEMIGROUP
+      -DNO_CTYPES_CONSTRUCTORS
+      -DNO_FOREIGN_C_USECONDS
+      -DNO_POLYKINDS
+      -DNO_MONADFAIL
+      -DNO_TRANSFORMERS
+      -DNO_DEEPSEQ
+      -DNO_ARRAY
+      -DNO_BYTESTRING
 
   if !impl(ghc)
     cpp-options:
       -DNO_DATAFIX
+      -DNO_HASHABLE
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
@@ -153,6 +155,7 @@ library
       , containers >=0.4.2.1
       , data-fix >=0.3 && <0.4
       , integer-logarithms >=1.0.3.1 && <1.1
+      , hashable >=1.4.4.0 && <1.6
 
   if impl(ghc >= 9.8)
     ghc-options: -Wno-x-partial

@@ -207,6 +207,9 @@ import Data.Fixed
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
+#ifndef NO_HASHABLE
+import Data.Hashable (Hashable, hashed, hashedHash, Hashed)
+#endif
 #ifndef NO_SEMIGROUP
 import qualified Data.Semigroup as Semigroup
 #endif
@@ -263,6 +266,7 @@ a   CChar, CSChar, CUChar, CShort, CUShort, CInt, CUInt, CLong, CULong, CPtrdiff
 if c type constructors allowed: a CClock, CTime
   if foreign c unsigned seconds: a CUSeconds, CSUSeconds
 a   CFloat, CDouble
+if hashable allowed: ac Hashed
 a   Set
 a1  Map
 a   IntSet
@@ -1023,6 +1027,15 @@ instance Arbitrary CDouble where
   shrink = shrinkDecimal
 
 -- Arbitrary instances for container types
+
+#ifndef NO_HASHABLE
+instance (Hashable a, Arbitrary a) => Arbitrary (Hashed a) where
+    arbitrary = hashed <$> arbitrary
+
+instance CoArbitrary (Hashed a) where
+    coarbitrary x = coarbitrary (hashedHash x :: Int)
+#endif
+
 -- | WARNING: Users working on the internals of the @Set@ type via e.g. @Data.Set.Internal@
 -- should be aware that this instance aims to give a good representation of @Set a@
 -- as mathematical sets but *does not* aim to provide a varied distribution over the
