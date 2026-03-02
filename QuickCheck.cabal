@@ -120,6 +120,7 @@ library
         transformers >= 0.3
       , deepseq >= 1.1.0.0
       , array >=0.5.4.0 && <0.6
+      , bytestring >=0.10.12.0 && <0.13
 
   if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
@@ -138,6 +139,7 @@ library
                  -DNO_TRANSFORMERS
                  -DNO_DEEPSEQ
                  -DNO_ARRAY
+                 -DNO_BYTESTRING
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers

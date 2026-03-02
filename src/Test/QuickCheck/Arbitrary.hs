@@ -4,6 +4,7 @@
 -- "Test.QuickCheck". You do not need to import it directly.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
@@ -179,6 +180,12 @@ import qualified Data.Array.IArray as Array
 import qualified Data.Array.Unboxed as Array
 import qualified Data.Ix as Ix
 #endif
+#ifndef NO_BYTESTRING
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Short as SBS
+import qualified System.Random.SplitMix as SM
+#endif
 #ifndef NO_FIXED
 import Data.Fixed
   ( Fixed
@@ -248,6 +255,7 @@ a   Set
 a1  Map
 a   IntSet
 a1  IntMap, Seq, Tree, ZipList
+if bytestring allowed: ac ByteString, LazyByteString, ShortByteString
 if transformers allowed: a1 Identity, a12 Constant, a1 Functor.Product, a1 Compose
 a12 Const
 a   WrappedMonad, WrappedArrow
@@ -1072,6 +1080,56 @@ instance Arbitrary1 ZipList where
 instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = arbitrary1
   shrink = shrink1
+
+#ifndef NO_BYTESTRING
+instance Arbitrary BS.ByteString where
+    arbitrary = MkGen $ \(QCGen g0) size ->
+        if size <= 0
+        then BS.empty
+        else
+            let (i, g1) = SM.nextInt g0
+                size' = i `mod` size
+            in fst (BS.unfoldrN size' gen g1)
+      where
+        gen :: SM.SMGen -> Maybe (Word8, SM.SMGen)
+        gen !g = Just (fromIntegral w64, g')
+          where
+            ~(w64, g') = SM.nextWord64 g
+
+    shrink xs = BS.pack <$> shrink (BS.unpack xs)
+
+instance CoArbitrary BS.ByteString where
+    coarbitrary = coarbitrary . BS.unpack
+
+instance Arbitrary LBS.ByteString where
+    arbitrary = MkGen $ \(QCGen g0) size ->
+        if size <= 0
+        then LBS.empty
+        else
+            let (i, g1) = SM.nextInt g0
+                size' = i `mod` size
+            in LBS.unfoldr gen (size', g1)
+      where
+        gen :: (Int, SM.SMGen) -> Maybe (Word8, (Int, SM.SMGen))
+        gen (!i, !g)
+            | i <= 0    = Nothing
+            | otherwise = Just (fromIntegral w64, (i - 1, g'))
+          where
+            ~(w64, g') = SM.nextWord64 g
+
+    shrink xs = LBS.pack <$> shrink (LBS.unpack xs)
+
+instance CoArbitrary LBS.ByteString where
+    coarbitrary = coarbitrary . LBS.unpack
+
+
+instance Arbitrary SBS.ShortByteString where
+    arbitrary = SBS.pack <$> arbitrary
+    shrink xs = SBS.pack <$> shrink (SBS.unpack xs)
+
+instance CoArbitrary SBS.ShortByteString where
+    coarbitrary = coarbitrary . SBS.unpack
+#endif
 
 #ifndef NO_TRANSFORMERS
 -- Arbitrary instance for transformers' Functors
