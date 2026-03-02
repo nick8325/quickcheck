@@ -124,6 +124,10 @@ import Data.Fixed
 import GHC.Generics hiding (C)
 #endif
 
+#ifndef NO_SCIENTIFIC
+import qualified Data.Scientific as Scientific
+#endif
+
 import Test.QuickCheck.Compat
 
 --------------------------------------------------------------------------
@@ -360,6 +364,13 @@ instance Function Double where
 
 instance Function Natural where
   function = functionIntegral
+
+#ifndef NO_SCIENTIFIC
+instance Function Scientific.Scientific where
+    function = functionMap
+        (\s -> (Scientific.coefficient s, Scientific.base10Exponent s))
+        (uncurry Scientific.scientific)
+#endif
 
 -- instances for assorted types in the base package
 

@@ -213,6 +213,9 @@ import Data.Hashable (Hashable, hashed, hashedHash, Hashed)
 #ifndef NO_OLDTIME
 import qualified System.Time as OldTime
 #endif
+#ifndef NO_SCIENTIFIC
+import qualified Data.Scientific as Scientific
+#endif
 #ifndef NO_SEMIGROUP
 import qualified Data.Semigroup as Semigroup
 #endif
@@ -265,6 +268,7 @@ a   Integer, Natural
 a   Int($ -> 64)
 a   Word($ -> 64)
 a   Char, Float, Double
+if scientific allowed: ac Scientific
 a   CChar, CSChar, CUChar, CShort, CUShort, CInt, CUInt, CLong, CULong, CPtrdiff, CSize, CWchar, CSigAtomic, CLLong, CULLong, CIntPtr, CUIntPtr, CIntMax, CUIntMax
 if c type constructors allowed: a CClock, CTime
   if foreign c unsigned seconds: a CUSeconds, CSUSeconds
@@ -923,6 +927,16 @@ instance Arbitrary Double where
         return (fromRational (a % b))
 
   shrink    = shrinkDecimal
+
+#ifndef NO_SCIENTIFIC
+instance Arbitrary Scientific.Scientific where
+    arbitrary = liftA2 Scientific.scientific arbitrary arbitrary
+    shrink s = map (uncurry Scientific.scientific) $
+        shrink (Scientific.coefficient s, Scientific.base10Exponent s)
+
+instance CoArbitrary Scientific.Scientific where
+    coarbitrary s = coarbitrary (Scientific.coefficient s, Scientific.base10Exponent s)
+#endif
 
 instance Arbitrary CChar where
   arbitrary = arbitrarySizedBoundedIntegral
