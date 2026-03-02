@@ -186,6 +186,18 @@ import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
 import qualified System.Random.SplitMix as SM
 #endif
+#ifndef NO_DATAFIX
+import Data.Fix
+    ( Fix(..)
+    , Mu
+    , Nu
+    , foldMu
+    , foldNu
+    , unfoldMu
+    , unfoldNu
+    )
+import Math.NumberTheory.Logarithms (intLog2)
+#endif
 #ifndef NO_FIXED
 import Data.Fixed
   ( Fixed
@@ -255,6 +267,7 @@ a   Set
 a1  Map
 a   IntSet
 a1  IntMap, Seq, Tree, ZipList
+if data-fix allowed: a Fix, Mu, Nu
 if bytestring allowed: ac ByteString, LazyByteString, ShortByteString
 if transformers allowed: a1 Identity, a12 Constant, a1 Functor.Product, a1 Compose
 a12 Const
@@ -1080,6 +1093,26 @@ instance Arbitrary1 ZipList where
 instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = arbitrary1
   shrink = shrink1
+
+#ifndef NO_DATAFIX
+instance Arbitrary1 f => Arbitrary (Fix f) where
+    arbitrary = sized arb where
+        arb :: Arbitrary1 f => Int -> Gen (Fix f)
+        arb n = fmap Fix $ liftArbitrary (arb (smaller n))
+
+        smaller n | n <= 0    = 0
+                  | otherwise = intLog2 n
+
+    shrink = go where go (Fix f) = map Fix (liftShrink go f)
+
+instance (Arbitrary1 f, Functor f) => Arbitrary (Mu f) where
+    arbitrary = unfoldMu unFix <$> arbitrary
+    shrink mu = unfoldMu unFix <$> shrink (foldMu Fix mu)
+
+instance (Arbitrary1 f, Functor f) => Arbitrary (Nu f) where
+    arbitrary = unfoldNu unFix <$> arbitrary
+    shrink nu = unfoldNu unFix <$> shrink (foldNu Fix nu)
+#endif
 
 #ifndef NO_BYTESTRING
 instance Arbitrary BS.ByteString where
