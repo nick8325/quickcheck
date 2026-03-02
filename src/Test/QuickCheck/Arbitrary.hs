@@ -174,6 +174,11 @@ import qualified GHC.Exts as Exts
 import Data.ZipList
 import Control.WrappedMonad
 #endif
+#ifndef NO_ARRAY
+import qualified Data.Array.IArray as Array
+import qualified Data.Array.Unboxed as Array
+import qualified Data.Ix as Ix
+#endif
 #ifndef NO_FIXED
 import Data.Fixed
   ( Fixed
@@ -227,6 +232,7 @@ a1  Maybe
 a12 Either
 a1  []
 a1  NonEmpty
+if array allowed: ac1 Array, UArray
 a   Ratio, Complex
 if fixed allowed: a Fixed
 a?  Tuple instances
@@ -596,6 +602,39 @@ instance Arbitrary1 NonEmpty where
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
   shrink = shrink1
+
+#ifndef NO_ARRAY
+instance (Num i, Ix.Ix i, Arbitrary i) => Arbitrary1 (Array.Array i) where
+    liftArbitrary = liftA2 makeArray arbitrary . liftArbitrary
+    liftShrink = shrinkArray
+
+instance (Num i, Ix.Ix i, Arbitrary i, Arbitrary a) => Arbitrary (Array.Array i a) where
+    arbitrary = arbitrary1
+    shrink = shrink1
+
+instance (Ix.Ix i, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array.Array i a) where
+    coarbitrary arr = coarbitrary (Array.bounds arr, Array.elems arr)
+
+
+instance (Num i, Ix.Ix i, Array.IArray Array.UArray a, Arbitrary i, Arbitrary a) => Arbitrary (Array.UArray i a) where
+    arbitrary = liftA2 makeArray arbitrary arbitrary
+    shrink = shrinkArray shrink
+
+instance (Ix.Ix i, Array.IArray Array.UArray a, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array.UArray i a) where
+    coarbitrary arr = coarbitrary (Array.bounds arr, Array.elems arr)
+
+shrinkArray
+    :: (Num i, Ix.Ix i, Array.IArray arr a, Arbitrary i)
+    => (a -> [a]) -> arr i a -> [arr i a]
+shrinkArray shr arr =
+  [ makeArray lo xs | xs <- liftShrink shr (Array.elems arr) ] ++
+  [ makeArray lo' (Array.elems arr) | lo' <- shrink lo ]
+  where
+    (lo, _) = Array.bounds arr
+
+makeArray :: (Num i, Ix.Ix i, Array.IArray arr a) => i -> [a] -> arr i a
+makeArray lo xs = Array.listArray (lo, lo + fromIntegral (length xs - 1)) xs
+#endif
 
 instance Integral a => Arbitrary (Ratio a) where
   arbitrary = sized $ \ n -> do

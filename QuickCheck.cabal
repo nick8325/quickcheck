@@ -116,7 +116,10 @@ library
   -- GHC-specific modules.
   if impl(ghc) || impl(mhs)
     Exposed-Modules: Test.QuickCheck.Function
-    Build-depends: transformers >= 0.3, deepseq >= 1.1.0.0
+    Build-depends:
+        transformers >= 0.3
+      , deepseq >= 1.1.0.0
+      , array >=0.5.4.0 && <0.6
 
   if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
@@ -134,6 +137,7 @@ library
                  -DNO_MONADFAIL
                  -DNO_TRANSFORMERS
                  -DNO_DEEPSEQ
+                 -DNO_ARRAY
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
