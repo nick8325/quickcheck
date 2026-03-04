@@ -208,7 +208,7 @@ import Data.Fixed
 import GHC.Generics
 #endif
 #ifndef NO_HASHABLE
-import Data.Hashable (Hashable, hashed, hashedHash, Hashed)
+import Data.Hashable
 #endif
 #ifndef NO_OLDTIME
 import qualified System.Time as OldTime
@@ -1121,8 +1121,12 @@ instance CoArbitrary OldTime.CalendarTime where
 instance (Hashable a, Arbitrary a) => Arbitrary (Hashed a) where
     arbitrary = hashed <$> arbitrary
 
-instance CoArbitrary (Hashed a) where
+instance Hashable a => CoArbitrary (Hashed a) where
     coarbitrary x = coarbitrary (hashedHash x :: Int)
+#if !MIN_VERSION_hashable(1,4,0)
+      -- inefficient but otherwise impossible pre hashable 1.4.0
+      where hashedHash = hash . unhashed
+#endif
 #endif
 
 -- | WARNING: Users working on the internals of the @Set@ type via e.g. @Data.Set.Internal@
