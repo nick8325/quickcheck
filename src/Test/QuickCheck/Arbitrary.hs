@@ -4,6 +4,7 @@
 -- "Test.QuickCheck". You do not need to import it directly.
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE BangPatterns #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
 {-# LANGUAGE FlexibleInstances, KindSignatures, ScopedTypeVariables #-}
@@ -87,23 +88,34 @@ module Test.QuickCheck.Arbitrary
 --------------------------------------------------------------------------
 -- imports
 
-import Control.Applicative
-import Data.Foldable(toList)
-#if MIN_VERSION_random(1,3,0)
-import System.Random(Random, uniformByteArray)
-#else
-import System.Random(Random)
-#endif
+-- quickcheck
+import Test.QuickCheck.Compat
 import Test.QuickCheck.Gen
 import Test.QuickCheck.Random
 import Test.QuickCheck.Gen.Unsafe
-#if defined(__MHS__)
--- These two are not exported by Control.Applicative.
--- Why should they be?  They are just bloat.
-import Data.ZipList
-import Control.WrappedMonad
-#endif
 
+-- control
+import Control.Applicative
+import Control.Monad
+  ( liftM
+  , liftM2
+  , liftM3
+  , liftM4
+  , liftM5
+  )
+import Data.Functor.Contravariant
+
+-- base containers
+import Data.Array.Byte
+import Data.Foldable(toList)
+import Data.List
+  ( sort
+  , nub
+  )
+import Data.List.NonEmpty (NonEmpty)
+import qualified Data.List.NonEmpty as NonEmpty
+
+-- basic types
 import Data.Char
   ( ord
   , isLower
@@ -115,38 +127,23 @@ import Data.Char
   , generalCategory
   , GeneralCategory(..)
   )
-
-#ifndef NO_FIXED
-import Data.Fixed
-  ( Fixed
-  , HasResolution
-  )
-#endif
-
+import Data.Bits
+import Data.Complex
+  ( Complex((:+)) )
+import Data.Int(Int8, Int16, Int32, Int64)
 import Data.Ratio
   ( Ratio
   , (%)
   , numerator
   , denominator
   )
-
-import Data.Complex
-  ( Complex((:+)) )
-
-import Data.List
-  ( sort
-  , nub
-  )
-
-
-import Data.Version (Version (..))
-
-#if defined(MIN_VERSION_base)
+import Data.Word(Word, Word8, Word16, Word32, Word64)
 import Numeric.Natural
+import qualified Data.Monoid as Monoid
 
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
-
+-- system types
+import System.Console.GetOpt
+    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
 import System.IO
   ( Newline(..)
   , NewlineMode(..)
@@ -156,27 +153,78 @@ import System.IO
   , latin1, utf8, utf8_bom, utf16, utf16le, utf16be, utf32, utf32le, utf32be, localeEncoding, char8
   , IOMode(..)
   )
-#endif
-
-import Control.Monad
-  ( liftM
-  , liftM2
-  , liftM3
-  , liftM4
-  , liftM5
-  )
-
-import Data.Int(Int8, Int16, Int32, Int64)
-import Data.Word(Word, Word8, Word16, Word32, Word64)
 import System.Exit (ExitCode(..))
+
+-- misc types
+import Data.Ord
+import Data.Version (Version (..))
+import Text.Printf
 import Foreign.C.Types
 
+-- containers
+import qualified Data.Set as Set
+import qualified Data.IntSet as IntSet
+import qualified Data.Sequence as Sequence
+import qualified Data.Tree as Tree
+
+-- CPP'd modules
+#ifdef __GLASGOW_HASKELL__
+import qualified GHC.Exts as Exts
+#endif
+#if defined(__MHS__)
+import Data.ZipList
+import Control.WrappedMonad
+#endif
+#ifndef NO_ARRAY
+import qualified Data.Array.IArray as Array
+import qualified Data.Array.Unboxed as Array
+import qualified Data.Ix as Ix
+#endif
+#ifndef NO_BYTESTRING
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Short as SBS
+import qualified System.Random.SplitMix as SM
+#endif
+#ifndef NO_DATAFIX
+import Data.Fix
+    ( Fix(..)
+    , Mu
+    , Nu
+    , foldMu
+    , foldNu
+    , unfoldMu
+    , unfoldNu
+    )
+import Math.NumberTheory.Logarithms (intLog2)
+#endif
+#ifndef NO_FIXED
+import Data.Fixed
+  ( Fixed
+  , HasResolution
+  )
+#endif
 #ifndef NO_GENERICS
 import GHC.Generics
 #endif
-
-import qualified Data.Set as Set
-import qualified Data.IntSet as IntSet
+#ifndef NO_HASHABLE
+import Data.Hashable
+#endif
+#ifndef NO_OLDTIME
+import qualified System.Time as OldTime
+#endif
+#ifndef NO_SCIENTIFIC
+import qualified Data.Scientific as Scientific
+#endif
+#ifndef NO_SEMIGROUP
+import qualified Data.Semigroup as Semigroup
+#endif
+#ifndef NO_TRANSFORMERS
+import Data.Functor.Identity
+import Data.Functor.Constant
+import Data.Functor.Compose
+import Data.Functor.Product
+#endif
 #if MIN_VERSION_containers(0,5,0)
 import qualified Data.Map.Strict as Map
 import qualified Data.IntMap.Strict as IntMap
@@ -184,42 +232,94 @@ import qualified Data.IntMap.Strict as IntMap
 import qualified Data.Map as Map
 import qualified Data.IntMap as IntMap
 #endif
-import qualified Data.Sequence as Sequence
-import qualified Data.Tree as Tree
-
-import qualified Data.Monoid as Monoid
-#if defined(MIN_VERSION_base)
-import qualified Data.Semigroup as Semigroup
+#if MIN_VERSION_random(1,3,0)
+import System.Random(Random, uniformByteArray)
+#else
+import System.Random(Random)
 #endif
 
-#ifndef NO_TRANSFORMERS
-import Data.Functor.Identity
-import Data.Functor.Constant
-import Data.Functor.Compose
-import Data.Functor.Product
-#endif
+{-
+Module Map
 
-#if defined(MIN_VERSION_base)
-import qualified Data.Semigroup as Semigroup
-import Data.Ord
+This module is long and hard to read.
+Here is an attempt at organising what instances are where within the module, and
+what conditions it is compiled.
 
-import System.Console.GetOpt
-    ( ArgDescr(..), ArgOrder(..), OptDescr(..) )
+The prefix for each line is what instances are defined for those types.
+`a`: Arbitrary
+`c`: CoArbitrary
+`1`: Arbitrary1
+`2`: Arbitrary2
 
-import Data.Functor.Contravariant
+class definitions for Arbitrary0..2
+if generics allowed: Generics classes and instances
 
-import Data.Array.Byte
-import qualified GHC.Exts as Exts
-
-#if MIN_VERSION_base(4,16,0)
-import Data.Tuple
-#endif
-#endif
-
-import Data.Bits
-import Text.Printf
-
-import Test.QuickCheck.Compat
+a1  (->)
+a   (), Bool, Ordering
+a1  Maybe
+a12 Either
+a1  []
+a1  NonEmpty
+if array allowed: ac1 Array, UArray
+a   Ratio, Complex
+if fixed allowed: a Fixed
+a?  Tuple instances
+a   Integer, Natural
+a   Int($ -> 64)
+a   Word($ -> 64)
+a   Char, Float, Double
+if scientific allowed: ac Scientific
+a   CChar, CSChar, CUChar, CShort, CUShort, CInt, CUInt, CLong, CULong, CPtrdiff, CSize, CWchar, CSigAtomic, CLLong, CULLong, CIntPtr, CUIntPtr, CIntMax, CUIntMax
+if c type constructors allowed: a CClock, CTime
+  if foreign c unsigned seconds: a CUSeconds, CSUSeconds
+a   CFloat, CDouble
+if old-time allowed: ac OldTime.Month, OldTime.Day, OldTime.ClockTime, OldTime.TimeDiff, OldTime.CalendarTime
+if hashable allowed: ac Hashed
+a   Set
+a1  Map
+a   IntSet
+a1  IntMap, Seq, Tree, ZipList
+if data-fix allowed: a Fix, Mu, Nu
+if bytestring allowed: ac ByteString, LazyByteString, ShortByteString
+if transformers allowed: a1 Identity, a12 Constant, a1 Functor.Product, a1 Compose
+a12 Const
+a   WrappedMonad, WrappedArrow
+a   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+a   Semigroup.Min, Semigroup.Max, Semigroup.First, Semigroup.Last, Semigroup.Arg, Semigroup.WrappedMonoid
+if base version < 4.15: ac Semigroup.Option
+if base version >= 4.16: ac Iff, Ior, Xor, And, Iff
+if not MHS: ac ByteArray (defined conditionally with `random`)
+if base version >= 4.16: ac1 Solo
+ac  Down
+if GHC: a ArgDescr, ArgOrder, OptDescr, Predicate, Op, Equivalence, Comparison
+a   Version
+a   QCGen
+a   ExitCode
+a   Newline, NewlineMode, GeneralCategory, SeekMode, TextEncoding, BufferMode, IOMode
+a   FormatSign, FormatAdjustment, FormatParse, FieldFormat
+class definition CoArbitrary
+if generics allowed: Generics coarbitrary classes and instances
+c   (->), (), Bool, Ordering, Maybe, Either, [], Ratio
+if fixed allowed: c Fixed
+c   Complex
+c   Tuple instances
+c   Integer
+c   Int($ -> 64)
+c   Word($ -> 64)
+c   Char, Float, Double, Natural
+c   Set, Map, IntSet, IntMap, Seq, Tree, ZipList, NonEmpty
+if transformers allowed: c Identity, Constant
+c   Const
+c   Monoid.Dual, Monoid.Endo, Monoid.All, Monoid.Any, Monoid.Sum, Monoid.Product, Monoid.First, Monoid.Last, Monoid.Alt
+c   Semigroup.Max, Semigroup.Min, Semigroup.First, Semigroup.Last
+c   Newline, NewlineMode
+c   Semigroup.Arg
+c   GeneralCategory, SeekMode, IOMode
+c   FieldFormat, FormatParse, FormatAdjustment, FormatSign
+c   BufferMode, ExitCode
+if not MHS: c TextEncoding
+c   Semigroup.WrappedMonoid
+-}
 
 --------------------------------------------------------------------------
 -- ** class Arbitrary
@@ -528,7 +628,6 @@ shrinkList shr xs = concat [ removes k n xs | k <- takeWhile (>0) (iterate (`div
     xs1 = take k xs
     xs2 = drop k xs
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary1 NonEmpty where
   liftArbitrary arb = NonEmpty.fromList <$> listOf1 arb
   liftShrink shr xs = [ NonEmpty.fromList xs' | xs' <- liftShrink shr (NonEmpty.toList xs), not (null xs') ]
@@ -536,6 +635,38 @@ instance Arbitrary1 NonEmpty where
 instance Arbitrary a => Arbitrary (NonEmpty a) where
   arbitrary = arbitrary1
   shrink = shrink1
+
+#ifndef NO_ARRAY
+instance (Num i, Ix.Ix i, Arbitrary i) => Arbitrary1 (Array.Array i) where
+    liftArbitrary = liftA2 makeArray arbitrary . liftArbitrary
+    liftShrink = shrinkArray
+
+instance (Num i, Ix.Ix i, Arbitrary i, Arbitrary a) => Arbitrary (Array.Array i a) where
+    arbitrary = arbitrary1
+    shrink = shrink1
+
+instance (Ix.Ix i, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array.Array i a) where
+    coarbitrary arr = coarbitrary (Array.bounds arr, Array.elems arr)
+
+
+instance (Num i, Ix.Ix i, Array.IArray Array.UArray a, Arbitrary i, Arbitrary a) => Arbitrary (Array.UArray i a) where
+    arbitrary = liftA2 makeArray arbitrary arbitrary
+    shrink = shrinkArray shrink
+
+instance (Ix.Ix i, Array.IArray Array.UArray a, CoArbitrary i, CoArbitrary a) => CoArbitrary (Array.UArray i a) where
+    coarbitrary arr = coarbitrary (Array.bounds arr, Array.elems arr)
+
+shrinkArray
+    :: (Num i, Ix.Ix i, Array.IArray arr a, Arbitrary i)
+    => (a -> [a]) -> arr i a -> [arr i a]
+shrinkArray shr arr =
+  [ makeArray lo xs | xs <- liftShrink shr (Array.elems arr) ] ++
+  [ makeArray lo' (Array.elems arr) | lo' <- shrink lo ]
+  where
+    (lo, _) = Array.bounds arr
+
+makeArray :: (Num i, Ix.Ix i, Array.IArray arr a) => i -> [a] -> arr i a
+makeArray lo xs = Array.listArray (lo, lo + fromIntegral (length xs - 1)) xs
 #endif
 
 instance Integral a => Arbitrary (Ratio a) where
@@ -551,11 +682,7 @@ instance Integral a => Arbitrary (Ratio a) where
   shrink = shrinkRealFrac
 
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Complex a) where
-#else
-instance (RealFloat a, Arbitrary a) => Arbitrary (Complex a) where
-#endif
   arbitrary = liftM2 (:+) arbitrary arbitrary
   shrink (x :+ y) = [ x' :+ y | x' <- shrink x ] ++
                     [ x :+ y' | y' <- shrink y ]
@@ -683,11 +810,9 @@ instance Arbitrary Integer where
   arbitrary = arbitrarySizedIntegral
   shrink    = shrinkIntegral
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Natural where
   arbitrary = arbitrarySizedNatural
   shrink    = shrinkIntegral
-#endif
 
 instance Arbitrary Int where
   arbitrary = arbitrarySizedIntegral
@@ -803,6 +928,16 @@ instance Arbitrary Double where
 
   shrink    = shrinkDecimal
 
+#ifndef NO_SCIENTIFIC
+instance Arbitrary Scientific.Scientific where
+    arbitrary = liftA2 Scientific.scientific arbitrary arbitrary
+    shrink s = map (uncurry Scientific.scientific) $
+        shrink (Scientific.coefficient s, Scientific.base10Exponent s)
+
+instance CoArbitrary Scientific.Scientific where
+    coarbitrary s = coarbitrary (Scientific.coefficient s, Scientific.base10Exponent s)
+#endif
+
 instance Arbitrary CChar where
   arbitrary = arbitrarySizedBoundedIntegral
   shrink = shrinkIntegral
@@ -909,7 +1044,91 @@ instance Arbitrary CDouble where
   arbitrary = arbitrarySizedFractional
   shrink = shrinkDecimal
 
+#ifndef NO_OLDTIME
+instance Arbitrary OldTime.Month where
+    arbitrary = arbitraryBoundedEnum
+
+instance CoArbitrary OldTime.Month where
+    coarbitrary = coarbitraryEnum
+
+instance Arbitrary OldTime.Day where
+    arbitrary = arbitraryBoundedEnum
+
+instance CoArbitrary OldTime.Day where
+    coarbitrary = coarbitraryEnum
+
+instance Arbitrary OldTime.ClockTime where
+    arbitrary =
+        OldTime.TOD <$> choose (0, fromIntegral (maxBound :: Int32))
+                    <*> choose (0, 1000000000000 - 1)
+    shrink (OldTime.TOD s p) =
+        [ OldTime.TOD s' p  | s' <- shrink s ] ++
+        [ OldTime.TOD s  p' | p' <- shrink p ]
+
+instance CoArbitrary OldTime.ClockTime where
+    coarbitrary (OldTime.TOD s p) =
+        coarbitrary s . coarbitrary p
+
+instance Arbitrary OldTime.TimeDiff where
+    -- a bit of a cheat ...
+    arbitrary =
+        OldTime.normalizeTimeDiff <$>
+           (OldTime.diffClockTimes <$> arbitrary <*> arbitrary)
+    shrink td@(OldTime.TimeDiff year month day hour minute sec picosec) =
+        [ td { OldTime.tdYear    = y' } | y' <- shrink year    ] ++
+        [ td { OldTime.tdMonth   = m' } | m' <- shrink month   ] ++
+        [ td { OldTime.tdDay     = d' } | d' <- shrink day     ] ++
+        [ td { OldTime.tdHour    = h' } | h' <- shrink hour    ] ++
+        [ td { OldTime.tdMin     = m' } | m' <- shrink minute  ] ++
+        [ td { OldTime.tdSec     = s' } | s' <- shrink sec     ] ++
+        [ td { OldTime.tdPicosec = p' } | p' <- shrink picosec ]
+
+instance CoArbitrary OldTime.TimeDiff where
+    coarbitrary (OldTime.TimeDiff year month day hour minute sec picosec) =
+        coarbitrary year    .
+        coarbitrary month   .
+        coarbitrary day     .
+        coarbitrary hour    .
+        coarbitrary minute  .
+        coarbitrary sec     .
+        coarbitrary picosec
+
+-- UTC only
+instance Arbitrary OldTime.CalendarTime where
+    arbitrary = OldTime.toUTCTime <$> arbitrary
+
+instance CoArbitrary OldTime.CalendarTime where
+    coarbitrary (OldTime.CalendarTime
+                        year month day hour minute sec picosec
+                        wDay yDay tzName tz isDST) =
+        coarbitrary year    .
+        coarbitrary month   .
+        coarbitrary day     .
+        coarbitrary hour    .
+        coarbitrary minute  .
+        coarbitrary sec     .
+        coarbitrary picosec .
+        coarbitrary wDay    .
+        coarbitrary yDay    .
+        coarbitrary tzName  .
+        coarbitrary tz      .
+        coarbitrary isDST
+#endif
+
 -- Arbitrary instances for container types
+
+#ifndef NO_HASHABLE
+instance (Hashable a, Arbitrary a) => Arbitrary (Hashed a) where
+    arbitrary = hashed <$> arbitrary
+
+instance Hashable a => CoArbitrary (Hashed a) where
+    coarbitrary x = coarbitrary (hashedHash x :: Int)
+#if !MIN_VERSION_hashable(1,4,0)
+      -- inefficient but otherwise impossible pre hashable 1.4.0
+      where hashedHash = hash . unhashed
+#endif
+#endif
+
 -- | WARNING: Users working on the internals of the @Set@ type via e.g. @Data.Set.Internal@
 -- should be aware that this instance aims to give a good representation of @Set a@
 -- as mathematical sets but *does not* aim to provide a varied distribution over the
@@ -980,6 +1199,76 @@ instance Arbitrary1 ZipList where
 instance Arbitrary a => Arbitrary (ZipList a) where
   arbitrary = arbitrary1
   shrink = shrink1
+
+#ifndef NO_DATAFIX
+instance Arbitrary1 f => Arbitrary (Fix f) where
+    arbitrary = sized arb where
+        arb :: Arbitrary1 f => Int -> Gen (Fix f)
+        arb n = fmap Fix $ liftArbitrary (arb (smaller n))
+
+        smaller n | n <= 0    = 0
+                  | otherwise = intLog2 n
+
+    shrink = go where go (Fix f) = map Fix (liftShrink go f)
+
+instance (Arbitrary1 f, Functor f) => Arbitrary (Mu f) where
+    arbitrary = unfoldMu unFix <$> arbitrary
+    shrink mu = unfoldMu unFix <$> shrink (foldMu Fix mu)
+
+instance (Arbitrary1 f, Functor f) => Arbitrary (Nu f) where
+    arbitrary = unfoldNu unFix <$> arbitrary
+    shrink nu = unfoldNu unFix <$> shrink (foldNu Fix nu)
+#endif
+
+#ifndef NO_BYTESTRING
+instance Arbitrary BS.ByteString where
+    arbitrary = MkGen $ \(QCGen g0) size ->
+        if size <= 0
+        then BS.empty
+        else
+            let (i, g1) = SM.nextInt g0
+                size' = i `mod` size
+            in fst (BS.unfoldrN size' gen g1)
+      where
+        gen :: SM.SMGen -> Maybe (Word8, SM.SMGen)
+        gen !g = Just (fromIntegral w64, g')
+          where
+            ~(w64, g') = SM.nextWord64 g
+
+    shrink xs = BS.pack <$> shrink (BS.unpack xs)
+
+instance CoArbitrary BS.ByteString where
+    coarbitrary = coarbitrary . BS.unpack
+
+instance Arbitrary LBS.ByteString where
+    arbitrary = MkGen $ \(QCGen g0) size ->
+        if size <= 0
+        then LBS.empty
+        else
+            let (i, g1) = SM.nextInt g0
+                size' = i `mod` size
+            in LBS.unfoldr gen (size', g1)
+      where
+        gen :: (Int, SM.SMGen) -> Maybe (Word8, (Int, SM.SMGen))
+        gen (!i, !g)
+            | i <= 0    = Nothing
+            | otherwise = Just (fromIntegral w64, (i - 1, g'))
+          where
+            ~(w64, g') = SM.nextWord64 g
+
+    shrink xs = LBS.pack <$> shrink (LBS.unpack xs)
+
+instance CoArbitrary LBS.ByteString where
+    coarbitrary = coarbitrary . LBS.unpack
+
+
+instance Arbitrary SBS.ShortByteString where
+    arbitrary = SBS.pack <$> arbitrary
+    shrink xs = SBS.pack <$> shrink (SBS.unpack xs)
+
+instance CoArbitrary SBS.ShortByteString where
+    coarbitrary = coarbitrary . SBS.unpack
+#endif
 
 #ifndef NO_TRANSFORMERS
 -- Arbitrary instance for transformers' Functors
@@ -1063,7 +1352,6 @@ instance Arbitrary a => Arbitrary (Monoid.Product a) where
   arbitrary = fmap Monoid.Product  arbitrary
   shrink = map Monoid.Product  . shrink . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary a => Arbitrary (Monoid.First a) where
   arbitrary = fmap Monoid.First arbitrary
   shrink = map Monoid.First . shrink . Monoid.getFirst
@@ -1159,9 +1447,13 @@ instance CoArbitrary ByteArray where
 
 #if MIN_VERSION_base(4,16,0)
 
+instance Arbitrary1 Solo where
+  liftArbitrary arb = mkSolo <$> arb
+  liftShrink shr s = mkSolo <$> shr (getSolo s)
+
 instance Arbitrary a => Arbitrary (Solo a) where
-  arbitrary = mkSolo <$> arbitrary
-  shrink = map mkSolo . shrink . getSolo
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 instance CoArbitrary a => CoArbitrary (Solo a) where
   coarbitrary = coarbitrary . getSolo
@@ -1174,8 +1466,6 @@ instance Arbitrary a => Arbitrary (Down a) where
 
 instance CoArbitrary a => CoArbitrary (Down a) where
   coarbitrary = coarbitrary . getDown
-
-#endif
 
 #ifdef __GLASGOW_HASKELL__
 
@@ -1264,7 +1554,6 @@ instance Arbitrary ExitCode where
   shrink (ExitFailure x) = ExitSuccess : [ ExitFailure x' | x' <- shrink x ]
   shrink _        = []
 
-#if defined(MIN_VERSION_base)
 instance Arbitrary Newline where
   arbitrary = elements [LF, CRLF]
 
@@ -1329,8 +1618,6 @@ instance Arbitrary FieldFormat where
                           <*> arbitrary
                           <*> arbitrary
   shrink (FieldFormat a b c d e f g) = [ FieldFormat a' b' c' d' e' f' g' | (a', b', c', d', e', f', g') <- shrink (a, b, c, d, e, f, g) ]
-
-#endif
 
 -- ** Helper functions for implementing arbitrary
 
@@ -1669,11 +1956,7 @@ instance HasResolution a => CoArbitrary (Fixed a) where
   coarbitrary = coarbitraryReal
 #endif
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Complex a) where
-#else
-instance (RealFloat a, CoArbitrary a) => CoArbitrary (Complex a) where
-#endif
   coarbitrary (x :+ y) = coarbitrary x . coarbitrary y
 
 instance (CoArbitrary a, CoArbitrary b)
@@ -1750,10 +2033,8 @@ instance CoArbitrary Float where
 instance CoArbitrary Double where
   coarbitrary = coarbitraryReal
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary Natural where
   coarbitrary = coarbitraryIntegral
-#endif
 
 -- Coarbitrary instances for container types
 instance CoArbitrary a => CoArbitrary (Set.Set a) where
@@ -1774,10 +2055,8 @@ instance CoArbitrary a => CoArbitrary (ZipList a) where
   coarbitrary = coarbitrary . getZipList
 
 -- CoArbitrary instance for NonEmpty
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (NonEmpty a) where
   coarbitrary (a NonEmpty.:| as) = coarbitrary (a, as)
-#endif
 
 #ifndef NO_TRANSFORMERS
 -- CoArbitrary instance for transformers' Functors
@@ -1811,7 +2090,6 @@ instance CoArbitrary a => CoArbitrary (Monoid.Sum a) where
 instance CoArbitrary a => CoArbitrary (Monoid.Product a) where
   coarbitrary = coarbitrary . Monoid.getProduct
 
-#if defined(MIN_VERSION_base)
 instance CoArbitrary a => CoArbitrary (Monoid.First a) where
   coarbitrary = coarbitrary . Monoid.getFirst
 
@@ -1899,8 +2177,6 @@ instance CoArbitrary TextEncoding where
 
 instance CoArbitrary a => CoArbitrary (Semigroup.WrappedMonoid a) where
   coarbitrary = coarbitrary . Semigroup.unwrapMonoid
-
-#endif
 
 instance CoArbitrary Version where
   coarbitrary (Version a b) = coarbitrary (a, b)

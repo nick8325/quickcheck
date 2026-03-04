@@ -43,7 +43,10 @@ getPackageModules pkg =
 getModuleDataTypes :: String -> IO [String]
 getModuleDataTypes mod = do
   putStrLn mod
-  Right names <- runInterpreter $ getModuleExports mod
+  names <- 
+    fmap (either (fail . ("runInterpreter failed: " ++) . show) id)
+      . runInterpreter
+      $ getModuleExports mod
   return [x | Data x _ <- names]
 
 haskellName :: DataType -> String

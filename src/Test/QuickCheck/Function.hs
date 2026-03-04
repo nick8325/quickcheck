@@ -110,12 +110,22 @@ import System.IO
   )
 #endif
 
+#ifndef NO_BYTESTRING
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as LBS
+import qualified Data.ByteString.Short as SBS
+#endif
+
 #ifndef NO_FIXED
 import Data.Fixed
 #endif
 
 #ifndef NO_GENERICS
 import GHC.Generics hiding (C)
+#endif
+
+#ifndef NO_SCIENTIFIC
+import qualified Data.Scientific as Scientific
 #endif
 
 import Test.QuickCheck.Compat
@@ -293,6 +303,17 @@ instance Function a => Function (NonEmpty.NonEmpty a) where
 instance Function a => Function (ZipList a) where
   function = functionMap getZipList ZipList
 
+#ifndef NO_BYTESTRING
+instance Function BS.ByteString where
+    function = functionMap BS.unpack BS.pack
+
+instance Function LBS.ByteString where
+    function = functionMap LBS.unpack LBS.pack
+
+instance Function SBS.ShortByteString where
+    function = functionMap SBS.unpack SBS.pack
+#endif
+
 instance Function a => Function (Maybe a) where
   function = functionMap g h
    where
@@ -343,6 +364,13 @@ instance Function Double where
 
 instance Function Natural where
   function = functionIntegral
+
+#ifndef NO_SCIENTIFIC
+instance Function Scientific.Scientific where
+    function = functionMap
+        (\s -> (Scientific.coefficient s, Scientific.base10Exponent s))
+        (uncurry Scientific.scientific)
+#endif
 
 -- instances for assorted types in the base package
 
