@@ -213,7 +213,7 @@ import qualified GHC.Exts as Exts
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
-#elif defined(__GHC__)
+#else
 import Data.Tuple.Solo
 #endif
 #endif
