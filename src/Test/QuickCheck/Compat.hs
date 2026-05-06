@@ -3,6 +3,8 @@
 {-# OPTIONS_GHC -Wno-deprecations #-}
 module Test.QuickCheck.Compat where
 
+#ifdef __GLASGOW_HASKELL__
+
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
 
@@ -21,11 +23,13 @@ getSolo (MkSolo a) = a
 mkSolo :: a -> Solo a
 mkSolo = Solo
 
-#elif defined(__GHC__)
+#else
 
 import Data.Tuple.Solo
 
 mkSolo :: a -> Solo a
 mkSolo = MkSolo
+
+#endif
 
 #endif
