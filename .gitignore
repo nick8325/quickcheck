@@ -8,6 +8,8 @@
 \#*
 .\#*
 *.swp
-
 quickcheck-hugs/
 hugs.output
+Main
+Main.hs
+mhs.output
