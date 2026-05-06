@@ -147,6 +147,9 @@ library
   if impl(ghc < 9.4)
     Build-depends: data-array-byte
 
+  if impl(ghc < 9.2)
+    Build-depends: OneTuple
+
   -- Switch off most optional features on non-GHC systems.
   if !impl(ghc) && !impl(mhs)
     -- If your Haskell compiler can cope without some of these, please

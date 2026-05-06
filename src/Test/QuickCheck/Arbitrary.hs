@@ -213,6 +213,8 @@ import qualified GHC.Exts as Exts
 
 #if MIN_VERSION_base(4,16,0)
 import Data.Tuple
+#elif defined(__GHC__)
+import Data.Tuple.Solo
 #endif
 #endif
 
@@ -1157,15 +1159,13 @@ instance CoArbitrary ByteArray where
 -- MicroHs does not have Exts.fromList
 #endif /* !defined(__MHS__) */
 
-#if MIN_VERSION_base(4,16,0)
-
+#if defined(__GHC__)
 instance Arbitrary a => Arbitrary (Solo a) where
   arbitrary = mkSolo <$> arbitrary
   shrink = map mkSolo . shrink . getSolo
 
 instance CoArbitrary a => CoArbitrary (Solo a) where
   coarbitrary = coarbitrary . getSolo
-
 #endif
 
 instance Arbitrary a => Arbitrary (Down a) where
