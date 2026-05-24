@@ -48,7 +48,7 @@ assertDeepExceptionIO (thanks to Alexey Kuleshevich)
 * Fix withMaxSuccess not working when checkCoverage is turned on
 * Fix a bug whereby an unfortunately timed discard could unduly fail a
 property running with checkCoverage
-* Fix Arbitrary intance for Map breaking invariants from
+* Fix Arbitrary instance for Map breaking invariants from
 Data.Map.Strict (thanks to Neil Mayhew)
 * Fix non-covered classes not showing up in output as 0% covered
 * Fix Negative's Arbitrary instance discarding an unnecessary number
