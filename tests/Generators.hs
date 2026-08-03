@@ -206,7 +206,7 @@ prop_B1 (B1 n) = expectFailure $ n === n + 1
 
 -- Double properties:
 
--- We occasionaly generate duplicates.
+-- We occasionally generate duplicates.
 prop_double_duplicate_list :: [Double] -> Property
 prop_double_duplicate_list xs = expectFailure $ nub xs === xs where
   sorted = sort xs
