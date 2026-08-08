@@ -116,7 +116,11 @@ library
   -- GHC-specific modules.
   if impl(ghc) || impl(mhs)
     Exposed-Modules: Test.QuickCheck.Function
-    Build-depends: transformers >= 0.3, deepseq >= 1.1.0.0
+    Build-depends:
+        transformers >= 0.3
+      , deepseq >= 1.1.0.0
+      , array >=0.5.4.0 && <0.6
+      , bytestring >=0.10.12.0 && <0.13
 
   if impl(ghc) && flag(templateHaskell)
     Build-depends: template-haskell >= 2.4
@@ -126,20 +130,36 @@ library
     cpp-options: -DNO_TEMPLATE_HASKELL
 
   if !impl(ghc) && !impl(mhs)
-    cpp-options: -DNO_CALLSTACK
-                 -DNO_SEMIGROUP
-                 -DNO_CTYPES_CONSTRUCTORS
-                 -DNO_FOREIGN_C_USECONDS
-                 -DNO_POLYKINDS
-                 -DNO_MONADFAIL
-                 -DNO_TRANSFORMERS
-                 -DNO_DEEPSEQ
+    cpp-options:
+      -DNO_CALLSTACK
+      -DNO_SEMIGROUP
+      -DNO_CTYPES_CONSTRUCTORS
+      -DNO_FOREIGN_C_USECONDS
+      -DNO_POLYKINDS
+      -DNO_MONADFAIL
+      -DNO_TRANSFORMERS
+      -DNO_DEEPSEQ
+      -DNO_ARRAY
+      -DNO_BYTESTRING
+
+  if !impl(ghc)
+    cpp-options:
+      -DNO_DATAFIX
+      -DNO_HASHABLE
+      -DNO_OLDTIME
+      -DNO_SCIENTIFIC
 
   -- random is explicitly Trustworthy since 1.0.1.0
   -- similar constraint for containers
   if impl(ghc)
-    Build-depends: random >=1.0.1.0
-                 , containers >=0.4.2.1
+    Build-depends:
+        random >=1.0.1.0
+      , containers >=0.4.2.1
+      , data-fix >=0.3 && <0.4
+      , integer-logarithms >=1.0 && <1.1
+      , hashable >=1.3 && <1.6
+      , old-time >=1.1 && <1.2
+      , scientific >=0.3 && <0.4
 
   if impl(ghc >= 9.8)
     ghc-options: -Wno-x-partial
