@@ -107,10 +107,13 @@ instance Functor Blind where
 instance Show (Blind a) where
   show _ = "(*)"
 
-instance Arbitrary a => Arbitrary (Blind a) where
-  arbitrary = Blind `fmap` arbitrary
+instance Arbitrary1 Blind where
+  liftArbitrary = fmap Blind
+  liftShrink shr (Blind x) = [ Blind x' | x' <- shr x ]
 
-  shrink (Blind x) = [ Blind x' | x' <- shrink x ]
+instance Arbitrary a => Arbitrary (Blind a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 --------------------------------------------------------------------------
 -- | @Fixed x@: as x, but will not be shrunk.
@@ -127,8 +130,11 @@ newtype Fixed a = Fixed {getFixed :: a}
 instance Functor Fixed where
   fmap f (Fixed x) = Fixed (f x)
 
+instance Arbitrary1 Fixed where
+  liftArbitrary = fmap Fixed
+
 instance Arbitrary a => Arbitrary (Fixed a) where
-  arbitrary = Fixed `fmap` arbitrary
+  arbitrary = arbitrary1
 
   -- no shrink function
 
@@ -427,8 +433,11 @@ newtype NoShrink a = NoShrink {getNoShrink :: a}
 instance Functor NoShrink where
   fmap f (NoShrink x) = NoShrink (f x)
 
+instance Arbitrary1 NoShrink where
+  liftArbitrary = fmap NoShrink
+
 instance Arbitrary a => Arbitrary (NoShrink a) where
-  arbitrary = fmap NoShrink arbitrary
+  arbitrary = arbitrary1
 
 --------------------------------------------------------------------------
 -- | @Smart _ x@: tries a different order when shrinking.
