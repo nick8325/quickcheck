@@ -107,10 +107,13 @@ instance Functor Blind where
 instance Show (Blind a) where
   show _ = "(*)"
 
-instance Arbitrary a => Arbitrary (Blind a) where
-  arbitrary = Blind `fmap` arbitrary
+instance Arbitrary1 Blind where
+  liftArbitrary = fmap Blind
+  liftShrink shr (Blind x) = [ Blind x' | x' <- shr x ]
 
-  shrink (Blind x) = [ Blind x' | x' <- shrink x ]
+instance Arbitrary a => Arbitrary (Blind a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 --------------------------------------------------------------------------
 -- | @Fixed x@: as x, but will not be shrunk.
@@ -127,8 +130,11 @@ newtype Fixed a = Fixed {getFixed :: a}
 instance Functor Fixed where
   fmap f (Fixed x) = Fixed (f x)
 
+instance Arbitrary1 Fixed where
+  liftArbitrary = fmap Fixed
+
 instance Arbitrary a => Arbitrary (Fixed a) where
-  arbitrary = Fixed `fmap` arbitrary
+  arbitrary = arbitrary1
 
   -- no shrink function
 
@@ -399,18 +405,21 @@ newtype Shrink2 a = Shrink2 {getShrink2 :: a}
 instance Functor Shrink2 where
   fmap f (Shrink2 x) = Shrink2 (f x)
 
-instance Arbitrary a => Arbitrary (Shrink2 a) where
-  arbitrary =
-    Shrink2 `fmap` arbitrary
+instance Arbitrary1 Shrink2 where
+  liftArbitrary = fmap Shrink2
 
-  shrink (Shrink2 x) =
+  liftShrink shr (Shrink2 x) =
     [ Shrink2 y | y <- shrink_x ] ++
     [ Shrink2 z
     | y <- shrink_x
-    , z <- shrink y
+    , z <- shr y
     ]
    where
-    shrink_x = shrink x
+    shrink_x = shr x
+
+instance Arbitrary a => Arbitrary (Shrink2 a) where
+  arbitrary = arbitrary1
+  shrink = shrink1
 
 --------------------------------------------------------------------------
 -- | @NoShrink x@: no shrinking
@@ -427,8 +436,11 @@ newtype NoShrink a = NoShrink {getNoShrink :: a}
 instance Functor NoShrink where
   fmap f (NoShrink x) = NoShrink (f x)
 
+instance Arbitrary1 NoShrink where
+  liftArbitrary = fmap NoShrink
+
 instance Arbitrary a => Arbitrary (NoShrink a) where
-  arbitrary = fmap NoShrink arbitrary
+  arbitrary = arbitrary1
 
 --------------------------------------------------------------------------
 -- | @Smart _ x@: tries a different order when shrinking.
@@ -441,19 +453,24 @@ instance Functor Smart where
 instance Show a => Show (Smart a) where
   showsPrec n (Smart _ x) = showsPrec n x
 
-instance Arbitrary a => Arbitrary (Smart a) where
-  arbitrary =
-    do x <- arbitrary
+instance Arbitrary1 Smart where
+  liftArbitrary arb =
+    do x <- arb
        return (Smart 0 x)
 
-  shrink (Smart i x) = take i' ys `ilv` drop i' ys
+  liftShrink shr (Smart i x) = take i' ys `ilv` drop i' ys
    where
-    ys = [ Smart j y | (j,y) <- [0..] `zip` shrink x ]
+    ys = [ Smart j y | (j,y) <- [0..] `zip` shr x ]
     i' = 0 `max` (i-2)
 
     []     `ilv` bs     = bs
     as     `ilv` []     = as
     (a:as) `ilv` (b:bs) = a : b : (as `ilv` bs)
+
+instance Arbitrary a => Arbitrary (Smart a) where
+  arbitrary = arbitrary1
+
+  shrink = shrink1
 
 {-
   shrink (Smart i x) = part0 ++ part2 ++ part1
