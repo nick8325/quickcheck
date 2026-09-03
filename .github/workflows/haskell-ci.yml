@@ -58,7 +58,6 @@ jobs:
           - {"resolver": lts-21.25, "ghc-version": "9.4.8"}
           - {"resolver": lts-20.26, "ghc-version": "9.2.8"}
           - {"resolver": lts-19.33, "ghc-version": "9.0.2"}
-          - {"resolver": lts-18.28, "ghc-version": "8.10.7"}
       fail-fast: false
 
     runs-on: ubuntu-latest
@@ -71,7 +70,7 @@ jobs:
           ghc-version: ${{matrix.ghc-version}}
           enable-stack: true
       - run: |
-          printf "snapshot: ${{ matrix.resolver }}\npackages: [.]\nextra-deps: [data-array-byte-0.1.0.1]\nsystem-ghc: true" > stack.yaml
+          printf "snapshot: ${{ matrix.resolver }}\npackages: [.]\nextra-deps: [data-array-byte-0.1.0.1,OneTuple-0.4.2.1]\nsystem-ghc: true" > stack.yaml
           cat stack.yaml
       - uses: actions/cache@v4
         with:

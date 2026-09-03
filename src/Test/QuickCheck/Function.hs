@@ -548,11 +548,12 @@ instance Function Version where
 #if !defined(__MHS__)
 instance Function ByteArray where
   function = functionMap Exts.toList Exts.fromList
-#endif
 
 #if MIN_VERSION_base(4,16,0)
 instance Function a => Function (Solo a) where
   function = functionMap getSolo mkSolo
+#endif
+
 #endif
 
 instance Function a => Function (Down a) where
