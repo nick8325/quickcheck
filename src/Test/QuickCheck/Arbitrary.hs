@@ -1015,9 +1015,9 @@ instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) 
 instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
   liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
   liftShrink shr = map Compose . liftShrink (liftShrink shr) . getCompose
-instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Compose f g a) where
-  arbitrary = arbitrary1
-  shrink = shrink1
+instance Arbitrary (f (g a)) => Arbitrary (Compose f g a) where
+  arbitrary = Compose <$> arbitrary
+  shrink (Compose x) = Compose <$> shrink x
 #endif
 
 -- Arbitrary instance for Const
