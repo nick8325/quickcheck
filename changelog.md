@@ -1,5 +1,11 @@
 ## UNRELEASED
 
+## QuickCheck 2.19.0.0 (released 2026-09-16)
+* Additional `Arbitrary1` instances 
+* Add compat instances for `OneTuple`
+* Better deprecation warning
+* Fix typos (thanks Ang)
+
 ## QuickCheck 2.18.0.0 (released 2026-02-26)
 * BREAKING: Added a number of `CoArbitrary` and `Function` instances for types in `base`
 * Improve implementation of `shrinkIntegral` (thanks tom93)
