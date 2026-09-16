@@ -3,6 +3,7 @@
 -- __Note__: the contents of this module are re-exported by
 -- "Test.QuickCheck". You do not need to import it directly.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE FlexibleContexts #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
@@ -326,7 +327,7 @@ class Arbitrary a where
   shrink _ = []
 
 -- | Lifting of the 'Arbitrary' class to unary type constructors.
-class Arbitrary1 f where
+class (forall a. Arbitrary a => Arbitrary (f a)) => Arbitrary1 f where
   liftArbitrary :: Gen a -> Gen (f a)
   liftShrink    :: (a -> [a]) -> f a -> [f a]
   liftShrink _ _ = []
@@ -338,7 +339,7 @@ shrink1 :: (Arbitrary1 f, Arbitrary a) => f a -> [f a]
 shrink1 = liftShrink shrink
 
 -- | Lifting of the 'Arbitrary' class to binary type constructors.
-class Arbitrary2 f where
+class (forall a b. (Arbitrary a, Arbitrary b) => Arbitrary (f a b)) => Arbitrary2 f where
   liftArbitrary2 :: Gen a -> Gen b -> Gen (f a b)
   liftShrink2    :: (a -> [a]) -> (b -> [b]) -> f a b -> [f a b]
   liftShrink2 _ _ _ = []
@@ -1015,9 +1016,9 @@ instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Product f g a) 
 instance (Arbitrary1 f, Arbitrary1 g) => Arbitrary1 (Compose f g) where
   liftArbitrary = fmap Compose . liftArbitrary . liftArbitrary
   liftShrink shr = map Compose . liftShrink (liftShrink shr) . getCompose
-instance (Arbitrary1 f, Arbitrary1 g, Arbitrary a) => Arbitrary (Compose f g a) where
-  arbitrary = arbitrary1
-  shrink = shrink1
+instance Arbitrary (f (g a)) => Arbitrary (Compose f g a) where
+  arbitrary = Compose <$> arbitrary
+  shrink (Compose x) = Compose <$> shrink x
 #endif
 
 -- Arbitrary instance for Const
