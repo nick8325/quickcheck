@@ -3,6 +3,7 @@
 -- __Note__: the contents of this module are re-exported by
 -- "Test.QuickCheck". You do not need to import it directly.
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE FlexibleContexts #-}
 #ifndef NO_GENERICS
 {-# LANGUAGE DefaultSignatures, FlexibleContexts, TypeOperators #-}
@@ -324,7 +325,7 @@ class Arbitrary a where
   shrink _ = []
 
 -- | Lifting of the 'Arbitrary' class to unary type constructors.
-class Arbitrary1 f where
+class (forall a. Arbitrary a => Arbitrary (f a)) => Arbitrary1 f where
   liftArbitrary :: Gen a -> Gen (f a)
   liftShrink    :: (a -> [a]) -> f a -> [f a]
   liftShrink _ _ = []
@@ -336,7 +337,7 @@ shrink1 :: (Arbitrary1 f, Arbitrary a) => f a -> [f a]
 shrink1 = liftShrink shrink
 
 -- | Lifting of the 'Arbitrary' class to binary type constructors.
-class Arbitrary2 f where
+class (forall a b. (Arbitrary a, Arbitrary b) => Arbitrary (f a b)) => Arbitrary2 f where
   liftArbitrary2 :: Gen a -> Gen b -> Gen (f a b)
   liftShrink2    :: (a -> [a]) -> (b -> [b]) -> f a b -> [f a b]
   liftShrink2 _ _ _ = []
