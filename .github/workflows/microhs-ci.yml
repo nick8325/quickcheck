@@ -16,5 +16,6 @@ jobs:
     - uses: sol/setup-MicroHs@nightly
     - name: checkout QuickCheck repo
       uses: actions/checkout@v4
+    - run: find ~/.mcabal/ -name "QuickCheck-*.pkg" -delete
     - name: test QuickCheck
       run: ./test-mhs
